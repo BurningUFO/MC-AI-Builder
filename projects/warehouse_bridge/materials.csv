@@ -1,0 +1,15 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+minecraft:chiseled_quartz_block,6,Chiseled Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite,16,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:polished_diorite,92,Polished Diorite,BMC4.jar,1,static_assets_verified
+minecraft:quartz_bricks,33,Quartz Bricks,BMC4.jar,1,static_assets_verified
+minecraft:quartz_pillar,10,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz,44,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_slab,6,Smooth Quartz Slab,BMC4.jar,2,static_assets_verified
+minecraft:smooth_quartz_stairs,28,Smooth Quartz Stairs,BMC4.jar,2,static_assets_verified
+minecraft:soul_lantern,8,Soul Lantern,BMC4.jar,1,static_assets_verified
+quark:calcite_bricks_wall,40,Calcite Brick Wall,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_shale,50,Polished Shale,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks,578,Shale Bricks,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks_slab,14,Shale Brick Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks_stairs,98,Shale Brick Stairs,Quark-4.0-462.jar,2,static_assets_verified

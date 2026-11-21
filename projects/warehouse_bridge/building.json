@@ -1,0 +1,8195 @@
+{
+  "schema_version": 1,
+  "name": "Three-arch stone bridge",
+  "minecraft_version": "1.20.1",
+  "data_version": 3465,
+  "bounds": {
+    "min": [
+      0,
+      -3,
+      0
+    ],
+    "max": [
+      8,
+      5,
+      24
+    ]
+  },
+  "blocks": [
+    {
+      "x": 0,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -3,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 0,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 0,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 1,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 1,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 7,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 7,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 8,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 8,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 16,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 16,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 17,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 17,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 23,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 23,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 24,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": -1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": -1,
+      "z": 24,
+      "id": "minecraft:polished_andesite",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 2,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 2,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 6,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 6,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 6,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 9,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 9,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 9,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 15,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 15,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 15,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 18,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 18,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 18,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 22,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 22,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 22,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 3,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 3,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 3,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 5,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 5,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 5,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 10,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 10,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 10,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 14,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 14,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 14,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 19,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 19,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 19,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 21,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 21,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 21,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 0,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 1,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 2,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 3,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 4,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 4,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 4,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 5,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 6,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 7,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 8,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 9,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 10,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 11,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 11,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 11,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 13,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 13,
+      "id": "quark:shale_bricks_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 13,
+      "id": "minecraft:smooth_quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 14,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 15,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 16,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 17,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 18,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 19,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 20,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 20,
+      "id": "quark:shale_bricks_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 20,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 21,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 22,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 23,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "z": 24,
+      "id": "quark:shale_bricks",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 0,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 0,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 1,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 1,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 2,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 2,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 3,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 3,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 3,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 4,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 4,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 4,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 5,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 5,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 5,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 6,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 6,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 6,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 7,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 7,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 7,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 8,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 8,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 8,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 9,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 9,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 9,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 10,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 10,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 10,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 11,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 11,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 11,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 12,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 12,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 12,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 13,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 13,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 13,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 14,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 14,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 14,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 15,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 15,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 15,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 16,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 16,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 16,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 17,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 17,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 17,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 18,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 18,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 18,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 19,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 19,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 19,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 20,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 20,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 20,
+      "id": "minecraft:chiseled_quartz_block",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 21,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 21,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 21,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 22,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 22,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 22,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 23,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 23,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 23,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 24,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:quartz_bricks",
+      "properties": {}
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:polished_diorite",
+      "properties": {}
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "z": 24,
+      "id": "quark:polished_shale",
+      "properties": {}
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "z": 24,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 1,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 1,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 2,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 2,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 3,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 3,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 4,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 4,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 5,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 5,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 6,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 6,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 7,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 7,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 8,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 8,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 9,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 9,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 10,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 10,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 11,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 11,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 12,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 12,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 13,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 13,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 14,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 14,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 15,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 15,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 16,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 16,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 17,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 17,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 18,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 18,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 19,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 19,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 20,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 20,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 21,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 21,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 22,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 22,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 23,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 23,
+      "id": "quark:calcite_bricks_wall",
+      "properties": {
+        "east": "none",
+        "north": "low",
+        "south": "low",
+        "up": "false",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 24,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "z": 24,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 7,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "z": 7,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:smooth_quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 17,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "z": 17,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 24,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "z": 24,
+      "id": "minecraft:soul_lantern",
+      "properties": {
+        "hanging": "false",
+        "waterlogged": "false"
+      }
+    }
+  ]
+}

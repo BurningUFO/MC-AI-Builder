@@ -1,0 +1,33 @@
+# Local tooling, assets, and test worlds
+/.cache/
+/.venv/
+/assets/
+/mc-test/
+/tools/blender/
+/tools/blender-install.json
+
+# Generated files and caches
+/forge/.gradle/
+/forge/build/
+/forge/run/
+/forge/run-data/
+/projects/*/material-index.json
+/previews/
+__pycache__/
+*.py[cod]
+*.log
+*.jar
+!/forge/gradle/wrapper/gradle-wrapper.jar
+*.blend
+*.blend1
+*.mca
+*.mcr
+
+# Local secrets and operating system files
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+Thumbs.db
+.DS_Store

@@ -1,0 +1,1 @@
+"""Procedural building generators."""

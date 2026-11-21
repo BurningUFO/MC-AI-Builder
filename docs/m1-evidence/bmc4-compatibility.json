@@ -1,0 +1,11 @@
+{
+  "source_mod_count": 387,
+  "forge": "47.4.20",
+  "fake_players": "3.0.0",
+  "minecraft": "1.20.1",
+  "bridge_ready": true,
+  "wall_passed": true,
+  "placed": 30,
+  "reason": null,
+  "client_exit_code": 1
+}

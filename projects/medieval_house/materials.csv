@@ -1,0 +1,37 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:stacked_spruce_planks,54,Stacked Spruce Planks,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+decorative_blocks:dark_oak_beam,24,Dark Oak Beam,decorative_blocks-forge-1.20.1-4.1.3.jar,1,static_assets_verified
+handcrafted:spruce_chair,6,Spruce Chair,handcrafted-forge-1.20.1-3.0.6.jar,5,static_assets_verified
+minecraft:barrel,4,Barrel,BMC4.jar,1,static_assets_verified
+minecraft:brick_slab,4,Brick Slab,BMC4.jar,1,static_assets_verified
+minecraft:brick_stairs,1,Brick Stairs,BMC4.jar,1,static_assets_verified
+minecraft:bricks,32,Bricks,BMC4.jar,1,static_assets_verified
+minecraft:brown_carpet,26,Brown Carpet,BMC4.jar,1,static_assets_verified
+minecraft:crafting_table,1,Crafting Table,BMC4.jar,1,static_assets_verified
+minecraft:furnace,1,Furnace,BMC4.jar,1,static_assets_verified
+minecraft:glass_pane,80,Glass Pane,BMC4.jar,2,static_assets_verified
+minecraft:green_carpet,2,Green Carpet,BMC4.jar,1,static_assets_verified
+minecraft:lantern,7,Lantern,BMC4.jar,2,static_assets_verified
+minecraft:lectern,1,Lectern,BMC4.jar,1,static_assets_verified
+minecraft:mossy_stone_bricks,5,Mossy Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:orange_carpet,5,Orange Carpet,BMC4.jar,1,static_assets_verified
+minecraft:red_carpet,4,Red Carpet,BMC4.jar,1,static_assets_verified
+minecraft:spruce_door,4,Spruce Door,BMC4.jar,4,static_assets_verified
+minecraft:spruce_fence,10,Spruce Fence,BMC4.jar,7,static_assets_verified
+minecraft:spruce_planks,238,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,40,Spruce Slab,BMC4.jar,2,static_assets_verified
+minecraft:spruce_stairs,38,Spruce Stairs,BMC4.jar,2,static_assets_verified
+minecraft:spruce_trapdoor,16,Spruce Trapdoor,BMC4.jar,2,static_assets_verified
+minecraft:stone_brick_slab,4,Stone Brick Slab,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_stairs,4,Stone Brick Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_bricks,4,Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:stripped_dark_oak_log,222,Stripped Dark Oak Log,BMC4.jar,3,static_assets_verified
+quark:dark_oak_bookshelf,10,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:red_shingles,190,Red Terracotta Shingles,Quark-4.0-462.jar,1,static_assets_verified
+quark:red_shingles_slab,32,Red Terracotta Shingle Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:red_shingles_stairs,190,Red Terracotta Shingle Stairs,Quark-4.0-462.jar,2,static_assets_verified
+supplementaries:daub,104,Daub,supplementaries-1.20-3.1.43-forge.jar,1,static_assets_verified
+supplementaries:daub_cross_brace,12,Wattle and Daub Cross Brace,supplementaries-1.20-3.1.43-forge.jar,1,static_assets_verified
+supplementaries:daub_frame,4,Wattle and Daub Frame,supplementaries-1.20-3.1.43-forge.jar,1,static_assets_verified
+twigs:polished_tuff_bricks,97,Polished Tuff Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:spruce_table,2,Spruce Table,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified

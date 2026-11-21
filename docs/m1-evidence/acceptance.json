@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "minecraft": "1.20.1",
+  "forge": "47.4.20",
+  "fake_players": "3.0.0",
+  "construction": {
+    "passed": true,
+    "matched": 30,
+    "target_mismatches": [],
+    "monitored_bounds": {
+      "min": [
+        -1,
+        -61,
+        -1
+      ],
+      "max": [
+        33,
+        -49,
+        25
+      ]
+    },
+    "non_target_cells_checked": 12255,
+    "outside_approved_cells_checked": 3210,
+    "non_target_changes": 0,
+    "outside_approved_changes": 0,
+    "first_non_target_changes": []
+  },
+  "npc_walked_blocks": 19.557594132805566,
+  "pause_ticks": 33,
+  "cancel_ticks": 30,
+  "unreachable_reason": "no_reachable_placement_stance",
+  "checks": [
+    "token",
+    "approved_area",
+    "valid_state",
+    "spawn",
+    "submit_retry",
+    "pause",
+    "resume",
+    "monotonic_action_ticks",
+    "forge_item_events",
+    "inventory",
+    "state_readback",
+    "outside_halo",
+    "occupied_target",
+    "rotation",
+    "cancel",
+    "stale_plan",
+    "unreachable"
+  ]
+}

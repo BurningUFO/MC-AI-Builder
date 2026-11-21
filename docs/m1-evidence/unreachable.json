@@ -1,0 +1,537 @@
+{
+  "protocol": 1,
+  "world": "M1 Construction Lab",
+  "dimension": "minecraft:overworld",
+  "game_tick": 572,
+  "approved_area": {
+    "min": [
+      0,
+      -60,
+      0
+    ],
+    "max": [
+      32,
+      -50,
+      24
+    ]
+  },
+  "npc": {
+    "backend": "fake_players_item_interaction",
+    "present": true,
+    "entity_type": "players:fake_player",
+    "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+    "walked_blocks": 3.53559950767255,
+    "moving": false,
+    "position": [
+      19.73887325454891,
+      -58.975575911786315,
+      7.316495264235083
+    ],
+    "materials": {
+      "minecraft:stone_bricks": 8
+    }
+  },
+  "job": {
+    "job_id": "11883e82-a8ab-4280-b627-0b74e8850427",
+    "building_id": "reach_limit",
+    "building_version": 1,
+    "state": "failed",
+    "total": 11,
+    "processed": 4,
+    "placed": 3,
+    "world_bounds": {
+      "min": [
+        22,
+        -60,
+        9
+      ],
+      "max": [
+        22,
+        -50,
+        9
+      ]
+    },
+    "reason": "no_reachable_placement_stance",
+    "actions": [
+      {
+        "local": [
+          0,
+          0,
+          0
+        ],
+        "world": [
+          22,
+          -60,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "placed",
+        "tick": 549,
+        "before": {
+          "id": "minecraft:air",
+          "properties": {}
+        },
+        "actual": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 11,
+          "item_after": 10,
+          "reach": 4.45521406088936,
+          "clicked": [
+            22,
+            -61,
+            9
+          ],
+          "face": "up"
+        }
+      },
+      {
+        "local": [
+          0,
+          1,
+          0
+        ],
+        "world": [
+          22,
+          -59,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "placed",
+        "tick": 555,
+        "before": {
+          "id": "minecraft:air",
+          "properties": {}
+        },
+        "actual": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 10,
+          "item_after": 9,
+          "reach": 3.4292086169786833,
+          "clicked": [
+            22,
+            -60,
+            9
+          ],
+          "face": "up"
+        }
+      },
+      {
+        "local": [
+          0,
+          2,
+          0
+        ],
+        "world": [
+          22,
+          -58,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "placed",
+        "tick": 565,
+        "before": {
+          "id": "minecraft:air",
+          "properties": {}
+        },
+        "actual": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 9,
+          "item_after": 8,
+          "reach": 3.448110057369136,
+          "clicked": [
+            22,
+            -59,
+            9
+          ],
+          "face": "up"
+        }
+      },
+      {
+        "local": [
+          0,
+          3,
+          0
+        ],
+        "world": [
+          22,
+          -57,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "failed",
+        "tick": 571,
+        "before": {
+          "id": "minecraft:air",
+          "properties": {}
+        },
+        "actual": {
+          "id": "minecraft:air",
+          "properties": {}
+        },
+        "reason": "no_reachable_placement_stance"
+      },
+      {
+        "local": [
+          0,
+          4,
+          0
+        ],
+        "world": [
+          22,
+          -56,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          5,
+          0
+        ],
+        "world": [
+          22,
+          -55,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          6,
+          0
+        ],
+        "world": [
+          22,
+          -54,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          7,
+          0
+        ],
+        "world": [
+          22,
+          -53,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          8,
+          0
+        ],
+        "world": [
+          22,
+          -52,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          9,
+          0
+        ],
+        "world": [
+          22,
+          -51,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      },
+      {
+        "local": [
+          0,
+          10,
+          0
+        ],
+        "world": [
+          22,
+          -50,
+          9
+        ],
+        "expected": {
+          "id": "minecraft:stone_bricks",
+          "properties": {}
+        },
+        "item_id": "minecraft:stone_bricks",
+        "status": "skipped"
+      }
+    ],
+    "verification": {
+      "passed": false,
+      "matched": 3,
+      "target_mismatches": [
+        {
+          "local": [
+            0,
+            3,
+            0
+          ],
+          "world": [
+            22,
+            -57,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            4,
+            0
+          ],
+          "world": [
+            22,
+            -56,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            5,
+            0
+          ],
+          "world": [
+            22,
+            -55,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            6,
+            0
+          ],
+          "world": [
+            22,
+            -54,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            7,
+            0
+          ],
+          "world": [
+            22,
+            -53,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            8,
+            0
+          ],
+          "world": [
+            22,
+            -52,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            9,
+            0
+          ],
+          "world": [
+            22,
+            -51,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        },
+        {
+          "local": [
+            0,
+            10,
+            0
+          ],
+          "world": [
+            22,
+            -50,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "mismatch",
+          "actual": {
+            "id": "minecraft:air",
+            "properties": {}
+          }
+        }
+      ],
+      "monitored_bounds": {
+        "min": [
+          -1,
+          -61,
+          -1
+        ],
+        "max": [
+          33,
+          -49,
+          25
+        ]
+      },
+      "non_target_cells_checked": 12274,
+      "outside_approved_cells_checked": 3210,
+      "non_target_changes": 0,
+      "outside_approved_changes": 0,
+      "first_non_target_changes": []
+    }
+  }
+}

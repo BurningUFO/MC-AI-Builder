@@ -1,0 +1,11 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+minecraft:polished_diorite,86,Polished Diorite,BMC4.jar,1,static_assets_verified
+minecraft:quartz_bricks,43,Quartz Bricks,BMC4.jar,1,static_assets_verified
+minecraft:quartz_pillar,10,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:sea_lantern,4,Sea Lantern,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz,46,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_slab,2,Smooth Quartz Slab,BMC4.jar,1,static_assets_verified
+minecraft:soul_lantern,8,Soul Lantern,BMC4.jar,1,static_assets_verified
+quark:calcite_bricks_wall,40,Calcite Brick Wall,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_shale,46,Polished Shale,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks,60,Shale Bricks,Quark-4.0-462.jar,1,static_assets_verified

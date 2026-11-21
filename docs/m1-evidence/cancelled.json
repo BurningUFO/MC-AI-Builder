@@ -1,0 +1,1483 @@
+{
+  "before": {
+    "protocol": 1,
+    "world": "M1 Construction Lab",
+    "dimension": "minecraft:overworld",
+    "game_tick": 500,
+    "approved_area": {
+      "min": [
+        0,
+        -60,
+        0
+      ],
+      "max": [
+        32,
+        -50,
+        24
+      ]
+    },
+    "npc": {
+      "backend": "fake_players_item_interaction",
+      "present": true,
+      "entity_type": "players:fake_player",
+      "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+      "walked_blocks": 8.632638363037177,
+      "moving": false,
+      "position": [
+        18.231705578427626,
+        -58.333890739061786,
+        6.705577166196396
+      ],
+      "materials": {
+        "minecraft:stone_bricks": 9,
+        "minecraft:oak_stairs": 1,
+        "minecraft:spruce_planks": 4,
+        "minecraft:glass": 4,
+        "minecraft:stone_brick_slab": 8
+      }
+    },
+    "job": {
+      "job_id": "9a303aa6-f7c7-4059-8762-6eee5fcf384b",
+      "building_id": "cancel_wall",
+      "building_version": 1,
+      "state": "cancelled",
+      "total": 30,
+      "processed": 4,
+      "placed": 4,
+      "world_bounds": {
+        "min": [
+          18,
+          -60,
+          5
+        ],
+        "max": [
+          19,
+          -58,
+          12
+        ]
+      },
+      "reason": "cancelled_by_request"
+    }
+  },
+  "after": {
+    "protocol": 1,
+    "world": "M1 Construction Lab",
+    "dimension": "minecraft:overworld",
+    "game_tick": 530,
+    "approved_area": {
+      "min": [
+        0,
+        -60,
+        0
+      ],
+      "max": [
+        32,
+        -50,
+        24
+      ]
+    },
+    "npc": {
+      "backend": "fake_players_item_interaction",
+      "present": true,
+      "entity_type": "players:fake_player",
+      "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+      "walked_blocks": 8.632638363037177,
+      "moving": false,
+      "position": [
+        18.579629415019184,
+        -59.0,
+        6.770961316784649
+      ],
+      "materials": {
+        "minecraft:stone_bricks": 9,
+        "minecraft:oak_stairs": 1,
+        "minecraft:spruce_planks": 4,
+        "minecraft:glass": 4,
+        "minecraft:stone_brick_slab": 8
+      }
+    },
+    "job": {
+      "job_id": "9a303aa6-f7c7-4059-8762-6eee5fcf384b",
+      "building_id": "cancel_wall",
+      "building_version": 1,
+      "state": "cancelled",
+      "total": 30,
+      "processed": 4,
+      "placed": 4,
+      "world_bounds": {
+        "min": [
+          18,
+          -60,
+          5
+        ],
+        "max": [
+          19,
+          -58,
+          12
+        ]
+      },
+      "reason": "cancelled_by_request"
+    }
+  },
+  "progress": {
+    "protocol": 1,
+    "world": "M1 Construction Lab",
+    "dimension": "minecraft:overworld",
+    "game_tick": 531,
+    "approved_area": {
+      "min": [
+        0,
+        -60,
+        0
+      ],
+      "max": [
+        32,
+        -50,
+        24
+      ]
+    },
+    "npc": {
+      "backend": "fake_players_item_interaction",
+      "present": true,
+      "entity_type": "players:fake_player",
+      "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+      "walked_blocks": 8.632638363037177,
+      "moving": false,
+      "position": [
+        18.579629415019184,
+        -59.0,
+        6.770961316784649
+      ],
+      "materials": {
+        "minecraft:stone_bricks": 9,
+        "minecraft:oak_stairs": 1,
+        "minecraft:spruce_planks": 4,
+        "minecraft:glass": 4,
+        "minecraft:stone_brick_slab": 8
+      }
+    },
+    "job": {
+      "job_id": "9a303aa6-f7c7-4059-8762-6eee5fcf384b",
+      "building_id": "cancel_wall",
+      "building_version": 1,
+      "state": "cancelled",
+      "total": 30,
+      "processed": 4,
+      "placed": 4,
+      "world_bounds": {
+        "min": [
+          18,
+          -60,
+          5
+        ],
+        "max": [
+          19,
+          -58,
+          12
+        ]
+      },
+      "reason": "cancelled_by_request",
+      "actions": [
+        {
+          "local": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            5
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "placed",
+          "tick": 444,
+          "before": {
+            "id": "minecraft:air",
+            "properties": {}
+          },
+          "actual": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "interaction_evidence": {
+            "method": "ServerPlayerGameMode.useItemOn",
+            "right_click_events": 1,
+            "place_events": 1,
+            "interaction": "CONSUME",
+            "item_before": 12,
+            "item_after": 11,
+            "reach": 4.430192718606935,
+            "clicked": [
+              19,
+              -61,
+              5
+            ],
+            "face": "up"
+          }
+        },
+        {
+          "local": [
+            1,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            6
+          ],
+          "expected": {
+            "id": "minecraft:oak_stairs",
+            "properties": {
+              "facing": "east",
+              "half": "bottom",
+              "shape": "straight",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:oak_stairs",
+          "status": "placed",
+          "tick": 450,
+          "before": {
+            "id": "minecraft:air",
+            "properties": {}
+          },
+          "actual": {
+            "id": "minecraft:oak_stairs",
+            "properties": {
+              "facing": "east",
+              "half": "bottom",
+              "shape": "straight",
+              "waterlogged": "false"
+            }
+          },
+          "interaction_evidence": {
+            "method": "ServerPlayerGameMode.useItemOn",
+            "right_click_events": 1,
+            "place_events": 1,
+            "interaction": "CONSUME",
+            "item_before": 2,
+            "item_after": 1,
+            "reach": 3.325420999079161,
+            "clicked": [
+              18,
+              -61,
+              6
+            ],
+            "face": "up"
+          }
+        },
+        {
+          "local": [
+            1,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            6
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "placed",
+          "tick": 480,
+          "before": {
+            "id": "minecraft:air",
+            "properties": {}
+          },
+          "actual": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "interaction_evidence": {
+            "method": "ServerPlayerGameMode.useItemOn",
+            "right_click_events": 1,
+            "place_events": 1,
+            "interaction": "CONSUME",
+            "item_before": 11,
+            "item_after": 10,
+            "reach": 2.421669084761962,
+            "clicked": [
+              19,
+              -60,
+              5
+            ],
+            "face": "south"
+          }
+        },
+        {
+          "local": [
+            2,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            7
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "placed",
+          "tick": 498,
+          "before": {
+            "id": "minecraft:air",
+            "properties": {}
+          },
+          "actual": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "interaction_evidence": {
+            "method": "ServerPlayerGameMode.useItemOn",
+            "right_click_events": 1,
+            "place_events": 1,
+            "interaction": "CONSUME",
+            "item_before": 10,
+            "item_after": 9,
+            "reach": 2.987745095716007,
+            "clicked": [
+              18,
+              -61,
+              7
+            ],
+            "face": "up"
+          }
+        },
+        {
+          "local": [
+            2,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            7
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            3,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            8
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            3,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            8
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            4,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            4,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            5,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            10
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            5,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            10
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            6,
+            0,
+            1
+          ],
+          "world": [
+            18,
+            -60,
+            11
+          ],
+          "expected": {
+            "id": "minecraft:oak_stairs",
+            "properties": {
+              "facing": "east",
+              "half": "bottom",
+              "shape": "straight",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:oak_stairs",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            6,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            11
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            7,
+            0,
+            0
+          ],
+          "world": [
+            19,
+            -60,
+            12
+          ],
+          "expected": {
+            "id": "minecraft:stone_bricks",
+            "properties": {}
+          },
+          "item_id": "minecraft:stone_bricks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            0,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            5
+          ],
+          "expected": {
+            "id": "minecraft:spruce_planks",
+            "properties": {}
+          },
+          "item_id": "minecraft:spruce_planks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            1,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            6
+          ],
+          "expected": {
+            "id": "minecraft:glass",
+            "properties": {}
+          },
+          "item_id": "minecraft:glass",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            2,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            7
+          ],
+          "expected": {
+            "id": "minecraft:glass",
+            "properties": {}
+          },
+          "item_id": "minecraft:glass",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            3,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            8
+          ],
+          "expected": {
+            "id": "minecraft:spruce_planks",
+            "properties": {}
+          },
+          "item_id": "minecraft:spruce_planks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            4,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:spruce_planks",
+            "properties": {}
+          },
+          "item_id": "minecraft:spruce_planks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            5,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            10
+          ],
+          "expected": {
+            "id": "minecraft:glass",
+            "properties": {}
+          },
+          "item_id": "minecraft:glass",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            6,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            11
+          ],
+          "expected": {
+            "id": "minecraft:glass",
+            "properties": {}
+          },
+          "item_id": "minecraft:glass",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            7,
+            1,
+            0
+          ],
+          "world": [
+            19,
+            -59,
+            12
+          ],
+          "expected": {
+            "id": "minecraft:spruce_planks",
+            "properties": {}
+          },
+          "item_id": "minecraft:spruce_planks",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            0,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            5
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            1,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            6
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            2,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            7
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            3,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            8
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            4,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            9
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            5,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            10
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            6,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            11
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        },
+        {
+          "local": [
+            7,
+            2,
+            0
+          ],
+          "world": [
+            19,
+            -58,
+            12
+          ],
+          "expected": {
+            "id": "minecraft:stone_brick_slab",
+            "properties": {
+              "type": "bottom",
+              "waterlogged": "false"
+            }
+          },
+          "item_id": "minecraft:stone_brick_slab",
+          "status": "skipped"
+        }
+      ],
+      "verification": {
+        "passed": false,
+        "matched": 4,
+        "target_mismatches": [
+          {
+            "local": [
+              2,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              7
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              3,
+              0,
+              1
+            ],
+            "world": [
+              18,
+              -60,
+              8
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              3,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              8
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              4,
+              0,
+              1
+            ],
+            "world": [
+              18,
+              -60,
+              9
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              4,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              9
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              5,
+              0,
+              1
+            ],
+            "world": [
+              18,
+              -60,
+              10
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              5,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              10
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              6,
+              0,
+              1
+            ],
+            "world": [
+              18,
+              -60,
+              11
+            ],
+            "expected": {
+              "id": "minecraft:oak_stairs",
+              "properties": {
+                "facing": "east",
+                "half": "bottom",
+                "shape": "straight",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:oak_stairs",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              6,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              11
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              7,
+              0,
+              0
+            ],
+            "world": [
+              19,
+              -60,
+              12
+            ],
+            "expected": {
+              "id": "minecraft:stone_bricks",
+              "properties": {}
+            },
+            "item_id": "minecraft:stone_bricks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              0,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              5
+            ],
+            "expected": {
+              "id": "minecraft:spruce_planks",
+              "properties": {}
+            },
+            "item_id": "minecraft:spruce_planks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              1,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              6
+            ],
+            "expected": {
+              "id": "minecraft:glass",
+              "properties": {}
+            },
+            "item_id": "minecraft:glass",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              2,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              7
+            ],
+            "expected": {
+              "id": "minecraft:glass",
+              "properties": {}
+            },
+            "item_id": "minecraft:glass",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              3,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              8
+            ],
+            "expected": {
+              "id": "minecraft:spruce_planks",
+              "properties": {}
+            },
+            "item_id": "minecraft:spruce_planks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              4,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              9
+            ],
+            "expected": {
+              "id": "minecraft:spruce_planks",
+              "properties": {}
+            },
+            "item_id": "minecraft:spruce_planks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              5,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              10
+            ],
+            "expected": {
+              "id": "minecraft:glass",
+              "properties": {}
+            },
+            "item_id": "minecraft:glass",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              6,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              11
+            ],
+            "expected": {
+              "id": "minecraft:glass",
+              "properties": {}
+            },
+            "item_id": "minecraft:glass",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              7,
+              1,
+              0
+            ],
+            "world": [
+              19,
+              -59,
+              12
+            ],
+            "expected": {
+              "id": "minecraft:spruce_planks",
+              "properties": {}
+            },
+            "item_id": "minecraft:spruce_planks",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              0,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              5
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              1,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              6
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              2,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              7
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              3,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              8
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              4,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              9
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              5,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              10
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              6,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              11
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          },
+          {
+            "local": [
+              7,
+              2,
+              0
+            ],
+            "world": [
+              19,
+              -58,
+              12
+            ],
+            "expected": {
+              "id": "minecraft:stone_brick_slab",
+              "properties": {
+                "type": "bottom",
+                "waterlogged": "false"
+              }
+            },
+            "item_id": "minecraft:stone_brick_slab",
+            "status": "mismatch",
+            "actual": {
+              "id": "minecraft:air",
+              "properties": {}
+            }
+          }
+        ],
+        "monitored_bounds": {
+          "min": [
+            -1,
+            -61,
+            -1
+          ],
+          "max": [
+            33,
+            -49,
+            25
+          ]
+        },
+        "non_target_cells_checked": 12255,
+        "outside_approved_cells_checked": 3210,
+        "non_target_changes": 0,
+        "outside_approved_changes": 0,
+        "first_non_target_changes": []
+      }
+    }
+  }
+}

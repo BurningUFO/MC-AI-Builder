@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[47,48)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "mcaibuilder"
+version = "0.1.0"
+displayName = "MC AI Builder Bridge"
+description = "Local construction plans for a managed Fake Players worker."
+
+[[dependencies.mcaibuilder]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.20.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.mcaibuilder]]
+modId = "forge"
+mandatory = true
+versionRange = "[47.4.20,48)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.mcaibuilder]]
+modId = "players"
+mandatory = true
+versionRange = "[3.0.0]"
+ordering = "AFTER"
+side = "BOTH"

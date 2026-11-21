@@ -1,0 +1,120 @@
+{
+  "before": {
+    "protocol": 1,
+    "world": "M1 Construction Lab",
+    "dimension": "minecraft:overworld",
+    "game_tick": 83,
+    "approved_area": {
+      "min": [
+        0,
+        -60,
+        0
+      ],
+      "max": [
+        32,
+        -50,
+        24
+      ]
+    },
+    "npc": {
+      "backend": "fake_players_item_interaction",
+      "present": true,
+      "entity_type": "players:fake_player",
+      "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+      "walked_blocks": 5.971782657126371,
+      "moving": false,
+      "position": [
+        5.740487684273562,
+        -60.0,
+        9.508667828151502
+      ],
+      "materials": {
+        "minecraft:stone_bricks": 9,
+        "minecraft:oak_stairs": 2,
+        "minecraft:spruce_planks": 4,
+        "minecraft:glass": 4,
+        "minecraft:stone_brick_slab": 8
+      }
+    },
+    "job": {
+      "job_id": "d599128a-6414-41a9-9ba9-6edec4d6f4e7",
+      "building_id": "m1_wall",
+      "building_version": 1,
+      "state": "paused",
+      "total": 30,
+      "processed": 3,
+      "placed": 3,
+      "world_bounds": {
+        "min": [
+          6,
+          -60,
+          6
+        ],
+        "max": [
+          13,
+          -58,
+          7
+        ]
+      }
+    }
+  },
+  "after": {
+    "protocol": 1,
+    "world": "M1 Construction Lab",
+    "dimension": "minecraft:overworld",
+    "game_tick": 116,
+    "approved_area": {
+      "min": [
+        0,
+        -60,
+        0
+      ],
+      "max": [
+        32,
+        -50,
+        24
+      ]
+    },
+    "npc": {
+      "backend": "fake_players_item_interaction",
+      "present": true,
+      "entity_type": "players:fake_player",
+      "npc_id": "034a1cbd-ec8a-460c-89c9-384e767ef3f9",
+      "walked_blocks": 5.971782657126371,
+      "moving": false,
+      "position": [
+        5.8063547953550865,
+        -60.0,
+        9.504912625964533
+      ],
+      "materials": {
+        "minecraft:stone_bricks": 9,
+        "minecraft:oak_stairs": 2,
+        "minecraft:spruce_planks": 4,
+        "minecraft:glass": 4,
+        "minecraft:stone_brick_slab": 8
+      }
+    },
+    "job": {
+      "job_id": "d599128a-6414-41a9-9ba9-6edec4d6f4e7",
+      "building_id": "m1_wall",
+      "building_version": 1,
+      "state": "paused",
+      "total": 30,
+      "processed": 3,
+      "placed": 3,
+      "world_bounds": {
+        "min": [
+          6,
+          -60,
+          6
+        ],
+        "max": [
+          13,
+          -58,
+          7
+        ]
+      }
+    }
+  }
+}
