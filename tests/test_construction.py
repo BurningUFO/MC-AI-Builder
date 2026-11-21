@@ -1,6 +1,8 @@
 import unittest
 
 from src.construction.plan import demo_wall, make_plan
+from src.construction.revisions import revised_wall
+from src.construction.review_preview import models_for_review
 from src.core.building import Building
 
 
@@ -36,6 +38,25 @@ class ConstructionPlanTests(unittest.TestCase):
             with self.subTest(building_id=building_id, version=version, rotation=rotation):
                 with self.assertRaises(ValueError):
                     make_plan(model, building_id=building_id, version=version, origin=(0, 0, 0), rotation=rotation)
+
+
+    def test_content_hash_is_independent_of_job_id_and_placement(self):
+        wall = demo_wall()
+        first = make_plan(wall, building_id="wall", version=1, origin=(6, -60, 6))
+        again = make_plan(wall, building_id="wall", version=1, origin=(20, -60, 6), rotation=90)
+        revised = make_plan(revised_wall(), building_id="wall", version=2, origin=(6, -60, 6))
+        self.assertNotEqual(first["plan_id"], again["plan_id"])
+        self.assertEqual(first["model_sha256"], again["model_sha256"])
+        self.assertNotEqual(first["model_sha256"], revised["model_sha256"])
+
+    def test_preview_models_use_observed_state_and_proposed_state(self):
+        actual = {"id": "minecraft:air", "properties": {}}
+        wanted = {"id": "minecraft:oak_stairs", "properties": {"facing": "west"}}
+        current, proposed = models_for_review({"changes": [
+            {"local": [-1, 2, 3], "actual": actual, "desired": wanted},
+        ]})
+        self.assertEqual(current.blocks, {})
+        self.assertEqual(proposed.blocks[(-1, 2, 3)].state.key, "minecraft:oak_stairs[facing=west]")
 
 
 if __name__ == "__main__":

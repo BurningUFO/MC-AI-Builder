@@ -21,7 +21,7 @@ RUNTIME = TEST_ROOT / "client-runtime"
 DEFAULT_GAME = TEST_ROOT / "forge-client"
 WORLD_NAME = "M1 Construction Lab"
 FORGE = "1.20.1-47.4.20"
-BRIDGE_JAR = ROOT / "forge" / "build" / "libs" / "mcaibuilder-bridge-0.1.0.jar"
+BRIDGE_JAR = ROOT / "forge" / "build" / "libs" / "mcaibuilder-bridge-0.2.0.jar"
 PLAYERS_JAR = CACHE / "downloads" / "players-forge-1.20.1-3.0.0.jar"
 PLAYERS_HASH = "5ae6b53d57d648fadc6851e5bba4d729fc64c36040727ff5dcc0632a66482104"
 
@@ -107,7 +107,7 @@ def stage_runtime(source: Path) -> tuple[dict, str]:
     return profile, os.pathsep.join(path.as_posix() for path in [*classpath, RUNTIME / "1.20.1.jar"])
 
 
-def configure_world(game: Path, port: int) -> Path:
+def configure_world(game: Path, port: int, *, pack_source: Path | None = None) -> Path:
     if not 1024 <= port <= 65535:
         raise ValueError("Bridge port must be in 1024–65535.")
     game = game.resolve()
@@ -127,12 +127,26 @@ def configure_world(game: Path, port: int) -> Path:
         raise ValueError("Fake Players 3.0.0 JAR checksum mismatch.")
     mods = game / "mods"
     mods.mkdir(exist_ok=True)
-    expected = {BRIDGE_JAR.name, PLAYERS_JAR.name}
+    legacy_bridge = mods / "mcaibuilder-bridge-0.1.0.jar"
+    expected = {BRIDGE_JAR.name, PLAYERS_JAR.name, legacy_bridge.name}
+    pack_jars = sorted((pack_source / "mods").glob("*.jar")) if pack_source else []
+    if pack_source and not pack_jars:
+        raise ValueError("The BMC4 instance has no enabled mod JARs.")
+    if expected.intersection(jar.name for jar in pack_jars):
+        raise ValueError("The source pack must provide only the BMC4 mods.")
+    expected.update(jar.name for jar in pack_jars)
     if any(path.name not in expected for path in mods.glob("*.jar")):
-        raise ValueError(f"Use a minimal test mods directory: {mods}")
+        raise ValueError(f"Unexpected JAR in the test mods directory: {mods}")
+    for jar in pack_jars:
+        _copy(jar, mods / jar.name)
     for jar in (BRIDGE_JAR, PLAYERS_JAR):
         source_hash = sha1(jar.read_bytes()).hexdigest()
         _copy(jar, mods / jar.name, digest=source_hash)
+    if legacy_bridge.is_file():
+        archive = game / "previous-mods"
+        archive.mkdir(exist_ok=True)
+        identity = sha256(legacy_bridge.read_bytes()).hexdigest()[:12]
+        legacy_bridge.replace(archive / f"{identity}-{legacy_bridge.name}")
     config = game / "config" / "mcaibuilder.json"
     if not config.exists():
         write_json(config, {
@@ -144,6 +158,19 @@ def configure_world(game: Path, port: int) -> Path:
         })
     elif json.loads(config.read_text(encoding="utf-8"))["port"] != port:
         raise ValueError(f"Use the configured bridge port in {config}, or a fresh test directory.")
+    if pack_source and not (game / "saves" / "m1-construction" / "level.dat").is_file():
+        defaults = pack_source / "defaultconfigs"
+        if defaults.is_dir():
+            shutil.copytree(defaults, game / "defaultconfigs", dirs_exist_ok=True)
+        (game / "config" / "fml.toml").write_text("versionCheck = false\n", encoding="utf-8")
+        if any(jar.name.lower().startswith("packanalytics-") for jar in pack_jars):
+            (game / "config" / "packanalytics-common.toml").write_text(
+                '"Metrics Endpoint URL" = ""\n"Pack ID" = ""\n"Update Rate" = 30\n', encoding="utf-8",
+            )
+        write_json(game / "config" / "bclib" / "client.json", {"ui": {
+            "showUpdateInfo [default: true]": False,
+            "suppressExperimentalDialogOnLoad [default: false]": True,
+        }})
     options = game / "options.txt"
     if not options.exists():
         options.write_text("version:3465\npauseOnLostFocus:false\nautoJump:false\nrenderDistance:6\n"
@@ -164,13 +191,16 @@ def _arguments(rows: list, values: dict) -> list[str]:
     return result
 
 
-def launch_client(java_home: Path, source: Path, game: Path, port: int, *, smoke: bool = False) -> subprocess.Popen:
+def launch_client(
+    java_home: Path, source: Path, game: Path, port: int, *,
+    smoke: bool = False, m2_smoke: bool = False, bmc4: bool = False,
+) -> subprocess.Popen:
     game = game.resolve()
-    configure_world(game, port)
+    configure_world(game, port, pack_source=source if bmc4 else None)
     profile, classpath = stage_runtime(source)
     native_dir = game / "natives"
-    temp = CACHE / "tmp"
-    home_dir = CACHE / "home"
+    temp = game / "tmp"
+    home_dir = game / "home"
     for directory in (native_dir, temp, home_dir):
         directory.mkdir(parents=True, exist_ok=True)
     values = {
@@ -193,8 +223,9 @@ def launch_client(java_home: Path, source: Path, game: Path, port: int, *, smoke
         "classpath_separator": os.pathsep,
     }
     arguments = [
-        "-Xms512M", "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
+        "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
         "-Dmcaibuilder.localTest=true", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
+        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}",
         *_arguments(profile["arguments"]["jvm"], values),
         profile["mainClass"], *_arguments(profile["arguments"]["game"], values), "--width", "1100", "--height", "650",
     ]

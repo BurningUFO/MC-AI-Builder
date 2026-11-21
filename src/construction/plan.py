@@ -1,5 +1,7 @@
-"""M1 plan envelope for the existing sparse Minecraft building model."""
+"""Versioned plan envelope for the existing sparse Minecraft building model."""
 
+from hashlib import sha256
+import json
 from pathlib import Path
 from uuid import uuid4
 import re
@@ -11,7 +13,7 @@ SCHEMA_VERSION = 1
 MAX_ACTIONS = 512
 M1_BLOCKS = frozenset(f"minecraft:{name}" for name in (
     "stone", "cobblestone", "stone_bricks", "oak_planks", "spruce_planks",
-    "glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
+    "glass", "light_blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
 ))
 
 
@@ -52,8 +54,11 @@ def make_plan(
             action["block_entity"] = block.block_entity
         actions.append(action)
 
+    model = [{key: value for key, value in action.items() if key != "item_id"} for action in actions]
+    canonical = json.dumps(model, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":"))
     return {
         "schema_version": SCHEMA_VERSION,
+        "model_sha256": sha256(canonical.encode("utf-8")).hexdigest(),
         "plan_id": str(uuid4()),
         "building_id": building_id,
         "building_version": version,

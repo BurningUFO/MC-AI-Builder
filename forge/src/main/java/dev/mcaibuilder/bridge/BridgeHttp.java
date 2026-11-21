@@ -53,7 +53,7 @@ final class BridgeHttp implements AutoCloseable {
             } catch (Wire.Problem problem) {
                 respond(exchange, problem.status, error(problem.code, problem.getMessage()));
             } catch (RuntimeException problem) {
-                ForgeBridge.LOGGER.error("M1 bridge request failed", problem);
+                ForgeBridge.LOGGER.error("Construction bridge request failed", problem);
                 respond(exchange, 500, error("bridge_error", "See the Minecraft server log"));
             }
         }
@@ -66,6 +66,31 @@ final class BridgeHttp implements AutoCloseable {
             case "/status", "/progress" -> {
                 requireMethod(method, "GET");
                 yield onGameThread(() -> construction.status(path.equals("/progress")));
+            }
+            case "/change", "/versions" -> {
+                requireMethod(method, "GET");
+                yield onGameThread(path.equals("/change") ? construction::change : construction::versions);
+            }
+            case "/candidate" -> {
+                requireMethod(method, "POST");
+                JsonObject body = readBody(exchange);
+                yield onGameThread(() -> construction.propose(BuildPlan.id(body, "job_id"),
+                        Wire.object(body.get("plan"), "plan")));
+            }
+            case "/approve", "/reject" -> {
+                requireMethod(method, "POST");
+                JsonObject body = readBody(exchange);
+                yield onGameThread(() -> {
+                    var id = BuildPlan.id(body, "change_id");
+                    if (path.equals("/reject")) {
+                        return construction.reject(id);
+                    }
+                    String hash = Wire.string(body.get("review_sha256"), "review_sha256");
+                    if (!hash.matches("[0-9a-f]{64}")) {
+                        throw Wire.invalid("The reviewed SHA-256 is required");
+                    }
+                    return construction.approve(id, hash);
+                });
             }
             case "/build" -> {
                 requireMethod(method, "POST");

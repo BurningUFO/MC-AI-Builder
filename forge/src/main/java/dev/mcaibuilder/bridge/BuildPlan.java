@@ -12,29 +12,64 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
-record BuildPlan(UUID id, String buildingId, int version, List<Target> targets, BuildSite.Box worldBounds) {
+record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
+                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds) {
     private static final int MAX_ACTIONS = 512;
-    private static final Comparator<BlockPos> BUILD_ORDER = Comparator.<BlockPos>comparingInt(BlockPos::getY)
+    static final Comparator<BlockPos> BUILD_ORDER = Comparator.<BlockPos>comparingInt(BlockPos::getY)
             .thenComparingInt(BlockPos::getZ).thenComparingInt(BlockPos::getX);
 
     record Target(BlockPos local, BlockPos world, BlockState state, Item item) {}
 
+    Target at(BlockPos world) {
+        return byPosition.get(world);
+    }
+
+    BlockPos worldPosition(BlockPos local) {
+        return origin.offset(local.rotate(rotation));
+    }
+
+    BlockPos localPosition(BlockPos world) {
+        Rotation inverse = switch (rotation) {
+            case NONE -> Rotation.NONE;
+            case CLOCKWISE_90 -> Rotation.COUNTERCLOCKWISE_90;
+            case CLOCKWISE_180 -> Rotation.CLOCKWISE_180;
+            case COUNTERCLOCKWISE_90 -> Rotation.CLOCKWISE_90;
+        };
+        return world.subtract(origin).rotate(inverse);
+    }
+
+    boolean samePlacement(BuildPlan other) {
+        return buildingId.equals(other.buildingId) && origin.equals(other.origin) && rotation == other.rotation;
+    }
+
+    JsonObject versionInfo() {
+        JsonObject value = new JsonObject();
+        value.addProperty("plan_id", id.toString());
+        value.addProperty("building_id", buildingId);
+        value.addProperty("building_version", version);
+        value.addProperty("model_sha256", modelHash);
+        value.add("origin", Wire.position(origin));
+        value.addProperty("rotation", rotation.ordinal() * 90);
+        value.add("world_bounds", worldBounds.json());
+        return value;
+    }
+
     static Set<Block> palette() {
         // Resolve vanilla blocks after the server has finished registry initialization.
         return Set.of(Blocks.STONE, Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS,
-                Blocks.SPRUCE_PLANKS, Blocks.GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
+                Blocks.SPRUCE_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
                 Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB);
     }
 
@@ -65,16 +100,16 @@ record BuildPlan(UUID id, String buildingId, int version, List<Target> targets, 
         }
 
         List<Target> targets = new ArrayList<>(actions.size());
-        Set<BlockPos> localPositions = new HashSet<>();
-        List<BlockPos> worldPositions = new ArrayList<>();
+        Map<BlockPos, JsonObject> model = new TreeMap<>(BUILD_ORDER);
+        Map<BlockPos, Target> byPosition = new LinkedHashMap<>();
         for (JsonElement element : actions) {
             JsonObject action = Wire.object(element, "action");
             BlockPos local = Wire.position(action.get("local"), "action.local");
             BlockPos world = origin.offset(local.rotate(rotation));
-            if (!site.area().contains(world) || world.equals(site.spawn()) || world.equals(site.spawn().above())) {
+            if (!site.canBuildAt(world)) {
                 throw Wire.invalid("Target is outside the approved buildable area: " + world.toShortString());
             }
-            if (!localPositions.add(local)) {
+            if (model.containsKey(local)) {
                 throw Wire.invalid("Duplicate target: " + local.toShortString());
             }
             if (action.has("block_entity") && !action.get("block_entity").isJsonNull()) {
@@ -86,14 +121,27 @@ record BuildPlan(UUID id, String buildingId, int version, List<Target> targets, 
             if (!(item instanceof BlockItem) || !ForgeRegistries.ITEMS.getKey(item).equals(itemId)) {
                 throw Wire.invalid("Incorrect placement item at " + local.toShortString());
             }
-            targets.add(new Target(local, world, state, item));
-            worldPositions.add(world);
+            Target target = new Target(local, world, state, item);
+            targets.add(target);
+            byPosition.put(world, target);
+            JsonObject block = new JsonObject();
+            block.add("local", Wire.position(local));
+            block.add("id", action.get("id"));
+            block.add("properties", action.get("properties"));
+            model.put(local, block);
         }
-        if (!declared.equals(bounds(localPositions))) {
+        if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
         targets.sort(Comparator.comparing(Target::world, BUILD_ORDER));
-        return new BuildPlan(id, buildingId, version, List.copyOf(targets), bounds(worldPositions));
+        JsonArray blocks = new JsonArray();
+        model.values().forEach(blocks::add);
+        String modelHash = Wire.sha256(blocks);
+        if (data.has("model_sha256") && !modelHash.equals(Wire.string(data.get("model_sha256"), "model_sha256"))) {
+            throw Wire.invalid("Model content hash does not match the supplied blocks");
+        }
+        return new BuildPlan(id, buildingId, version, origin, rotation, modelHash, List.copyOf(targets),
+                Map.copyOf(byPosition), bounds(byPosition.keySet()));
     }
 
     static UUID id(JsonObject data, String key) {
@@ -120,19 +168,9 @@ record BuildPlan(UUID id, String buildingId, int version, List<Target> targets, 
     }
 
     private static BlockState readState(JsonObject action, Set<Block> palette) {
-        String id = Wire.string(action.get("id"), "action.id");
-        ResourceLocation name = ResourceLocation.tryParse(id);
-        Block block = name == null ? null : ForgeRegistries.BLOCKS.getValue(name);
-        if (block == null || !palette.contains(block) || !name.toString().equals(id)) {
-            throw Wire.invalid("Unsupported M1 block: " + id);
-        }
-        BlockState state = block.defaultBlockState();
-        for (Map.Entry<String, JsonElement> entry : Wire.object(action.get("properties"), "action.properties").entrySet()) {
-            Property<?> property = block.getStateDefinition().getProperty(entry.getKey());
-            if (property == null) {
-                throw Wire.invalid("Unknown state property for " + id + ": " + entry.getKey());
-            }
-            state = withValue(state, property, Wire.string(entry.getValue(), entry.getKey()));
+        BlockState state = Wire.readState(action);
+        if (!palette.contains(state.getBlock())) {
+            throw Wire.invalid("Unsupported construction block: " + action.get("id").getAsString());
         }
         if (state.hasProperty(BlockStateProperties.WATERLOGGED) && state.getValue(BlockStateProperties.WATERLOGGED)
                 || state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
@@ -141,8 +179,4 @@ record BuildPlan(UUID id, String buildingId, int version, List<Target> targets, 
         return state;
     }
 
-    private static <T extends Comparable<T>> BlockState withValue(BlockState state, Property<T> property, String value) {
-        T parsed = property.getValue(value).orElseThrow(() -> Wire.invalid("Invalid " + property.getName() + ": " + value));
-        return state.setValue(property, parsed);
-    }
 }

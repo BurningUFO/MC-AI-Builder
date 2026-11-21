@@ -29,6 +29,10 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn)
         return new BuildSite(world, port, token, area, spawn);
     }
 
+    boolean canBuildAt(BlockPos pos) {
+        return area.contains(pos) && !pos.equals(spawn) && !pos.equals(spawn.above());
+    }
+
     void requireLoaded(ServerLevel level) {
         Box monitored = area.halo();
         if (!level.isInWorldBounds(monitored.min()) || !level.isInWorldBounds(monitored.max())

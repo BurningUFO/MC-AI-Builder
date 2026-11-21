@@ -9,12 +9,16 @@ import dev.duzo.players.entities.possession.PossessionReconciler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameType;
@@ -26,7 +30,9 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
@@ -36,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 final class FakePlayersWorker implements ConstructionWorker {
     private static final double REACH = 4.5;
@@ -54,6 +61,8 @@ final class FakePlayersWorker implements ConstructionWorker {
     private long deadline;
     private Vec3 lastPosition;
     private double walked;
+    private BlockPos mining;
+    private long miningSince;
 
     FakePlayersWorker(ServerLevel level, BuildSite site, Set<Block> palette) {
         this.level = level;
@@ -63,7 +72,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public void prepare(List<BuildPlan.Target> targets) {
+    public void prepare(List<BuildPlan.Target> targets, boolean removals) {
         Map<Item, Integer> totals = new LinkedHashMap<>();
         for (BuildPlan.Target target : targets) {
             totals.merge(target.item(), 1, Integer::sum);
@@ -77,6 +86,14 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         if (npc == null || !npc.isAlive()) {
             spawn();
+        }
+        for (Item tool : List.of(Items.IRON_PICKAXE, Items.IRON_AXE)) {
+            int existing = itemSlot(tool);
+            if (existing >= 0) {
+                supplied.add(npc.getInventory().getItem(existing).copy());
+            } else if (removals) {
+                supplied.add(new ItemStack(tool));
+            }
         }
         if (npc.isVacant() || npc.isUnreconciled() || supplied.size() > npc.getInventory().getContainerSize()) {
             throw Wire.conflict("npc_unavailable", "The worker cannot accept the preset materials");
@@ -111,31 +128,75 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!level.noCollision(worker) || !level.addFreshEntity(worker)) {
             throw Wire.conflict("spawn_blocked", "Could not spawn players:fake_player at the approved position");
         }
+        bind(worker);
+    }
+
+    private void bind(FakePlayerEntity worker) {
         npc = worker;
+        npc.getNavigation().stop();
+        npc.setJobPaused(true);
+        npc.removeAllGoals(goal -> true);
+        npc.setCanPickUpLoot(false);
         actor = new FakePlayer(level, new GameProfile(npc.getUUID(), "MCBuilder"));
         actor.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
+        lastPosition = npc.position();
     }
 
     @Override
-    public Result act(BuildPlan.Target target) {
-        if (npc == null || !npc.isAlive() || npc.isVacant() || npc.isUnreconciled()
-                || npc.isPassenger() || !site.area().contains(npc.blockPosition())) {
+    public boolean attach(UUID id) {
+        if (npc != null && id.equals(npc.getUUID()) && available()) {
+            return true;
+        }
+        if (!(level.getEntity(id) instanceof FakePlayerEntity worker)
+                || !worker.getTags().contains(ForgeBridge.MOD_ID) || !worker.isAlive()
+                || worker.isVacant() || !site.area().contains(worker.blockPosition())) {
+            return false;
+        }
+        PossessionReconciler.reconcile(worker, level);
+        if (worker.isUnreconciled()) {
+            return false;
+        }
+        bind(worker);
+        return available();
+    }
+
+    @Override
+    public UUID id() {
+        return npc == null ? null : npc.getUUID();
+    }
+
+    @Override
+    public boolean isActor(Entity entity) {
+        return entity != null && entity == actor;
+    }
+
+    private boolean available() {
+        return npc != null && npc.isAlive() && !npc.isVacant() && !npc.isUnreconciled()
+                && !npc.isPassenger() && site.area().contains(npc.blockPosition());
+    }
+
+    @Override
+    public Result act(WorkStep step, Runnable beforeInteraction) {
+        if (!available()) {
             return failure("npc_unavailable");
         }
         Vec3 current = npc.position();
         walked += current.distanceTo(lastPosition);
         lastPosition = current;
-        int slot = itemSlot(target.item());
+        Item item = step.remove() ? toolFor(step.before()) : step.target().item();
+        int slot = itemSlot(item);
         if (slot < 0) {
-            return failure("out_of_material");
+            return failure(step.remove() ? "out_of_tool" : "out_of_material");
         }
         ItemStack stack = npc.getInventory().getItem(slot);
         npc.setDisplayItem(stack);
-        Aim aim = chooseAim(target, stack, current);
-        if (aim != null && !new AABB(target.world()).intersects(npc.getBoundingBox())) {
+        Aim aim = chooseAim(step, stack, current);
+        if (aim != null && !new AABB(step.pos()).intersects(npc.getBoundingBox())) {
             stopNavigation();
-            return useItem(target, slot, aim);
+            return step.remove() ? mine(step, slot, aim, beforeInteraction)
+                    : useItem(step.target(), slot, aim, beforeInteraction);
         }
+        stopMining();
 
         long now = level.getGameTime();
         if (deadline == 0) {
@@ -147,9 +208,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (destination != null && !npc.getNavigation().isDone()) {
             return null;
         }
-        for (BlockPos candidate : stances(target.world(), current)) {
+        for (BlockPos candidate : stances(step.pos(), current)) {
             if (!triedStances.add(candidate) || !JobHelpers.canStandAt(level, candidate)
-                    || chooseAim(target, stack, Vec3.atBottomCenterOf(candidate)) == null) {
+                    || chooseAim(step, stack, Vec3.atBottomCenterOf(candidate)) == null) {
                 continue;
             }
             Path path = npc.getNavigation().createPath(candidate, 0);
@@ -158,7 +219,7 @@ final class FakePlayersWorker implements ConstructionWorker {
                 return null;
             }
         }
-        return failure("no_reachable_placement_stance");
+        return failure(step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance");
     }
 
     private List<BlockPos> stances(BlockPos target, Vec3 current) {
@@ -185,9 +246,14 @@ final class FakePlayersWorker implements ConstructionWorker {
         return true;
     }
 
-    private Aim chooseAim(BuildPlan.Target target, ItemStack stack, Vec3 feet) {
+    private Aim chooseAim(WorkStep step, ItemStack stack, Vec3 feet) {
         actor.setPos(feet.x, feet.y, feet.z);
+        actor.setOnGround(npc.onGround());
         Vec3 eye = actor.getEyePosition();
+        if (step.remove()) {
+            return breakAim(step.pos(), eye);
+        }
+        BuildPlan.Target target = step.target();
         for (Direction face : FACES) {
             BlockPos clicked = target.world().relative(face.getOpposite());
             if (!anchors.contains(level.getBlockState(clicked).getBlock())) {
@@ -204,33 +270,129 @@ final class FakePlayersWorker implements ConstructionWorker {
                 if (hit.getType() != HitResult.Type.BLOCK || !hit.getBlockPos().equals(clicked) || hit.getDirection() != face) {
                     continue;
                 }
-                Vec3 delta = hit.getLocation().subtract(eye);
-                float yaw = (float) Math.toDegrees(Math.atan2(delta.z, delta.x)) - 90;
-                float pitch = (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance()));
-                actor.setYRot(yaw);
-                actor.setXRot(pitch);
+                Aim aim = face(hit, eye);
                 BlockPlaceContext context = new BlockPlaceContext(actor, InteractionHand.MAIN_HAND, stack, hit);
                 if (context.canPlace() && context.getClickedPos().equals(target.world())
                         && target.state().getBlock().getStateForPlacement(context) == target.state()
                         && target.state().canSurvive(level, target.world())) {
-                    return new Aim(hit, yaw, pitch, delta.length());
+                    return aim;
                 }
             }
         }
         return null;
     }
 
-    private Result useItem(BuildPlan.Target target, int slot, Aim aim) {
-        BlockPos clicked = aim.hit().getBlockPos();
-        if (!level.mayInteract(actor, clicked) || !level.mayInteract(actor, target.world())
-                || !level.getBlockState(target.world()).isAir()) {
-            return failure("interaction_forbidden");
+    private Aim face(BlockHitResult hit, Vec3 eye) {
+        Vec3 delta = hit.getLocation().subtract(eye);
+        float yaw = (float) Math.toDegrees(Math.atan2(delta.z, delta.x)) - 90;
+        float pitch = (float) -Math.toDegrees(Math.atan2(delta.y, delta.horizontalDistance()));
+        actor.setYRot(yaw);
+        actor.setXRot(pitch);
+        return new Aim(hit, yaw, pitch, delta.length());
+    }
+
+    private Aim breakAim(BlockPos pos, Vec3 eye) {
+        for (double height : new double[]{0, -0.28, 0.28}) {
+            Vec3 endpoint = Vec3.atCenterOf(pos).add(0, height, 0);
+            BlockHitResult hit = level.clip(new ClipContext(eye, endpoint, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, actor));
+            if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pos)
+                    && eye.distanceToSqr(hit.getLocation()) <= REACH * REACH) {
+                return face(hit, eye);
+            }
         }
+        return null;
+    }
+
+    private void lookAndSwing(Aim aim) {
         npc.setYRot(aim.yaw());
         npc.setYHeadRot(aim.yaw());
         npc.setYBodyRot(aim.yaw());
         npc.setXRot(aim.pitch());
         npc.swing(InteractionHand.MAIN_HAND);
+    }
+
+    private static Item toolFor(BlockState state) {
+        return state.is(BlockTags.MINEABLE_WITH_AXE) ? Items.IRON_AXE : Items.IRON_PICKAXE;
+    }
+
+    private Result mine(WorkStep step, int slot, Aim aim, Runnable beforeInteraction) {
+        BlockPos pos = step.pos();
+        if (!level.mayInteract(actor, pos) || level.getBlockState(pos) != step.before()) {
+            return failure("interaction_forbidden");
+        }
+        SimpleContainer inventory = npc.getInventory();
+        ItemStack stack = inventory.getItem(slot);
+        actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        try {
+            float progress = step.before().getDestroyProgress(actor, level, pos);
+            if (!(progress > 0) || progress * MOVE_LIMIT_TICKS < 1) {
+                return failure("cannot_mine_with_tool");
+            }
+            long now = level.getGameTime();
+            if (!pos.equals(mining)) {
+                mining = pos;
+                miningSince = now;
+                lookAndSwing(aim);
+            }
+            float amount = progress * (now - miningSince + 1);
+            if (amount < 1) {
+                level.destroyBlockProgress(npc.getId(), pos, (int) (amount * 10));
+                return null;
+            }
+
+            beforeInteraction.run();
+            lookAndSwing(aim);
+            int damage = stack.getDamageValue();
+            int maxDamage = stack.getMaxDamage();
+            String tool = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+            RemovalEvidence attempt = RemovalEvidence.begin(actor, step);
+            boolean destroyed;
+            try {
+                var click = ForgeHooks.onLeftClickBlock(actor, pos, aim.hit().getDirection(),
+                        ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK);
+                destroyed = !click.isCanceled() && click.getResult() != Event.Result.DENY
+                        && click.getUseItem() != Event.Result.DENY && actor.gameMode.destroyBlock(pos);
+            } finally {
+                RemovalEvidence.end();
+                inventory.setItem(slot, actor.getMainHandItem());
+            }
+            ItemStack remaining = actor.getMainHandItem();
+            int after = remaining.isEmpty() ? maxDamage : remaining.getDamageValue();
+            JsonObject evidence = new JsonObject();
+            evidence.addProperty("method", "ServerPlayerGameMode.destroyBlock");
+            evidence.addProperty("left_click_events", attempt.leftClicks);
+            evidence.addProperty("break_events", attempt.breakEvents);
+            evidence.addProperty("tool_id", tool);
+            evidence.addProperty("tool_damage_before", damage);
+            evidence.addProperty("tool_damage_after", after);
+            evidence.addProperty("tool_count_after", remaining.getCount());
+            evidence.addProperty("reach", aim.distance());
+            evidence.addProperty("mining_ticks", now - miningSince + 1);
+            evidence.addProperty("face", aim.hit().getDirection().getName());
+            evidence.add("drops", attempt.drops);
+            String reason = null;
+            if (!destroyed || attempt.rejected) {
+                reason = "break_rejected";
+            } else if (level.getBlockState(pos) != step.after()) {
+                reason = "unexpected_block_state";
+            } else if (attempt.leftClicks != 1 || attempt.breakEvents != 1 || after - damage != 1) {
+                reason = "unverified_break_interaction";
+            }
+            haltAction();
+            return new Result(reason == null ? "removed" : "failed", reason, evidence);
+        } finally {
+            actor.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+    }
+
+    private Result useItem(BuildPlan.Target target, int slot, Aim aim, Runnable beforeInteraction) {
+        BlockPos clicked = aim.hit().getBlockPos();
+        if (!level.mayInteract(actor, clicked) || !level.mayInteract(actor, target.world())
+                || !level.getBlockState(target.world()).isAir()) {
+            return failure("interaction_forbidden");
+        }
+        beforeInteraction.run();
+        lookAndSwing(aim);
         SimpleContainer inventory = npc.getInventory();
         ItemStack stack = inventory.getItem(slot);
         int before = count(target.item());
@@ -293,7 +455,15 @@ final class FakePlayersWorker implements ConstructionWorker {
         destination = null;
     }
 
+    private void stopMining() {
+        if (mining != null && npc != null) {
+            level.destroyBlockProgress(npc.getId(), mining, -1);
+            mining = null;
+        }
+    }
+
     private void haltAction() {
+        stopMining();
         stopNavigation();
         triedStances.clear();
         deadline = 0;
@@ -323,16 +493,22 @@ final class FakePlayersWorker implements ConstructionWorker {
             position.add(npc.getZ());
             data.add("position", position);
             JsonObject materials = new JsonObject();
+            JsonObject tools = new JsonObject();
             SimpleContainer inventory = npc.getInventory();
             for (int i = 0; i < inventory.getContainerSize(); i++) {
                 ItemStack stack = inventory.getItem(i);
                 if (!stack.isEmpty()) {
                     String key = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
-                    int stored = materials.has(key) ? materials.get(key).getAsInt() : 0;
-                    materials.addProperty(key, stored + stack.getCount());
+                    if (stack.isDamageableItem()) {
+                        tools.addProperty(key, stack.getDamageValue());
+                    } else {
+                        int stored = materials.has(key) ? materials.get(key).getAsInt() : 0;
+                        materials.addProperty(key, stored + stack.getCount());
+                    }
                 }
             }
             data.add("materials", materials);
+            data.add("tools", tools);
         }
         return data;
     }
@@ -340,9 +516,6 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public void close() {
         halt();
-        if (npc != null && npc.isAlive()) {
-            npc.discard();
-        }
     }
 
     private record Aim(BlockHitResult hit, float yaw, float pitch, double distance) {}

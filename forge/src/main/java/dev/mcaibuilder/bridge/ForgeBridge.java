@@ -3,9 +3,12 @@ package dev.mcaibuilder.bridge;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -28,6 +31,8 @@ public final class ForgeBridge {
         MinecraftForge.EVENT_BUS.addListener(this::started);
         MinecraftForge.EVENT_BUS.addListener(this::tick);
         MinecraftForge.EVENT_BUS.addListener(this::stopping);
+        MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerPlace);
+        MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerBreak);
     }
 
     private void started(ServerStartedEvent event) {
@@ -57,6 +62,24 @@ public final class ForgeBridge {
     private void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && event.getServer() == server) {
             construction.tick();
+        }
+    }
+
+    private void playerPlace(BlockEvent.EntityPlaceEvent event) {
+        if (construction == null || !(event.getLevel() instanceof ServerLevel level)
+                || !(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (event instanceof BlockEvent.EntityMultiPlaceEvent multi) {
+            multi.getReplacedBlockSnapshots().forEach(snapshot -> construction.externalEdit(level, player, snapshot.getPos()));
+        } else {
+            construction.externalEdit(level, player, event.getPos());
+        }
+    }
+
+    private void playerBreak(BlockEvent.BreakEvent event) {
+        if (construction != null && event.getLevel() instanceof ServerLevel level) {
+            construction.externalEdit(level, event.getPlayer(), event.getPos());
         }
     }
 

@@ -43,6 +43,7 @@ def rejected(action, status, code):
         action()
     except BridgeError as error:
         require((error.status, error.body["error"]) == (status, code), f"Unexpected bridge error: {error}")
+        return {"status": error.status, "error": error.body["error"]}
     else:
         raise AssertionError(f"Expected {status} {code}")
 

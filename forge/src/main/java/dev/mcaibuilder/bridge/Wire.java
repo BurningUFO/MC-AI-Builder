@@ -4,9 +4,17 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraftforge.registries.ForgeRegistries;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.TreeMap;
 
 final class Wire {
     private Wire() {}
@@ -95,6 +103,53 @@ final class Wire {
         }
         result.add("properties", properties);
         return result;
+    }
+
+    static BlockState readState(JsonObject value) {
+        String id = string(value.get("id"), "block ID");
+        ResourceLocation resource = ResourceLocation.tryParse(id);
+        Block block = resource == null ? null : ForgeRegistries.BLOCKS.getValue(resource);
+        if (block == null || !resource.toString().equals(id) || !resource.equals(ForgeRegistries.BLOCKS.getKey(block))) {
+            throw invalid("Unknown block ID: " + id);
+        }
+        BlockState state = block.defaultBlockState();
+        for (var entry : object(value.get("properties"), "block properties").entrySet()) {
+            Property<?> property = block.getStateDefinition().getProperty(entry.getKey());
+            if (property == null) {
+                throw invalid("Unknown state property for " + id + ": " + entry.getKey());
+            }
+            state = withValue(state, property, string(entry.getValue(), entry.getKey()));
+        }
+        return state;
+    }
+
+    private static <T extends Comparable<T>> BlockState withValue(BlockState state, Property<T> property, String value) {
+        T parsed = property.getValue(value).orElseThrow(() -> invalid("Invalid " + property.getName() + ": " + value));
+        return state.setValue(property, parsed);
+    }
+
+    static String sha256(JsonElement value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical(value).toString().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    private static JsonElement canonical(JsonElement value) {
+        if (value.isJsonObject()) {
+            JsonObject result = new JsonObject();
+            new TreeMap<>(value.getAsJsonObject().asMap()).forEach((key, item) -> result.add(key, canonical(item)));
+            return result;
+        }
+        if (value.isJsonArray()) {
+            JsonArray result = new JsonArray();
+            value.getAsJsonArray().forEach(item -> result.add(canonical(item)));
+            return result;
+        }
+        return value;
     }
 
     private static <T extends Comparable<T>> String valueName(BlockState state, Property<T> property) {

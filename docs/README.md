@@ -12,7 +12,7 @@ $instance = '<PCL 的 BMC4 版本目录>'
 & .\tools\m1.ps1 Smoke -SourceInstance $instance
 ~~~
 
-首次构建需要联网。前端脚本自动查找 Java 17 JDK，可用 `-JavaHome` 指定 JDK 目录。构建缓存就绪后可以用 `Build -Offline`。产物是 `forge/build/libs/mcaibuilder-bridge-0.1.0.jar`。如 PCL 实例在其他位置，给 `Smoke` 或 `Client` 传入 `-SourceInstance`，值为包含对应版本 JSON 和客户端 JAR 的 PCL 版本文件夹。
+首次构建需要联网。前端脚本自动查找 Java 17 JDK，可用 `-JavaHome` 指定 JDK 目录。构建缓存就绪后可以用 `Build -Offline`。产物是 `forge/build/libs/mcaibuilder-bridge-0.2.0.jar`。如 PCL 实例在其他位置，给 `Smoke` 或 `Client` 传入 `-SourceInstance`，值为包含对应版本 JSON 和客户端 JAR 的 PCL 版本文件夹。
 
 `Smoke` 启动一个新的超平坦世界，外部 Python 提交预生成计划，验证施工、暂停恢复、取消、材料扣减和不可达错误。客户端关闭后，截图、逐块结果和游戏日志位于脚本打印的 `mc-test/runs` 子目录。
 
@@ -46,9 +46,54 @@ $job = $submitted.job.job_id
 
 Bridge 在配置指定的世界启用，使用本机 `127.0.0.1` 和独立实例生成的访问令牌。配置同时限定 Overworld 施工范围及 NPC 出生点。用 `--config` 连接自定义测试实例时，把参数放在子命令前。详见[执行验证报告](m1-validation.md)与 [M2 任务规划](m2-plan.md)。
 
+## M2 施工中途修改
+
+新候选会暂停当前任务和 NPC 导航。Bridge 对照旧目标、新目标和实时方块状态生成审阅报告。批准绑定候选 ID 和报告哈希。批准后同一个 NPC 拆除、替换及补建，保留已符合新版本的块。
+
+在仓库根目录运行两套可重复的测试。脚本为每次运行创建独立目录和新世界。BMC4 复测只读复制启用的模组与默认配置，测试客户端最多使用 8 GB Java 堆。
+
+~~~powershell
+$instance = '<PCL 的 BMC4 版本目录>'
+& .\tools\m1.ps1 Build
+& .\tools\m1.ps1 M2Smoke -SourceInstance $instance
+& .\tools\m1.ps1 M2Bmc4 -SourceInstance $instance
+~~~
+
+BMC4 的首次读档可能出现 BCLib Guardian 提示。只在该测试客户端中保留备份选项并选择 `Proceed`，脚本会在进入世界后继续验证。隔离配置关闭了 PackAnalytics 的出站发送，让游戏正常退出。
+
+要手动审阅，先用 `Client` 打开独立世界。另开 PowerShell，生成一对具有新计划 ID 的样例并提交 V1。在施工开始后提交候选，或先用 `pause $job` 停在想观察的进度。
+
+~~~powershell
+$py = '.\.venv\Scripts\python.exe'
+$sample = '.\mc-test\forge-client\m2-wall'
+$changeFile = Join-Path $sample 'change.json'
+& $py -B -m src.construction m2-demo --directory $sample
+$built = & $py -B -m src.construction submit (Join-Path $sample 'v1\construction-plan.json') | ConvertFrom-Json
+$job = $built.job.job_id
+$review = & $py -B -m src.construction candidate $job (Join-Path $sample 'v2\construction-plan.json') --output $changeFile | ConvertFrom-Json
+$review.counts
+& $py -B -m src.construction preview-change $changeFile --instance $instance
+~~~
+
+先查看报告的 `changes`，每行包含位置、旧目标、实际状态、新目标及分类。Blender 工程 `previews/m2_review/revision-review.blend` 有现场和拟建两个场景，以及对应的 PNG。绿框是补建、橙框是替换、红框是拆除、紫框是冲突。`--blender` 可指定 Blender 可执行文件。
+
+确认报告后，在同一 PowerShell 中批准并查询进度和版本历史。
+
+~~~powershell
+& $py -B -m src.construction approve $review.change_id --review-hash $review.review_sha256
+& $py -B -m src.construction progress
+& $py -B -m src.construction versions
+~~~
+
+`change --output $changeFile` 可以重新读取世界并更新审阅报告。审批返回 `review_changed` 时重新审阅并使用新的哈希。`reject $review.change_id` 会结束审阅并保持旧任务暂停。冲突位置有玩家改动或与记录不符，Bridge 会保留现场并拒绝批准或恢复。测试用地上可以取消受冲突影响的任务，再为其他空闲施工点提交计划。
+
+同一施工点的候选保留建筑 ID、原点与朝向，版本号递增。样例位置已经使用过时，换用还空闲的位置或新开独立测试世界。M2 支持当前原版方块白名单与干燥楼梯、台阶状态。拆除需要 NPC 的施工记录证明该块由它建造。
+
+正常重开同一世界后，Bridge 检查施工记录、现场、原 NPC 和库存。`progress` 展示 `recovery`，确认检查通过后用 `resume <当前任务 ID>` 继续。遇到未确认交互或世界、库存与记录不符时任务保持停止，记录可供核对。验收与证据见 [M2 验证](m2-validation.md)。
+
 ## 在 PowerShell 中运行
 
-项目和虚拟环境位于 D 盘。样例使用 Python 3.13.2 的虚拟环境，源码使用 Python 标准库。渲染由 Blender 5.2.4 LTS 自带的 Python、`bpy`、`mathutils` 和 Cycles 完成。生成命令依次检测 OptiX 和 CUDA 设备，并以 CPU 作为后备。
+样例使用 Python 3.13.2 的虚拟环境，源码使用 Python 标准库。渲染由 Blender 5.2.4 LTS 自带的 Python、`bpy`、`mathutils` 和 Cycles 完成。生成命令依次检测 OptiX 和 CUDA 设备，并以 CPU 作为后备。
 
 ~~~powershell
 $instance = '<PCL 的 BMC4 版本目录>'

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory, Position = 0)]
-    [ValidateSet('Build', 'Client', 'Smoke')]
+    [ValidateSet('Build', 'Client', 'Smoke', 'M2Smoke', 'M2Bmc4')]
     [string] $Action,
     [string] $JavaHome,
     [string] $SourceInstance = "$env:USERPROFILE\Desktop\PCL2-214-Test\.minecraft\versions\BMC4",
@@ -75,15 +75,20 @@ try {
         if (-not (Test-Path -LiteralPath $python)) {
             throw 'The existing .venv Python is required. See docs\README.md.'
         }
+        $fixtureFlags = @()
         if ($Action -eq 'Client') {
             if ($Port -eq 0) { $Port = 8765 }
             $entry = 'tools.m1_client'
+        } elseif ($Action -in @('M2Smoke', 'M2Bmc4')) {
+            if ($Port -eq 0) { $Port = if ($Action -eq 'M2Bmc4') { 18767 } else { 18766 } }
+            if ($Action -eq 'M2Bmc4') { $fixtureFlags += '--bmc4' }
+            $entry = 'tests.m2_smoke'
         } else {
             if ($Port -eq 0) { $Port = 18765 }
             $entry = 'tests.m1_smoke'
         }
-        & $python -B -m $entry --java-home $JavaHome --source-instance $SourceInstance --port $Port
-        if ($LASTEXITCODE -ne 0) { throw "M1 $Action exited with code $LASTEXITCODE." }
+        & $python -B -m $entry --java-home $JavaHome --source-instance $SourceInstance --port $Port @fixtureFlags
+        if ($LASTEXITCODE -ne 0) { throw "$Action exited with code $LASTEXITCODE." }
     }
 } finally {
     Pop-Location

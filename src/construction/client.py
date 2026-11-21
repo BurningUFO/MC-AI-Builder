@@ -48,6 +48,21 @@ class BridgeClient:
     def submit(self, plan: dict) -> dict:
         return self._call("build", plan)
 
+    def propose(self, job_id: str, plan: dict) -> dict:
+        return self._call("candidate", {"job_id": job_id, "plan": plan})
+
+    def change(self) -> dict:
+        return self._call("change")
+
+    def approve(self, change_id: str, review_sha256: str) -> dict:
+        return self._call("approve", {"change_id": change_id, "review_sha256": review_sha256})
+
+    def reject(self, change_id: str) -> dict:
+        return self._call("reject", {"change_id": change_id})
+
+    def versions(self) -> dict:
+        return self._call("versions")
+
     def control(self, operation: str, job_id: str) -> dict:
         if operation not in ("pause", "resume", "cancel"):
             raise ValueError(f"Unsupported operation: {operation}")
