@@ -157,7 +157,8 @@ final class LocalTestWorld {
         rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
         rules.getRule(GameRules.RULE_DAYLIGHT).set(false, null);
         rules.getRule(GameRules.RULE_SPAWN_RADIUS).set(0, null);
-        LevelSettings settings = new LevelSettings(WORLD_NAME, GameType.CREATIVE, false,
+        GameType mode = Boolean.getBoolean("mcaibuilder.survival") ? GameType.SURVIVAL : GameType.CREATIVE;
+        LevelSettings settings = new LevelSettings(WORLD_NAME, mode, false,
                 Difficulty.PEACEFUL, true, rules, WorldDataConfiguration.DEFAULT);
         client.createWorldOpenFlows().createFreshLevel(WORLD_FOLDER, settings, new WorldOptions(1090L, false, false),
                 access -> access.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).createWorldDimensions());

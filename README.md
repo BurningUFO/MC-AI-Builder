@@ -33,3 +33,7 @@ $instance = '<PCL 的 BMC4 版本目录>'
 ## 游戏内建筑师
 
 M3 增加 `/architect`、独立 Python Runtime、参数化窗墙与游戏内审批。确定性后端可复现从设计到增量施工的流程。真实模型可用标准 HTTP 接口，或由官方 Codex SDK 复用本机 ChatGPT 登录。 [启动与体验](docs/m3-guide.md) · [验收与证据](docs/m3-validation.md) · [M4 规划](docs/m4-plan.md)
+
+## 生存施工
+
+M4 允许玩家批准实际供料箱，NPC 分批搬运并使用箱内物品施工。缺料、工具损坏和检查点冲突会暂停任务。BMC4 支持经过实测的 Chipped 与 Quark 建筑方块。 [启动与演示](docs/m4-guide.md) · [验收记录](docs/m4-validation.md)

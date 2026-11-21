@@ -111,7 +111,7 @@ def stage_runtime(source: Path) -> tuple[dict, str]:
 
 
 def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
-                    architect: bool = False) -> Path:
+                    architect: bool = False, survival: bool = False) -> Path:
     if not 1024 <= port <= 65535:
         raise ValueError("Bridge port must be in 1024–65535.")
     game = game.resolve()
@@ -170,6 +170,11 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
             "npc_spawn": [1, -60, 13],
         }
         changed = True
+    if settings.get("supply_mode", "preset") != ("survival" if survival else "preset"):
+        if config.exists():
+            raise ValueError("Cannot change the supply mode of an existing test client.")
+        settings["supply_mode"] = "survival"
+        changed = True
     if architect and "architect" not in settings:
         settings["architect"] = {"token": secrets.token_hex(32), "players": [str(UUID(LOCAL_PLAYER_ID))]}
         changed = True
@@ -217,12 +222,14 @@ def launch_client(
     java_home: Path, source: Path, game: Path, port: int, *,
     smoke: bool = False, m2_smoke: bool = False, bmc4: bool = False,
     architect: bool = False, m3_smoke: bool = False, pack_source: Path | None = None,
+    survival: bool = False, m4_smoke: bool = False,
 ) -> subprocess.Popen:
     game = game.resolve()
     if pack_source is not None and not bmc4:
         raise ValueError("A pack source requires an isolated BMC4 launch.")
+    survival = survival or m4_smoke
     configure_world(game, port, pack_source=(pack_source or source) if bmc4 else None,
-                    architect=architect or m3_smoke)
+                    architect=architect or m3_smoke or survival, survival=survival)
     profile, classpath = stage_runtime(source)
     native_dir = game / "natives"
     temp = game / "tmp"
@@ -251,7 +258,9 @@ def launch_client(
     arguments = [
         "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
         "-Dmcaibuilder.localTest=true", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
-        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke).lower()}",
+        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke).lower()}",
+        f"-Dmcaibuilder.m4Smoke={str(m4_smoke).lower()}",
+        f"-Dmcaibuilder.survival={str(survival).lower()}",
         *_arguments(profile["arguments"]["jvm"], values),
         profile["mainClass"], *_arguments(profile["arguments"]["game"], values), "--width", "1100", "--height", "650",
     ]
@@ -273,10 +282,17 @@ def main() -> int:
     parser.add_argument("--source-instance", type=Path, required=True)
     parser.add_argument("--game", type=Path)
     parser.add_argument("--architect", action="store_true", help="Enable the scoped Architect interface.")
+    parser.add_argument("--survival", action="store_true", help="Use player-approved supply chests and a survival world.")
+    parser.add_argument("--bmc4-pack", type=Path, help="Reuse mods from an existing isolated BMC4 test instance.")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    game = args.game or (ARCHITECT_GAME if args.architect else DEFAULT_GAME)
-    child = launch_client(args.java_home, args.source_instance, game, args.port, architect=args.architect)
+    pack = args.bmc4_pack.resolve() if args.bmc4_pack else None
+    if pack and (not pack.is_relative_to(TEST_ROOT.resolve()) or not (pack / ".mcaibuilder-test").is_file()):
+        parser.error("--bmc4-pack must be an existing marked isolated test client")
+    game = args.game or (TEST_ROOT / "survival-client" if args.survival
+                         else ARCHITECT_GAME if args.architect else DEFAULT_GAME)
+    child = launch_client(args.java_home, args.source_instance, game, args.port, architect=args.architect,
+                          survival=args.survival, bmc4=pack is not None, pack_source=pack)
     print(f"Forge client {child.pid}. Logs: {game / 'console.log'}", flush=True)
     return child.wait()
 

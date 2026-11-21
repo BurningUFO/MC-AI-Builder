@@ -10,13 +10,17 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +31,16 @@ import java.util.UUID;
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
                  List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds) {
     private static final int MAX_ACTIONS = 512;
+    private static final String QUARK_STAIR = "quark:red_shingles_stairs";
+    private static final Set<String> MODDED = Set.of(
+            "chipped:stacked_spruce_planks", "quark:red_shingles", QUARK_STAIR);
     static final Comparator<BlockPos> BUILD_ORDER = Comparator.<BlockPos>comparingInt(BlockPos::getY)
             .thenComparingInt(BlockPos::getZ).thenComparingInt(BlockPos::getX);
+
+    // The two directional roof stairs can click a solid tile on the same layer.
+    static final Comparator<Target> PLACEMENT_ORDER = Comparator.<Target>comparingInt(target -> target.world().getY())
+            .thenComparing(target -> QUARK_STAIR.equals(ForgeRegistries.BLOCKS.getKey(target.state().getBlock()).toString()))
+            .thenComparing(Target::world, BUILD_ORDER);
 
     record Target(BlockPos local, BlockPos world, BlockState state, Item item) {}
 
@@ -68,9 +80,32 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
 
     static Set<Block> palette() {
         // Resolve vanilla blocks after the server has finished registry initialization.
-        return Set.of(Blocks.STONE, Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS,
+        Set<Block> blocks = new HashSet<>(Set.of(Blocks.STONE, Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS,
                 Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
-                Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB);
+                Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB));
+        for (String id : MODDED) {
+            ResourceLocation key = new ResourceLocation(id);
+            Block block = ForgeRegistries.BLOCKS.getValue(key);
+            if (block != null && key.equals(ForgeRegistries.BLOCKS.getKey(block))
+                    && !block.defaultBlockState().hasBlockEntity() && block.asItem() instanceof BlockItem item
+                    && item.getBlock() == block
+                    && (id.endsWith("_stairs") ? block instanceof StairBlock
+                    : block.defaultBlockState().getProperties().isEmpty())) {
+                blocks.add(block);
+            }
+        }
+        return Set.copyOf(blocks);
+    }
+
+    static JsonObject moddedMaterials(Set<Block> palette) {
+        JsonObject materials = new JsonObject();
+        palette.stream().sorted(Comparator.comparing(block -> ForgeRegistries.BLOCKS.getKey(block).toString()))
+                .filter(block -> MODDED.contains(ForgeRegistries.BLOCKS.getKey(block).toString())).forEach(block -> {
+                    JsonObject entry = Wire.state(block.defaultBlockState());
+                    entry.addProperty("item_id", Warehouse.id(block.asItem()));
+                    materials.add(ForgeRegistries.BLOCKS.getKey(block).toString(), entry);
+                });
+        return materials;
     }
 
     static BuildPlan read(JsonObject data, BuildSite site, Set<Block> palette) {
@@ -116,10 +151,14 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 throw Wire.invalid("M1 cannot place block entity data at " + local.toShortString());
             }
             BlockState state = readState(action, palette).rotate(rotation);
-            ResourceLocation itemId = ResourceLocation.tryParse(Wire.string(action.get("item_id"), "action.item_id"));
             Item item = state.getBlock().asItem();
-            if (!(item instanceof BlockItem) || !ForgeRegistries.ITEMS.getKey(item).equals(itemId)) {
-                throw Wire.invalid("Incorrect placement item at " + local.toShortString());
+            ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(item);
+            JsonElement declaredItem = action.get("item_id");
+            boolean resolveModItem = MODDED.contains(action.get("id").getAsString())
+                    && (declaredItem == null || declaredItem.isJsonNull());
+            if (!(item instanceof BlockItem placing) || placing.getBlock() != state.getBlock() || itemId == null
+                    || (!resolveModItem && !itemId.toString().equals(Wire.string(declaredItem, "action.item_id")))) {
+                throw Wire.invalid("Incorrect or unsupported placement item at " + local.toShortString());
             }
             Target target = new Target(local, world, state, item);
             targets.add(target);
@@ -133,7 +172,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
-        targets.sort(Comparator.comparing(Target::world, BUILD_ORDER));
+        targets.sort(PLACEMENT_ORDER);
         JsonArray blocks = new JsonArray();
         model.values().forEach(blocks::add);
         String modelHash = Wire.sha256(blocks);
@@ -174,7 +213,18 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         }
         if (state.hasProperty(BlockStateProperties.WATERLOGGED) && state.getValue(BlockStateProperties.WATERLOGGED)
                 || state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
-            throw Wire.invalid("M1 requires dry stairs and single dry slabs");
+            throw Wire.invalid("Construction requires dry stairs and single dry slabs");
+        }
+        if (state.hasBlockEntity()) {
+            throw Wire.invalid("Block entity placements are not supported");
+        }
+        if (MODDED.contains(action.get("id").getAsString())) {
+            if (action.getAsJsonObject("properties").size() != state.getProperties().size()
+                    || (state.getBlock() instanceof StairBlock
+                    && (state.getValue(BlockStateProperties.HALF) != Half.BOTTOM
+                    || state.getValue(BlockStateProperties.STAIRS_SHAPE) != StairsShape.STRAIGHT))) {
+                throw Wire.invalid("Modded blocks require explicit states and straight, lower stairs");
+            }
         }
         return state;
     }

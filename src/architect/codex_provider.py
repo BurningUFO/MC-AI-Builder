@@ -15,7 +15,7 @@ from src.architect.codex_sdk import (
     WORK_ROOT, auth_summary, config_request, require_safe_config, safe_failure,
     safety_options, sdk_config, summarize_config,
 )
-from src.architect.design import GLASS, MASONRY, STYLES, WOODS
+from src.architect.design import GLASS, MASONRY, ROOFS, STYLES, WOODS
 from src.architect.providers import ACTIONS, PROMPT, InvalidOutput, ModelError, ModelTimeout, parse_intent
 from src.architect.providers import _bad_constant, _unique_pairs
 
@@ -26,14 +26,14 @@ MAX_CONTEXT_BYTES = 4096
 MAX_RESPONSE_BYTES = 8192
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
-    "ground_near_anchor", "construction", "design",
+    "ground_near_anchor", "construction", "design", "supply", "available_mod_blocks",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 
 WALL_FIELDS = {
     **{key: {"type": ["integer", "null"]} for key in ("width", "height", "window_width", "window_height")},
     **{key: {"type": ["string", "null"], "enum": [*values, None]}
-       for key, values in (("style", STYLES), ("wood", WOODS), ("masonry", MASONRY), ("glass", GLASS))},
+       for key, values in (("style", STYLES), ("wood", WOODS), ("masonry", MASONRY), ("glass", GLASS), ("roof", ROOFS))},
     "porch": {"type": ["boolean", "null"]},
 }
 FIELDS = {

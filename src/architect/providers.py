@@ -9,13 +9,13 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-from src.architect.design import GLASS, MASONRY, STYLES, WOODS
+from src.architect.design import CHIPPED_WOOD, GLASS, MASONRY, ROOFS, STYLES, WOODS
 
 DESIGN = frozenset(("create_design", "revise_design"))
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
-    "request_resume", "request_cancel", "clarify", "unsupported",
+    "request_resume", "request_cancel", "get_material_status", "clarify", "unsupported",
 }
 BOUNDED_RESPONSE = 128 * 1024
 
@@ -61,7 +61,10 @@ For a new design return {{"action":"create_design","kind":"window_wall","changes
 To alter the current design return {{"action":"revise_design","kind":"window_wall","base_version":VISIBLE_VERSION,"changes":{{...}}}}.
 Use the visible design version in context. For a revision include only the parameters the player wants to change.
 Fields: width (5-12), height (3-5), window_width (each of two bays), window_height, style {STYLES},
-wood {WOODS}, masonry {MASONRY}, glass {GLASS}, porch (boolean). Default values apply to missing new design fields.
+wood {WOODS}, masonry {MASONRY}, glass {GLASS}, porch (boolean), roof {ROOFS}. Default values apply to missing new design fields.
+Use modded choices only if their block IDs appear in available_mod_blocks. The Quark red roof automatically adds matching stairs.
+Interpret warehouse questions as get_material_status. Warehouse supply is a game setting, never a design field.
+If asked to build the current design from the warehouse, request_approval. No material substitutions unless explicitly requested.
 Optional origin is [x,y,z] or "here". Optional rotation is 0 north, 90 east, 180 south, 270 west, or "here" for current facing.
 Never guess coordinates or non-supported materials. Dark wood can mean dark oak. Each window width must leave at least 2 end posts and 1 center post. Window height must fit between base and cap.
 For a blocked interpretation use {{"action":"clarify","message":"简短的中文澄清问题"}} or
@@ -156,13 +159,15 @@ class FixtureProvider:
     def decide(self, context: dict) -> dict:
         text = context["message"].lower()
         visible = context.get("design")
+        if re.search(r"还缺|缺多少|材料够|material shortage", text):
+            return {"action": "get_material_status"}
         if re.search(r"进度|施工状态|progress|status", text):
             return {"action": "get_construction_progress"}
         if re.search(r"这里环境|施工范围|context", text):
             return {"action": "get_world_context"}
         if re.search(r"预览|审阅|review|preview|开始建|确认|approve", text):
             return {"action": "review_changes"}
-        if re.search(r"暂停|停工|\bpause\b", text) and not re.search(r"改|换|再|去掉|加宽", text):
+        if re.search(r"暂停|停工|\bpause\b", text) and not re.search(r"改|换|再|去掉|加宽|恢复", text):
             return {"action": "pause_construction"}
         if re.search(r"继续|resume", text):
             return {"action": "request_resume"}
@@ -177,10 +182,11 @@ class FixtureProvider:
             if match:
                 changes[key] = int(match.group(1) or match.group(2))
         preferences = {
-            "wood": (("深色", WOODS[2]), ("云杉", WOODS[1]), ("橡木", WOODS[0])),
+            "wood": (("堆叠云杉", CHIPPED_WOOD), ("深色", WOODS[2]), ("云杉", WOODS[1]), ("橡木", WOODS[0])),
             "masonry": (("石砖", MASONRY[0]), ("圆石", MASONRY[1])),
             "glass": (("淡蓝", GLASS[1]), ("蓝色玻璃", GLASS[2]), ("透明玻璃", GLASS[0])),
             "style": (("中世纪", "medieval"), ("简洁", "plain")),
+            "roof": (("红瓦", ROOFS[1]), ("红色瓦片", ROOFS[1]), ("石砖台阶", ROOFS[0])),
         }
         for field, options in preferences.items():
             for word, value in options:

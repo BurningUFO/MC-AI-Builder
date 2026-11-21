@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from src.architect.codex_budget import TOKEN_RESERVATION, CodexBudget
 from src.architect.codex_provider import MAX_CONTEXT_BYTES, CodexProvider, context_message, decode_intent
-from src.architect.design import DesignError, Wall, placement
+from src.architect.design import CHIPPED_WOOD, QUARK_ROOF, QUARK_STAIR, DesignError, Wall, placement
 from src.architect.providers import FixtureProvider, HttpProvider, InvalidOutput, ModelError, parse_intent
 from src.architect.runtime import Runtime, SessionStore, scrub
 from src.construction.plan import make_plan
@@ -75,6 +75,17 @@ class ArchitectTests(unittest.TestCase):
             revision = reopened.reserve(str(uuid4()), "wall_test", 1, wall.building(), (6, -60, 6), 0,
                                         wall, "revise_design")
             self.assertEqual(revision["plan"]["building_version"], 2)
+
+    def test_roof_change_uses_explicit_modded_stair_states_and_keeps_other_materials(self):
+        wall = Wall(wood=CHIPPED_WOOD)
+        changed = Wall.edit({"roof": QUARK_ROOF}, wall)
+        first, second = wall.building().blocks, changed.building().blocks
+        self.assertEqual(set(first), set(second))
+        self.assertEqual({pos for pos in first if first[pos] != second[pos]}, {(x, 2, 0) for x in range(8)})
+        stairs = [dict(block.state.properties) for block in second.values() if block.state.block_id == QUARK_STAIR]
+        self.assertEqual({state["facing"] for state in stairs}, {"east", "west"})
+        plan = make_plan(changed.building(), building_id="modded", version=2, origin=(6, -60, 6))
+        self.assertTrue(all(row["item_id"] is None for row in plan["actions"] if not row["id"].startswith("minecraft:")))
 
     def test_codex_context_is_bounded_and_keeps_only_recent_architect_data(self):
         context = {

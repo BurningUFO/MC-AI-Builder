@@ -129,6 +129,27 @@ def safe_message(text: str, redactions=()) -> str:
                    for char in scrub(text, redactions)).strip()[:580]
 
 
+def describe_supply(supply, *, approval=False):
+    if not supply or supply.get("mode") != "survival":
+        return "当前使用隔离测试材料。"
+    if supply.get("warehouse_approved") is False:
+        return "请先批准一个原版供料箱。"
+    if supply.get("reason"):
+        return "供料箱暂不可用，请核对获准的箱子。"
+    rows = supply["requirements"]
+
+    def quantities(key):
+        return "、".join(f"{item.removeprefix('minecraft:')} ×{row[key]}"
+                        + (" 耐久" if row["unit"] == "durability" else "")
+                        for item, row in sorted(rows.items()) if row[key])
+
+    required = quantities("required") or "无剩余材料需求"
+    short = quantities("missing")
+    if approval:
+        return required + (f"。缺料 {short}，需玩家补给" if short else "。获准库存可满足")
+    return f"剩余需求 {required}。" + (f"缺料 {short}。请补入同一个供料箱。" if short else "当前无材料缺口。")
+
+
 class Runtime:
     def __init__(self, client, provider, store, instance, blender, *, render=preview_review):
         self.client = client
@@ -145,6 +166,11 @@ class Runtime:
                                                  "approved_area", "ground_near_anchor")}
         context["message"] = message
         context["recent"] = self.store.dialog(request["player_id"])
+        if "available_mod_blocks" in request:
+            context["available_mod_blocks"] = sorted(request["available_mod_blocks"])
+        if "supply" in request:
+            supply = request["supply"]
+            context["supply"] = {key: supply[key] for key in ("mode", "warehouse_approved")}
         job = request.get("job")
         visible = request.get("draft") or job
         if job is not None:
@@ -182,6 +208,10 @@ class Runtime:
                 "invalid_request": "方案无法通过施工范围或方块约束。请调整尺寸、坐标或材料。",
                 "job_active": "已有施工正在进行。请修改属于你的当前任务，或等待当前任务结束。",
                 "no_draft": "目前没有候选设计。请先描述要建的窗墙。",
+                "warehouse_not_approved": "请先到供料箱旁，用 /architect supply x y z 批准一个原版单箱。",
+                "warehouse_unavailable": "供料箱暂不可用。请核对获准的原版单箱。",
+                "warehouse_job_scope": "这项施工使用了另一份供料授权。",
+                "warehouse_player_approval": "需要由供料箱的授权玩家批准。",
             }
             self.client.answer(request_id, messages.get(code, "本次无法继续。请重新询问进度或审阅当前设计。"))
             action = code or "bridge_error"
@@ -225,12 +255,18 @@ class Runtime:
             building_id = plan["building_id"]
         bases = Wall.edit(prior["parameters"]) if prior else None
         wall = Wall.edit(intent["changes"], bases)
+        building = wall.building()
+        blocks = {block.state.block_id for block in building.blocks.values()}
+        missing = sorted(block for block in blocks if not block.startswith("minecraft:")
+                         and block not in request.get("available_mod_blocks", {}))
+        if missing:
+            raise DesignError("当前世界未启用这些受支持的模组材料 " + "、".join(missing) + "。")
         draft = request.get("draft")
         locked = draft["revision"] if draft is not None else "job" in request
         origin, rotation = placement(intent, request, prior["plan"] if prior else None,
                                      action == "revise_design" and locked)
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
-                                  wall.building(), origin, rotation, wall, action)
+                                  building, origin, rotation, wall, action)
         return spec
 
     def review(self, request_id, mode, plan=None):
@@ -255,6 +291,8 @@ class Runtime:
                 materials[material] = materials.get(material, 0) + 1
         details = "、".join(f"{kind} ×{count}" for kind, count in sorted(materials.items())) or "无需新增材料"
         conflicts = [str(tuple(row["world"])) for row in report["changes"] if row["category"] == "conflict"][:3]
+        if "supply" in report:
+            details = describe_supply(report["supply"], approval=True)
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         self.client.answer(request_id, f"候选 V{version['building_version']}。保留 {counts['keep']}，"
                            f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
@@ -274,6 +312,8 @@ class Runtime:
             text = (f"V{job['building_version']} {job['state']}，已处理 {job['processed']}/{job['total']} 步。"
                     if job else "当前没有属于你的施工任务。")
             self.client.answer(request_id, text)
+        elif action == "get_material_status":
+            self.client.answer(request_id, describe_supply(request.get("supply", {})))
         elif action == "get_world_context":
             self.client.answer(request_id, f"维度 {request['dimension']}，当前位置 {tuple(request['position'])}，"
                                f"建议原点 {tuple(request['suggested_origin'])}，朝向 {request['facing']}。")

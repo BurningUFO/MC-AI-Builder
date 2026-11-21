@@ -43,6 +43,7 @@ final class ConstructionJob {
     JsonArray conflicts = new JsonArray();
     JsonObject cargo;
     boolean reopened;
+    SupplyCheckpoint supply;
 
     ConstructionJob(BuildPlan plan, UUID npc, UUID predecessor, JsonObject approvedReview,
                     SiteSnapshot snapshot, List<WorkStep> steps, JsonObject cargo) {
@@ -75,6 +76,9 @@ final class ConstructionJob {
         if (reason != null) {
             job.addProperty("reason", reason);
         }
+        if (supply != null) {
+            job.add("supply", supply.status(detailed));
+        }
         if (detailed) {
             JsonArray actions = records.deepCopy();
             for (int i = cursor; i < steps.size(); i++) {
@@ -106,6 +110,9 @@ final class ConstructionJob {
         data.addProperty("retries", retries);
         data.add("verification", verification);
         data.add("approved_change", approvedReview);
+        if (supply != null) {
+            data.add("supply", supply.checkpoint());
+        }
         JsonArray queue = new JsonArray();
         steps.forEach(step -> queue.add(step.json("pending")));
         data.add("queue", queue);
@@ -141,9 +148,19 @@ final class ConstructionJob {
         job.conflicts = Wire.array(data.get("conflicts"), "conflicts");
         job.verification = optionalObject(data, "verification");
         job.reopened = true;
+        JsonObject supply = optionalObject(data, "supply");
+        if (site.survival() != (supply != null)) {
+            throw Wire.invalid("Cannot switch the supply mode of a saved construction job");
+        }
+        if (supply != null) {
+            job.supply = SupplyCheckpoint.read(supply, site);
+        }
         if (job.state == State.RUNNING) {
             job.state = State.PAUSED;
             job.reason = "restart_verification";
+        }
+        if (job.supply != null) {
+            job.supply.phase = job.state.wire();
         }
         return job;
     }

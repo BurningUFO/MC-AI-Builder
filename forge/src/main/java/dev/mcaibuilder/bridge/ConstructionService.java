@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -44,6 +46,7 @@ final class ConstructionService {
     private JsonObject history = new JsonObject();
     private ConstructionJob current;
     private Registration candidate;
+    private Warehouse.Source warehouse;
     private boolean journalBlocked;
 
     ConstructionService(ServerLevel level, BuildSite site, Set<Block> palette, ConstructionWorker worker) throws IOException {
@@ -59,7 +62,12 @@ final class ConstructionService {
     }
 
     JsonObject submit(JsonObject payload) {
+        return submit(payload, null);
+    }
+
+    JsonObject submit(JsonObject payload, UUID owner) {
         requireWritable();
+        Warehouse.Source source = requireWarehouse(owner);
         UUID id = BuildPlan.id(payload, "plan_id");
         if (current != null && current.plan.id().equals(id) && registered.get(id).payload().equals(payload)) {
             return status(false);
@@ -67,14 +75,23 @@ final class ConstructionService {
         InitialBuild initial = validateInitial(payload);
         BuildPlan plan = initial.plan();
         List<WorkStep> steps = initial.steps();
+        SupplyCheckpoint supply = prepareSupply(source, plan);
         SiteSnapshot snapshot = SiteSnapshot.capture(level, site, plan);
         if (current != null) {
-            worker.attach(current.npc);
+            if (site.survival()) {
+                if (!current.supply.checked || current.supply.intent != null) {
+                    checkSupplyRecovery();
+                }
+                requireCheckpointWorker();
+            } else {
+                worker.attach(current.npc);
+            }
         }
         prepare(steps);
         archiveCurrent(null);
         registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
         current = new ConstructionJob(plan, worker.id(), null, null, snapshot, steps, cargo());
+        current.supply = supply;
         schedule();
         persist();
         ForgeBridge.LOGGER.info("m1_submit {} {} targets={}", id, plan.buildingId(), plan.targets().size());
@@ -115,8 +132,10 @@ final class ConstructionService {
         return new InitialBuild(plan, steps);
     }
 
-    JsonObject inspectInitial(JsonObject payload) {
+    JsonObject inspectInitial(JsonObject payload, UUID owner) {
+        Warehouse.Source source = requireWarehouse(owner);
         InitialBuild initial = validateInitial(payload);
+        requireWarehouseClear(source, initial.plan());
         JsonArray changes = new JsonArray();
         var context = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
         int keep = 0;
@@ -156,13 +175,19 @@ final class ConstructionService {
         report.add("counts", counts);
         report.add("changes", changes);
         report.add("neighbors", neighbors);
+        addSupplyReview(report, source, initial.steps(), new JsonArray());
         report.addProperty("review_sha256", Wire.sha256(report));
         return report;
     }
 
     JsonObject propose(UUID baseId, JsonObject payload) {
+        return propose(baseId, payload, null);
+    }
+
+    JsonObject propose(UUID baseId, JsonObject payload, UUID owner) {
         requireWritable();
         requireCurrent(baseId);
+        requireCurrentWarehouse(owner);
         if (candidate != null) {
             if (candidate.payload().equals(payload)) {
                 return change();
@@ -170,9 +195,13 @@ final class ConstructionService {
             throw Wire.conflict("change_pending", "Resolve the pending review first");
         }
         BuildPlan next = validateRevision(baseId, payload);
+        requireWarehouseClear(current.supply == null ? null : current.supply.source, next);
         worker.halt();
         current.state = State.PAUSED;
         current.reason = "change_pending";
+        if (current.supply != null) {
+            current.supply.phase = "paused";
+        }
         candidate = new Registration(next, payload.deepCopy(), "proposed");
         registered.put(next.id(), candidate);
         persist();
@@ -211,7 +240,14 @@ final class ConstructionService {
     }
 
     JsonObject approve(UUID id, String reviewedHash) {
+        return approve(id, reviewedHash, null);
+    }
+
+    JsonObject approve(UUID id, String reviewedHash, UUID owner) {
         requireWritable();
+        if (site.survival()) {
+            requireCurrentWarehouse(owner);
+        }
         if (candidate == null && current != null && current.plan.id().equals(id) && current.approvedReview != null
                 && current.approvedReview.get("review_sha256").getAsString().equals(reviewedHash)) {
             return status(false);
@@ -225,9 +261,8 @@ final class ConstructionService {
         if (check.conflicts() != 0) {
             throw Wire.conflict("change_conflicts", "The reviewed change contains conflicts");
         }
-        if (!worker.attach(current.npc) || !current.cargo.equals(cargo())) {
-            throw Wire.conflict("checkpoint_npc_unavailable", "The recorded worker or inventory could not be verified");
-        }
+        checkSupplyRecovery();
+        requireCheckpointWorker();
         for (WorkStep step : check.steps()) {
             requireSafeMutation(step, true);
         }
@@ -235,11 +270,13 @@ final class ConstructionService {
         worker.halt();
         prepare(check.steps());
         BuildPlan next = candidate.plan();
+        SupplyCheckpoint supply = prepareSupply(current.supply == null ? null : current.supply.source, next);
         UUID predecessor = current.plan.id();
         SiteSnapshot snapshot = current.snapshot;
         snapshot.track(next);
         archiveCurrent(next.id());
         current = new ConstructionJob(next, worker.id(), predecessor, check.report(), snapshot, check.steps(), cargo());
+        current.supply = supply;
         registered.put(id, candidate.withDisposition("approved"));
         candidate = null;
         schedule();
@@ -263,7 +300,202 @@ final class ConstructionService {
 
     private ChangeReview review() {
         site.requireLoaded(level);
-        return ChangeReview.inspect(level, site, current.plan, candidate.plan(), current.snapshot);
+        ChangeReview check = ChangeReview.inspect(level, site, current.plan, candidate.plan(), current.snapshot);
+        if (current.supply != null) {
+            JsonObject report = check.report();
+            report.remove("review_sha256");
+            addSupplyReview(report, current.supply.source, check.steps(), current.records);
+            report.addProperty("review_sha256", Wire.sha256(report));
+        }
+        return check;
+    }
+
+    void authorizeWarehouse(ServerPlayer player, BlockPos pos) {
+        requireWritable();
+        if (!site.survival()) {
+            throw Wire.conflict("survival_supply_disabled", "当前实例使用隔离测试材料。");
+        }
+        if (current != null && current.state.active()) {
+            throw Wire.conflict("warehouse_job_active", "施工期间只能由玩家补充原供料箱。");
+        }
+        site.requireLoaded(level);
+        if (current != null && (!current.supply.checked || current.supply.intent != null)) {
+            checkSupplyRecovery();
+        }
+        if (current != null && !current.supply.source.owner().equals(player.getUUID())
+                && (!worker.attach(current.npc) || worker.inventory() == null || !worker.inventory().isEmpty())) {
+            throw Wire.conflict("warehouse_previous_cargo", "NPC 仍有上一位玩家的库存。");
+        }
+        warehouse = Warehouse.authorize(level, site, player, pos);
+        persist();
+        ForgeBridge.LOGGER.info("warehouse_authorized {} at {}", warehouse.id(), pos.toShortString());
+    }
+
+    private Warehouse.Source requireWarehouse(UUID owner) {
+        if (!site.survival()) {
+            return null;
+        }
+        if (owner == null || (warehouse != null && !warehouse.owner().equals(owner))) {
+            throw new Wire.Problem(403, "warehouse_player_approval", "需要由供料箱的授权玩家在游戏中批准。");
+        }
+        if (warehouse == null) {
+            throw Wire.conflict("warehouse_not_approved", "请先用 /architect supply x y z 批准一个原版单箱。");
+        }
+        return warehouse;
+    }
+
+    private void requireCurrentWarehouse(UUID owner) {
+        Warehouse.Source source = requireWarehouse(owner);
+        if (source != null && (current == null || current.supply == null || !source.equals(current.supply.source))) {
+            throw Wire.conflict("warehouse_job_scope", "当前任务不属于这个供料授权。");
+        }
+    }
+
+    private void requireWarehouseClear(Warehouse.Source source, BuildPlan plan) {
+        if (source != null && (plan.at(source.pos()) != null || plan.at(source.pos().above()) != null)) {
+            throw Wire.conflict("warehouse_occupied", "设计需要为供料箱和箱盖留出空间。");
+        }
+    }
+
+    private SupplyCheckpoint prepareSupply(Warehouse.Source source, BuildPlan plan) {
+        if (source == null) {
+            return null;
+        }
+        requireWarehouseClear(source, plan);
+        return new SupplyCheckpoint(source, Warehouse.digest(Warehouse.open(level, source)));
+    }
+
+    private void addSupplyReview(JsonObject report, Warehouse.Source source, List<WorkStep> steps, JsonArray records) {
+        if (source != null) {
+            var chest = Warehouse.open(level, source);
+            if (current != null) {
+                worker.attach(current.npc);
+            }
+            JsonObject supply = Warehouse.summary(level, steps, 0, worker.inventory(), chest, records);
+            supply.addProperty("mode", "survival");
+            supply.addProperty("source_id", source.id().toString());
+            supply.add("position", Wire.position(source.pos()));
+            supply.addProperty("warehouse_sha256", Warehouse.digest(chest));
+            report.add("supply", supply);
+        }
+    }
+
+    JsonObject moddedMaterials() {
+        return BuildPlan.moddedMaterials(palette);
+    }
+
+    JsonObject materials(UUID owner) {
+        JsonObject result = new JsonObject();
+        result.addProperty("mode", site.survival() ? "survival" : "preset");
+        if (!site.survival() || warehouse == null || !warehouse.owner().equals(owner)) {
+            result.addProperty("warehouse_approved", false);
+            return result;
+        }
+        ConstructionJob job = current != null && current.supply != null && warehouse.equals(current.supply.source)
+                ? current : null;
+        if (job != null) {
+            worker.attach(job.npc);
+        }
+        String problem = null;
+        net.minecraft.world.Container chest = null;
+        try {
+            chest = Warehouse.open(level, warehouse);
+        } catch (Wire.Problem error) {
+            problem = error.code;
+        }
+        result = Warehouse.summary(level, job == null ? List.of() : job.steps, job == null ? 0 : job.cursor,
+                job == null ? null : worker.inventory(), chest, job == null ? new JsonArray() : job.records);
+        result.addProperty("mode", "survival");
+        result.addProperty("warehouse_approved", true);
+        result.add("position", Wire.position(warehouse.pos()));
+        if (problem != null) {
+            result.addProperty("reason", problem);
+        }
+        return result;
+    }
+
+    private void checkLiveSupply() {
+        if (worker.inventory() == null || !current.cargo.equals(cargo())) {
+            throw Wire.conflict("npc_inventory_changed", "NPC 背包与上次检查点不一致。");
+        }
+        if (!current.supply.stockHash.equals(Warehouse.digest(Warehouse.open(level, current.supply.source)))) {
+            throw Wire.conflict("warehouse_changed", "供料箱内容已变化。请核对后确认继续。");
+        }
+    }
+
+    private void resupply() {
+        SupplyCheckpoint supply = current.supply;
+        supply.phase = "to_warehouse";
+        JsonObject transfer = worker.resupply(supply.source, supply.stockHash, current.steps, current.cursor, intent -> {
+            if (supply.intent != null || current.intent >= 0) {
+                throw Wire.conflict("warehouse_checkpoint_mismatch", "上一次交互尚未核对。");
+            }
+            intent.addProperty("tick", level.getGameTime());
+            intent.addProperty("step", current.cursor);
+            supply.intent = intent.deepCopy();
+            persist();
+        });
+        if (transfer != null) {
+            finishTransfer(transfer, false);
+            schedule();
+            persist();
+        }
+    }
+
+    private void finishTransfer(JsonObject transfer, boolean reconciled) {
+        SupplyCheckpoint supply = current.supply;
+        transfer.addProperty("reconciled_from_checkpoint", reconciled);
+        supply.stockHash = transfer.get("warehouse_after_sha256").getAsString();
+        supply.intent = null;
+        supply.phase = "to_site";
+        supply.trips.add(transfer);
+        current.cargo = cargo();
+        ForgeBridge.LOGGER.info("warehouse_transfer {} {}", current.plan.id(), transfer);
+    }
+
+    private void checkSupplyRecovery() {
+        SupplyCheckpoint supply = current.supply;
+        if (supply == null) {
+            return;
+        }
+        if (!worker.attach(current.npc) || worker.inventory() == null) {
+            throw Wire.conflict("checkpoint_npc_unavailable", "NPC 及其库存尚未加载。");
+        }
+        String chestHash = Warehouse.digest(Warehouse.open(level, supply.source));
+        String cargoHash = Warehouse.cargoDigest(worker.inventory());
+        if (supply.intent != null) {
+            JsonObject intent = supply.intent;
+            if (matchesTransfer(intent, "before", chestHash, cargoHash)) {
+                supply.intent = null;
+                persist();
+            } else if (matchesTransfer(intent, "after", chestHash, cargoHash)) {
+                finishTransfer(intent, true);
+                persist();
+            } else {
+                throw Wire.conflict("warehouse_checkpoint_mismatch", "供料箱和 NPC 背包未处于同一搬运检查点。");
+            }
+        }
+        if (!supply.checked && (!supply.stockHash.equals(chestHash) || !current.cargo.equals(cargo()))) {
+            throw Wire.conflict("warehouse_checkpoint_mismatch", "重开后的供料箱或背包与保存记录不一致。");
+        }
+        supply.checked = true;
+    }
+
+    private static boolean matchesTransfer(JsonObject intent, String phase, String chest, String npc) {
+        return chest.equals(intent.get("warehouse_" + phase + "_sha256").getAsString())
+                && npc.equals(intent.get("npc_" + phase + "_sha256").getAsString());
+    }
+
+    private void notifySupplyPause(Wire.Problem problem) {
+        if (current.supply == null) {
+            return;
+        }
+        ServerPlayer player = level.getServer().getPlayerList().getPlayer(current.supply.source.owner());
+        if (player != null) {
+            JsonObject report = materials(player.getUUID());
+            player.sendSystemMessage(Component.literal("[Architect] 施工暂停。" + problem.getMessage() + " "
+                    + Warehouse.shortages(report) + "。核对后可输入 /architect resume " + current.plan.id() + "。"));
+        }
     }
 
     private void requireCandidate(UUID id) {
@@ -311,6 +543,10 @@ final class ConstructionService {
     }
 
     JsonObject control(String operation, UUID id) {
+        return control(operation, id, null);
+    }
+
+    JsonObject control(String operation, UUID id, UUID owner) {
         requireWritable();
         requireCurrent(id);
         switch (operation) {
@@ -322,6 +558,9 @@ final class ConstructionService {
                 }
             }
             case "resume" -> {
+                if (site.survival()) {
+                    requireCurrentWarehouse(owner);
+                }
                 if (current.state != State.RUNNING) {
                     requireState(State.PAUSED);
                     requireNoIntent();
@@ -335,7 +574,12 @@ final class ConstructionService {
                         persist();
                         throw Wire.conflict("world_conflict", "The saved construction positions no longer match the world");
                     }
+                    checkSupplyRecovery();
                     requireCheckpointWorker();
+                    if (current.supply != null) {
+                        current.supply.stockHash = Warehouse.digest(Warehouse.open(level, current.supply.source));
+                        current.supply.phase = "ready";
+                    }
                     current.state = State.RUNNING;
                     current.reason = null;
                     schedule();
@@ -377,6 +621,9 @@ final class ConstructionService {
         worker.halt();
         current.state = State.PAUSED;
         current.reason = reason;
+        if (current.supply != null) {
+            current.supply.phase = "paused";
+        }
     }
 
     void externalEdit(ServerLevel editedLevel, Entity entity, BlockPos pos) {
@@ -400,11 +647,15 @@ final class ConstructionService {
         }
         try {
             site.requireLoaded(level);
+            if (current.supply != null) {
+                checkLiveSupply();
+            }
             executeNext();
         } catch (Wire.Problem problem) {
             if (!journalBlocked) {
                 pause(problem.code);
                 persistAfterFailure();
+                notifySupplyPause(problem);
             }
         } catch (RuntimeException error) {
             ForgeBridge.LOGGER.error("Construction worker failed for job {}", current.plan.id(), error);
@@ -443,6 +694,10 @@ final class ConstructionService {
             worker.halt();
         } else {
             requireSafeMutation(step, current.predecessor != null);
+            if (current.supply != null && !worker.hasSupply(step)) {
+                resupply();
+                return;
+            }
             result = worker.act(step, this::beginInteraction);
         }
         if (result == null) {
@@ -476,6 +731,9 @@ final class ConstructionService {
             if (result.status().equals("placed") || result.status().equals("removed")) {
                 current.snapshot.written(step);
                 current.cargo = cargo();
+                if (current.supply != null) {
+                    current.supply.phase = "working";
+                }
                 if (step.remove()) {
                     current.removed++;
                 } else {
@@ -560,6 +818,9 @@ final class ConstructionService {
             current.verification = new JsonObject();
             current.verification.addProperty("passed", false);
             current.verification.addProperty("error", problem.code);
+        }
+        if (current.supply != null) {
+            current.supply.phase = current.state.wire();
         }
         ForgeBridge.LOGGER.info("construction_finish {} state={} reason={} verification={}",
                 current.plan.id(), current.state.wire(), current.reason, current.verification);
@@ -648,6 +909,9 @@ final class ConstructionService {
         JsonObject cargo = new JsonObject();
         cargo.add("materials", state.get("materials"));
         cargo.add("tools", state.get("tools"));
+        if (site.survival() && worker.inventory() != null) {
+            cargo.addProperty("inventory_sha256", Warehouse.cargoDigest(worker.inventory()));
+        }
         return cargo;
     }
 
@@ -662,6 +926,15 @@ final class ConstructionService {
             details.addProperty("inventory_matches_checkpoint", entity && current.cargo.equals(cargo()));
             details.add("conflicts", conflicts);
             details.addProperty("interaction_confirmed", current.intent < 0);
+            if (current.supply != null) {
+                boolean matched = current.supply.stockHash.equals(
+                        Warehouse.digest(Warehouse.open(level, current.supply.source)));
+                details.addProperty("warehouse_matches_checkpoint", matched);
+                details.addProperty("warehouse_transfer_confirmed", current.supply.intent == null);
+                if (entity && matched && current.supply.intent == null && current.cargo.equals(cargo())) {
+                    current.supply.checked = true;
+                }
+            }
         } catch (Wire.Problem problem) {
             details.addProperty("waiting", problem.code);
         }
@@ -677,11 +950,18 @@ final class ConstructionService {
         response.add("approved_area", site.area().json());
         response.addProperty("journal_available", !journalBlocked);
         response.addProperty("change_pending", candidate != null);
+        response.addProperty("supply_mode", site.survival() ? "survival" : "preset");
+        if (detailed) {
+            response.add("modded_materials", moddedMaterials());
+        }
         if (current != null) {
             if (current.reopened && current.state != State.RUNNING) {
                 response.add("recovery", recovery());
             }
             response.add("job", current.status(detailed));
+        }
+        if (detailed && site.survival()) {
+            response.add("materials", materials(warehouse == null ? null : warehouse.owner()));
         }
         response.add("npc", worker.status());
         return response;
@@ -734,6 +1014,9 @@ final class ConstructionService {
         }
         state.add("plans", plans);
         state.add("history", history);
+        if (warehouse != null) {
+            state.add("warehouse", warehouse.json());
+        }
         if (current != null) {
             state.add("current", current.checkpoint());
         }
@@ -770,6 +1053,9 @@ final class ConstructionService {
             registered.put(plan.id(), new Registration(plan, payload, disposition));
         }
         history = Wire.object(data.get("history"), "journal history");
+        if (data.has("warehouse")) {
+            warehouse = Warehouse.Source.read(Wire.object(data.get("warehouse"), "warehouse"), site);
+        }
         if (data.has("current")) {
             JsonObject checkpoint = Wire.object(data.get("current"), "current job");
             Registration entry = registered.get(BuildPlan.id(checkpoint, "job_id"));

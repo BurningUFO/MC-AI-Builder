@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-record BuildSite(String world, int port, String token, Box area, BlockPos spawn, ArchitectConfig architect) {
+record BuildSite(String world, int port, String token, Box area, BlockPos spawn, ArchitectConfig architect, boolean survival) {
     static BuildSite read(Path config) throws IOException {
         if (!Files.isRegularFile(config)) {
             return null;
@@ -32,7 +32,14 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn,
         } catch (Wire.Problem problem) {
             ForgeBridge.LOGGER.warn("Architect disabled. {}", problem.getMessage());
         }
-        return new BuildSite(world, port, token, area, spawn, architect);
+        boolean isolated = Boolean.getBoolean("mcaibuilder.localTest")
+                && Files.isRegularFile(config.getParent().getParent().resolve(".mcaibuilder-test"));
+        String supply = data.has("supply_mode") ? Wire.string(data.get("supply_mode"), "supply_mode")
+                : isolated ? "preset" : "survival";
+        if (!supply.equals("survival") && !(supply.equals("preset") && isolated)) {
+            throw Wire.invalid("Preset materials are available only in an isolated test instance");
+        }
+        return new BuildSite(world, port, token, area, spawn, architect, supply.equals("survival"));
     }
 
     boolean canBuildAt(BlockPos pos) {

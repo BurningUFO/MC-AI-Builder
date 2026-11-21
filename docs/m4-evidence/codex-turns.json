@@ -1,0 +1,179 @@
+{
+  "turn_limit": 10,
+  "token_limit": 150000,
+  "charged_tokens": 35619,
+  "records": [
+    {
+      "sequence": 1,
+      "charged_tokens": 11905,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 1407,
+      "message_sha256": "286e03366a476b5747b8a0e8013f8b49f2d633719a6afb97567ca50a2f9b96e8",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11744,
+        "output_tokens": 161,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11905
+      },
+      "sdk_duration_ms": 7170,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "create_design",
+        "kind": "window_wall",
+        "changes": {
+          "width": 8,
+          "height": 3,
+          "style": "medieval",
+          "wood": "chipped:stacked_spruce_planks",
+          "masonry": "minecraft:stone_bricks",
+          "glass": "minecraft:glass",
+          "roof": "minecraft:stone_brick_slab",
+          "porch": true
+        },
+        "origin": [
+          17,
+          -60,
+          5
+        ],
+        "rotation": 0
+      },
+      "elapsed_ms": 12214,
+      "synthetic_game_request": "请在 17 -60 5 朝北另建一面 8 格宽、3 格高的中世纪窗墙。用 Chipped 的堆叠云杉、石砖和透明玻璃，屋顶用石砖台阶，保留门前台阶。只用获准仓库的材料。"
+    },
+    {
+      "sequence": 2,
+      "charged_tokens": 11926,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 1598,
+      "message_sha256": "43c6e74210c23d3191776ed8f7f9764bd93e57055e234532062f80d4d53e5280",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11795,
+        "output_tokens": 131,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11926
+      },
+      "sdk_duration_ms": 6473,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "roof": "quark:red_shingles"
+        },
+        "base_version": 1
+      },
+      "elapsed_ms": 10293,
+      "synthetic_game_request": "先暂停施工，把屋顶改用 Quark 的红色瓦片。保留木框、窗户、墙身和台阶。材料不够告诉我，不要自行替换。"
+    },
+    {
+      "sequence": 3,
+      "charged_tokens": 11788,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 1465,
+      "message_sha256": "6cbd8c1c55262f3a174fb6a1015e22d01d7405fffb5df49c5aa1f7d861470b5f",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11746,
+        "output_tokens": 42,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11788
+      },
+      "sdk_duration_ms": 4650,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "get_material_status"
+      },
+      "elapsed_ms": 6295,
+      "synthetic_game_request": "还缺多少材料？请按实际仓库列出。"
+    }
+  ]
+}

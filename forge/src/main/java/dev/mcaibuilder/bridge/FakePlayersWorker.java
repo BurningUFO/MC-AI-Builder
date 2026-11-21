@@ -15,6 +15,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -24,6 +25,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
@@ -43,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 final class FakePlayersWorker implements ConstructionWorker {
     private static final double REACH = 4.5;
@@ -73,6 +77,22 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public void prepare(List<BuildPlan.Target> targets, boolean removals) {
+        if (npc == null || !npc.isAlive()) {
+            spawn();
+        }
+        if (site.survival()) {
+            if (!available()) {
+                throw Wire.conflict("npc_unavailable", "The survival worker and its inventory must be available");
+            }
+        } else {
+            preparePreset(targets, removals);
+        }
+        halt();
+        walked = 0;
+        lastPosition = npc.position();
+    }
+
+    private void preparePreset(List<BuildPlan.Target> targets, boolean removals) {
         Map<Item, Integer> totals = new LinkedHashMap<>();
         for (BuildPlan.Target target : targets) {
             totals.merge(target.item(), 1, Integer::sum);
@@ -83,9 +103,6 @@ final class FakePlayersWorker implements ConstructionWorker {
             for (int left = total.getValue(); left > 0; left -= stackLimit) {
                 supplied.add(new ItemStack(total.getKey(), Math.min(left, stackLimit)));
             }
-        }
-        if (npc == null || !npc.isAlive()) {
-            spawn();
         }
         for (Item tool : List.of(Items.IRON_PICKAXE, Items.IRON_AXE)) {
             int existing = itemSlot(tool);
@@ -102,9 +119,6 @@ final class FakePlayersWorker implements ConstructionWorker {
         for (int slot = 0; slot < supplied.size(); slot++) {
             npc.getInventory().setItem(slot, supplied.get(slot));
         }
-        halt();
-        walked = 0;
-        lastPosition = npc.position();
     }
 
     private void spawn() {
@@ -180,11 +194,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!available()) {
             return failure("npc_unavailable");
         }
-        Vec3 current = npc.position();
-        walked += current.distanceTo(lastPosition);
-        lastPosition = current;
-        Item item = step.remove() ? toolFor(step.before()) : step.target().item();
-        int slot = itemSlot(item);
+        Vec3 current = trackPosition();
+        Item item = Warehouse.item(step);
+        int slot = supplySlot(item);
         if (slot < 0) {
             return failure(step.remove() ? "out_of_tool" : "out_of_material");
         }
@@ -198,19 +210,103 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         stopMining();
 
+        String trouble = navigate(step.pos(), current, feet -> chooseAim(step, stack, feet) != null,
+                step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance");
+        return trouble == null ? null : failure(trouble);
+    }
+
+    @Override
+    public SimpleContainer inventory() {
+        return available() ? npc.getInventory() : null;
+    }
+
+    @Override
+    public boolean hasSupply(WorkStep step) {
+        return available() && supplySlot(Warehouse.item(step)) >= 0;
+    }
+
+    private int supplySlot(Item item) {
+        return site.survival() ? Warehouse.find(npc.getInventory(), item) : itemSlot(item);
+    }
+
+    @Override
+    public JsonObject resupply(Warehouse.Source source, String stockHash, List<WorkStep> steps, int cursor,
+                               Consumer<JsonObject> beforeTransfer) {
+        if (!available()) {
+            throw Wire.conflict("npc_unavailable", "NPC 无法搬运物品。");
+        }
+        ChestBlockEntity chest = Warehouse.open(level, source);
+        // Check the next action before a trip, so unavailable stock is reported at once.
+        Warehouse.Transfer transfer = Warehouse.planTransfer(chest, npc.getInventory(), steps, cursor);
+        Vec3 current = trackPosition();
+        Aim aim = chestAim(source.pos(), current);
+        if (aim == null) {
+            String trouble = navigate(source.pos(), current, feet -> chestAim(source.pos(), feet) != null,
+                    "warehouse_unreachable");
+            if (trouble != null) {
+                throw Wire.conflict("warehouse_unreachable", "NPC 无法到达供料箱。");
+            }
+            return null;
+        }
+        haltAction();
+        if (!level.mayInteract(actor, source.pos()) || !chest.stillValid(actor)) {
+            throw Wire.conflict("warehouse_interaction_denied", "供料箱拒绝交互。");
+        }
+        lookAndSwing(aim);
+        WarehouseEvidence interaction = WarehouseEvidence.begin(actor, source.pos());
+        try {
+            InteractionResult result = actor.gameMode.useItemOn(
+                    actor, level, ItemStack.EMPTY, InteractionHand.MAIN_HAND, aim.hit());
+            if (!result.consumesAction() || interaction.denied || interaction.rightClicks != 1 || interaction.menus != 1
+                    || !(actor.containerMenu instanceof ChestMenu menu) || menu.getContainer() != chest) {
+                throw Wire.conflict("warehouse_interaction_denied", "供料箱未开启，未取出任何物品。");
+            }
+            if (Warehouse.open(level, source) != chest || !stockHash.equals(Warehouse.digest(chest))) {
+                throw Wire.conflict("warehouse_changed", "交互期间箱内物品已变化。");
+            }
+            transfer.evidence.add("warehouse_position", Wire.position(source.pos()));
+            transfer.evidence.add("npc_position", Wire.position(npc.blockPosition()));
+            transfer.evidence.addProperty("reach", aim.distance());
+            transfer.evidence.addProperty("right_click_events", interaction.rightClicks);
+            transfer.evidence.addProperty("container_open_events", interaction.menus);
+            beforeTransfer.accept(transfer.evidence);
+            transfer.apply(chest, npc.getInventory());
+            return transfer.evidence;
+        } finally {
+            WarehouseEvidence.end();
+            if (actor.containerMenu != actor.inventoryMenu) {
+                actor.closeContainer();
+            }
+        }
+    }
+
+    private Aim chestAim(BlockPos pos, Vec3 feet) {
+        actor.setPos(feet.x, feet.y, feet.z);
+        actor.setOnGround(npc.onGround());
+        return breakAim(pos, actor.getEyePosition());
+    }
+
+    private Vec3 trackPosition() {
+        Vec3 current = npc.position();
+        walked += current.distanceTo(lastPosition);
+        lastPosition = current;
+        return current;
+    }
+
+    private String navigate(BlockPos pos, Vec3 current, Predicate<Vec3> canAim, String unreachable) {
         long now = level.getGameTime();
         if (deadline == 0) {
             deadline = now + MOVE_LIMIT_TICKS;
         }
         if (now >= deadline) {
-            return failure("navigation_timeout");
+            return "navigation_timeout";
         }
         if (destination != null && !npc.getNavigation().isDone()) {
             return null;
         }
-        for (BlockPos candidate : stances(step.pos(), current)) {
+        for (BlockPos candidate : stances(pos, current)) {
             if (!triedStances.add(candidate) || !JobHelpers.canStandAt(level, candidate)
-                    || chooseAim(step, stack, Vec3.atBottomCenterOf(candidate)) == null) {
+                    || !canAim.test(Vec3.atBottomCenterOf(candidate))) {
                 continue;
             }
             Path path = npc.getNavigation().createPath(candidate, 0);
@@ -219,7 +315,7 @@ final class FakePlayersWorker implements ConstructionWorker {
                 return null;
             }
         }
-        return failure(step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance");
+        return unreachable;
     }
 
     private List<BlockPos> stances(BlockPos target, Vec3 current) {
@@ -311,7 +407,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         npc.swing(InteractionHand.MAIN_HAND);
     }
 
-    private static Item toolFor(BlockState state) {
+    static Item toolFor(BlockState state) {
         return state.is(BlockTags.MINEABLE_WITH_AXE) ? Items.IRON_AXE : Items.IRON_PICKAXE;
     }
 
@@ -324,6 +420,10 @@ final class FakePlayersWorker implements ConstructionWorker {
         ItemStack stack = inventory.getItem(slot);
         actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
         try {
+            if (site.survival() && step.before().requiresCorrectToolForDrops()
+                    && !stack.isCorrectToolForDrops(step.before())) {
+                return failure("incompatible_tool");
+            }
             float progress = step.before().getDestroyProgress(actor, level, pos);
             if (!(progress > 0) || progress * MOVE_LIMIT_TICKS < 1) {
                 return failure("cannot_mine_with_tool");
@@ -416,6 +516,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         evidence.addProperty("item_after", after);
         evidence.addProperty("reach", aim.distance());
         evidence.add("clicked", Wire.position(clicked));
+        if (site.survival()) {
+            evidence.add("npc_position", Wire.position(npc.blockPosition()));
+        }
         evidence.addProperty("face", aim.hit().getDirection().getName());
         String reason = null;
         if (attempt.rejected || !result.consumesAction()) {

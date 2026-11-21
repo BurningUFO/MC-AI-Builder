@@ -82,6 +82,25 @@ final class ArchitectService {
         String[] parts = input.split("\\s+", 2);
         String verb = parts[0];
         switch (verb) {
+            case "supply" -> {
+                construction.authorizeWarehouse(player, supplyPosition(input));
+                session.ticket = null;
+                session.request = null;
+                persist();
+                tell(player, "供料箱已批准。");
+                return;
+            }
+            case "materials" -> {
+                JsonObject supply = supplyContext(session, player.getUUID());
+                if (!supply.get("mode").getAsString().equals("survival")) {
+                    tell(player, "当前使用隔离测试材料。");
+                } else if (!supply.get("warehouse_approved").getAsBoolean()) {
+                    tell(player, "请先用 /architect supply x y z 批准供料箱。");
+                } else {
+                    tell(player, supply.has("reason") ? "供料箱暂不可用。" : Warehouse.shortages(supply) + "。");
+                }
+                return;
+            }
             case "approve", "reject", "resume", "cancel" -> {
                 if (parts.length != 2) {
                     throw Wire.invalid("请使用聊天中的链接，或带上对应编号。");
@@ -116,6 +135,10 @@ final class ArchitectService {
         JsonObject context = worldContext(player);
         context.addProperty("player_id", player.getUUID().toString());
         context.addProperty("message", input);
+        context.add("available_mod_blocks", construction.moddedMaterials());
+        if (site.survival()) {
+            context.add("supply", supplyContext(session, player.getUUID()));
+        }
         JsonObject owned = ownedJob(session);
         if (owned != null) {
             context.add("job", owned);
@@ -130,6 +153,33 @@ final class ArchitectService {
         }
         session.request = new Request(context, job);
         tell(player, "收到，正在处理。");
+    }
+
+    private JsonObject supplyContext(Session session, UUID owner) {
+        if (site.survival() && session.draft != null) {
+            try {
+                JsonObject supply = inspect(session.draft, false, owner).getAsJsonObject("supply");
+                supply.addProperty("warehouse_approved", true);
+                return supply;
+            } catch (Wire.Problem error) {
+                JsonObject unavailable = construction.materials(owner);
+                unavailable.addProperty("reason", error.code);
+                return unavailable;
+            }
+        }
+        return construction.materials(owner);
+    }
+
+    private static BlockPos supplyPosition(String input) {
+        String[] parts = input.split("\\s+");
+        if (parts.length == 4) {
+            try {
+                return new BlockPos(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+            } catch (NumberFormatException ignored) {
+                // The command requires explicit integer coordinates.
+            }
+        }
+        throw Wire.invalid("请使用 /architect supply x y z 指定眼前的单箱。");
     }
 
     JsonObject inbox() {
@@ -171,7 +221,7 @@ final class ArchitectService {
             if (session.draft == null) {
                 throw Wire.conflict("no_draft", "没有待审阅的设计。");
             }
-            JsonObject report = inspect(session.draft, true);
+            JsonObject report = inspect(session.draft, true, pending.player.getUUID());
             request.staged = true;
             return report;
         }
@@ -183,7 +233,7 @@ final class ArchitectService {
             if (!session.draft.plan.equals(plan)) {
                 throw Wire.conflict("request_already_staged", "本条需求已有候选。");
             }
-            return inspect(session.draft, false);
+            return inspect(session.draft, false, pending.player.getUUID());
         }
 
         UUID base = null;
@@ -204,7 +254,7 @@ final class ArchitectService {
         }
         Draft next = new Draft(plan.deepCopy(), base);
         if (base == null) {
-            construction.inspectInitial(plan);
+            construction.inspectInitial(plan, pending.player.getUUID());
         } else {
             construction.validateRevision(base, plan);
         }
@@ -215,7 +265,7 @@ final class ArchitectService {
         session.draft = next;
         session.ticket = null;
         persist();
-        JsonObject report = inspect(next, true);
+        JsonObject report = inspect(next, true, pending.player.getUUID());
         request.staged = true;
         return report;
     }
@@ -248,7 +298,7 @@ final class ArchitectService {
                 throw Wire.conflict("no_draft", "这条请求没有已暂存的设计。");
             }
             String hash = Wire.string(body.get("review_sha256"), "review_sha256");
-            JsonObject live = inspect(session.draft, false);
+            JsonObject live = inspect(session.draft, false, pending.player.getUUID());
             if (!hash.equals(reviewHash(live))) {
                 throw reviewChanged();
             }
@@ -293,7 +343,7 @@ final class ArchitectService {
         if (approve) {
             JsonObject live;
             try {
-                live = inspect(draft, false);
+                live = inspect(draft, false, player.getUUID());
             } catch (Wire.Problem changed) {
                 session.ticket = null;
                 persist();
@@ -323,9 +373,9 @@ final class ArchitectService {
             if (!approve) {
                 discardRevision(draft);
             } else if (draft.base == null) {
-                construction.submit(draft.plan);
+                construction.submit(draft.plan, player.getUUID());
             } else {
-                construction.approve(draft.id(), ticket.hash);
+                construction.approve(draft.id(), ticket.hash, player.getUUID());
             }
         } catch (Wire.Problem error) {
             session.active = previous;
@@ -346,7 +396,7 @@ final class ArchitectService {
         if (action.equals("resume") && session.draft != null) {
             throw Wire.conflict("change_pending", "请先批准或拒绝待审阅设计。");
         }
-        construction.control(action, id);
+        construction.control(action, id, player.getUUID());
         session.request = null;
         if (action.equals("cancel")) {
             session.draft = null;
@@ -356,16 +406,16 @@ final class ArchitectService {
         tell(player, action.equals("resume") ? "已继续施工。" : "已取消当前施工。");
     }
 
-    private JsonObject inspect(Draft draft, boolean stageIfMissing) {
+    private JsonObject inspect(Draft draft, boolean stageIfMissing, UUID owner) {
         if (draft.base == null) {
-            return construction.inspectInitial(draft.plan);
+            return construction.inspectInitial(draft.plan, owner);
         }
         if (!draft.base.equals(currentJob())) {
             throw Wire.conflict("architect_job_scope", "基础施工任务已经变化。");
         }
         JsonObject change = construction.change();
         if (!change.get("pending").getAsBoolean() && stageIfMissing) {
-            return construction.propose(draft.base, draft.plan);
+            return construction.propose(draft.base, draft.plan, owner);
         }
         if (!change.get("pending").getAsBoolean() || !draft.id().equals(BuildPlan.id(change, "change_id"))) {
             throw Wire.conflict("change_not_found", "此候选已被替换或结束。");

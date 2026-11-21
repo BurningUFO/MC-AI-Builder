@@ -95,6 +95,8 @@ $review.counts
 
 M3 使用独立 Python Runtime 处理 `/architect` 需求，通过 Forge 审阅与批准，再沿用 M2 执行。启动、模型配置和测试命令见 [M3 游戏内建筑师](m3-guide.md)。
 
+M4 的生存施工、玩家供料和 BMC4 范围见 [启动与演示](m4-guide.md) 和 [实际验收](m4-validation.md)。
+
 ## 在 PowerShell 中运行
 
 样例使用 Python 3.13.2 的虚拟环境，源码使用 Python 标准库。渲染由 Blender 5.2.4 LTS 自带的 Python、`bpy`、`mathutils` 和 Cycles 完成。生成命令依次检测 OptiX 和 CUDA 设备，并以 CPU 作为后备。
