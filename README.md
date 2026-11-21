@@ -29,3 +29,7 @@ $instance = '<PCL 的 BMC4 版本目录>'
 
 - [M2 游戏内验收](docs/m2-validation.md) · [窗墙 V1/V2 样例](projects/m2_wall) · [施工差异报告](projects/m2_wall/change-example.json)
 - [M3 任务规划](docs/m3-plan.md)
+
+## 游戏内建筑师
+
+M3 增加 `/architect`、独立 Python Runtime、参数化窗墙与游戏内审批。确定性后端可复现从设计到增量施工的流程。真实模型可用标准 HTTP 接口，或由官方 Codex SDK 复用本机 ChatGPT 登录。 [启动与体验](docs/m3-guide.md) · [验收与证据](docs/m3-validation.md) · [M4 规划](docs/m4-plan.md)

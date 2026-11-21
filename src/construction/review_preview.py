@@ -22,7 +22,7 @@ def models_for_review(report: dict) -> tuple[Building, Building]:
     return current, proposed
 
 
-def preview_review(report_path: Path, instance: Path, output: Path, blender: Path) -> Path:
+def preview_review(report_path: Path, instance: Path, output: Path, blender: Path, *, multi_angle=False) -> Path:
     report = json.loads(report_path.read_text(encoding="utf-8"))
     models = models_for_review(report)
     output = output.resolve()
@@ -34,8 +34,12 @@ def preview_review(report_path: Path, instance: Path, output: Path, blender: Pat
     with TemporaryDirectory(prefix=".review-", dir=output) as name:
         stage = Path(name)
         manifest = stage / "review.json"
-        write_json(manifest, {"review": report, "indices": indices}, compact=True)
-        run_blender(blender.resolve(strict=True), ROOT / "src/renderers/revision_preview.py", manifest, ROOT, stage)
-        for file in ("revision-review.blend", "current.png", "proposed.png"):
+        write_json(manifest, {"review": report, "indices": indices, "multi_angle": multi_angle}, compact=True)
+        run_blender(blender.resolve(strict=True), ROOT / "src/renderers/revision_preview.py", manifest, ROOT, stage,
+                    timeout=120 if multi_angle else None)
+        files = ("revision-review.blend", "current.png", "proposed.png")
+        if multi_angle:
+            files += ("proposed-rear.png",)
+        for file in files:
             (stage / file).replace(output / file)
     return output / "revision-review.blend"

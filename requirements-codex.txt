@@ -1,0 +1,2 @@
+# Optional Codex Provider for the existing D-drive virtual environment.
+openai-codex==0.171.0

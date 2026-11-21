@@ -76,7 +76,7 @@ final class LocalTestWorld {
                     Screenshot.grab(client.gameDirectory, "m1-wall-built.png", client.getMainRenderTarget(),
                             message -> ForgeBridge.LOGGER.info("M1 screenshot: {}", message.getString()));
                 }
-                if (Boolean.getBoolean("mcaibuilder.m2Smoke")) {
+                if (Boolean.getBoolean("mcaibuilder.m2Smoke") || Boolean.getBoolean("mcaibuilder.m3Smoke")) {
                     pollPlayerEdit(client, root);
                 }
                 if (Files.deleteIfExists(root.resolve(".mcaibuilder-stop"))) {

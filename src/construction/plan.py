@@ -12,8 +12,8 @@ from src.core.building import Building, Position, write_json
 SCHEMA_VERSION = 1
 MAX_ACTIONS = 512
 M1_BLOCKS = frozenset(f"minecraft:{name}" for name in (
-    "stone", "cobblestone", "stone_bricks", "oak_planks", "spruce_planks",
-    "glass", "light_blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
+    "stone", "cobblestone", "stone_bricks", "oak_planks", "spruce_planks", "dark_oak_planks",
+    "glass", "light_blue_stained_glass", "blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
 ))
 
 

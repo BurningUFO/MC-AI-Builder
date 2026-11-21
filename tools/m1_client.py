@@ -10,6 +10,7 @@ import secrets
 import shutil
 import subprocess
 from zipfile import ZipFile
+from uuid import UUID
 
 from src.core.building import write_json
 
@@ -19,9 +20,11 @@ TEST_ROOT = ROOT / "mc-test"
 CACHE = ROOT / ".cache" / "m1"
 RUNTIME = TEST_ROOT / "client-runtime"
 DEFAULT_GAME = TEST_ROOT / "forge-client"
+ARCHITECT_GAME = TEST_ROOT / "architect-client"
+LOCAL_PLAYER_ID = "db93c9a066974dccaf0c8621d028855e"
 WORLD_NAME = "M1 Construction Lab"
 FORGE = "1.20.1-47.4.20"
-BRIDGE_JAR = ROOT / "forge" / "build" / "libs" / "mcaibuilder-bridge-0.2.0.jar"
+BRIDGE_JAR = ROOT / "forge" / "build" / "libs" / "mcaibuilder-bridge-0.3.0.jar"
 PLAYERS_JAR = CACHE / "downloads" / "players-forge-1.20.1-3.0.0.jar"
 PLAYERS_HASH = "5ae6b53d57d648fadc6851e5bba4d729fc64c36040727ff5dcc0632a66482104"
 
@@ -107,7 +110,8 @@ def stage_runtime(source: Path) -> tuple[dict, str]:
     return profile, os.pathsep.join(path.as_posix() for path in [*classpath, RUNTIME / "1.20.1.jar"])
 
 
-def configure_world(game: Path, port: int, *, pack_source: Path | None = None) -> Path:
+def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
+                    architect: bool = False) -> Path:
     if not 1024 <= port <= 65535:
         raise ValueError("Bridge port must be in 1024–65535.")
     game = game.resolve()
@@ -127,9 +131,12 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None) -
         raise ValueError("Fake Players 3.0.0 JAR checksum mismatch.")
     mods = game / "mods"
     mods.mkdir(exist_ok=True)
-    legacy_bridge = mods / "mcaibuilder-bridge-0.1.0.jar"
-    expected = {BRIDGE_JAR.name, PLAYERS_JAR.name, legacy_bridge.name}
+    legacy_bridges = [mods / f"mcaibuilder-bridge-{version}.jar" for version in ("0.1.0", "0.2.0")]
+    expected = {BRIDGE_JAR.name, PLAYERS_JAR.name, *(jar.name for jar in legacy_bridges)}
     pack_jars = sorted((pack_source / "mods").glob("*.jar")) if pack_source else []
+    if (pack_source and pack_source.resolve().is_relative_to(TEST_ROOT.resolve())
+            and (pack_source / ".mcaibuilder-test").is_file()):
+        pack_jars = [jar for jar in pack_jars if jar.name not in expected]
     if pack_source and not pack_jars:
         raise ValueError("The BMC4 instance has no enabled mod JARs.")
     if expected.intersection(jar.name for jar in pack_jars):
@@ -142,22 +149,37 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None) -
     for jar in (BRIDGE_JAR, PLAYERS_JAR):
         source_hash = sha1(jar.read_bytes()).hexdigest()
         _copy(jar, mods / jar.name, digest=source_hash)
-    if legacy_bridge.is_file():
-        archive = game / "previous-mods"
-        archive.mkdir(exist_ok=True)
-        identity = sha256(legacy_bridge.read_bytes()).hexdigest()[:12]
-        legacy_bridge.replace(archive / f"{identity}-{legacy_bridge.name}")
+    for legacy_bridge in legacy_bridges:
+        if legacy_bridge.is_file():
+            archive = game / "previous-mods"
+            archive.mkdir(exist_ok=True)
+            identity = sha256(legacy_bridge.read_bytes()).hexdigest()[:12]
+            legacy_bridge.replace(archive / f"{identity}-{legacy_bridge.name}")
     config = game / "config" / "mcaibuilder.json"
-    if not config.exists():
-        write_json(config, {
+    if config.exists():
+        settings = json.loads(config.read_text(encoding="utf-8"))
+        if settings["port"] != port:
+            raise ValueError(f"Use the configured bridge port in {config}, or a fresh test directory.")
+        changed = False
+    else:
+        settings = {
             "world": WORLD_NAME,
             "port": port,
             "token": secrets.token_hex(32),
             "area": {"min": [0, -60, 0], "max": [32, -50, 24]},
             "npc_spawn": [1, -60, 13],
-        })
-    elif json.loads(config.read_text(encoding="utf-8"))["port"] != port:
-        raise ValueError(f"Use the configured bridge port in {config}, or a fresh test directory.")
+        }
+        changed = True
+    if architect and "architect" not in settings:
+        settings["architect"] = {"token": secrets.token_hex(32), "players": [str(UUID(LOCAL_PLAYER_ID))]}
+        changed = True
+    if changed:
+        write_json(config, settings)
+    if architect:
+        scoped = config.with_name("mcaibuilder-architect.json")
+        scope = {"port": port, "token": settings["architect"]["token"]}
+        if not scoped.is_file() or json.loads(scoped.read_text(encoding="utf-8")) != scope:
+            write_json(scoped, scope)
     if pack_source and not (game / "saves" / "m1-construction" / "level.dat").is_file():
         defaults = pack_source / "defaultconfigs"
         if defaults.is_dir():
@@ -194,9 +216,13 @@ def _arguments(rows: list, values: dict) -> list[str]:
 def launch_client(
     java_home: Path, source: Path, game: Path, port: int, *,
     smoke: bool = False, m2_smoke: bool = False, bmc4: bool = False,
+    architect: bool = False, m3_smoke: bool = False, pack_source: Path | None = None,
 ) -> subprocess.Popen:
     game = game.resolve()
-    configure_world(game, port, pack_source=source if bmc4 else None)
+    if pack_source is not None and not bmc4:
+        raise ValueError("A pack source requires an isolated BMC4 launch.")
+    configure_world(game, port, pack_source=(pack_source or source) if bmc4 else None,
+                    architect=architect or m3_smoke)
     profile, classpath = stage_runtime(source)
     native_dir = game / "natives"
     temp = game / "tmp"
@@ -209,7 +235,7 @@ def launch_client(
         "game_directory": game.as_posix(),
         "assets_root": (RUNTIME / "assets").as_posix(),
         "assets_index_name": profile["assetIndex"]["id"],
-        "auth_uuid": "db93c9a066974dccaf0c8621d028855e",
+        "auth_uuid": LOCAL_PLAYER_ID,
         "auth_access_token": "0",
         "clientid": "",
         "auth_xuid": "",
@@ -225,7 +251,7 @@ def launch_client(
     arguments = [
         "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
         "-Dmcaibuilder.localTest=true", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
-        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}",
+        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke).lower()}",
         *_arguments(profile["arguments"]["jvm"], values),
         profile["mainClass"], *_arguments(profile["arguments"]["game"], values), "--width", "1100", "--height", "650",
     ]
@@ -235,6 +261,7 @@ def launch_client(
     java = (java_home / "bin" / "java.exe").resolve(strict=True)
     logs = game / "console.log"
     environment = dict(os.environ, TEMP=str(temp), TMP=str(temp))
+    environment.pop("MC_ARCHITECT_API_KEY", None)
     with logs.open("wb") as log:
         return subprocess.Popen([str(java), f"@{argument_file}"], cwd=game, env=environment,
                                 stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
@@ -244,11 +271,13 @@ def main() -> int:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument("--java-home", type=Path, required=True)
     parser.add_argument("--source-instance", type=Path, required=True)
-    parser.add_argument("--game", type=Path, default=DEFAULT_GAME)
+    parser.add_argument("--game", type=Path)
+    parser.add_argument("--architect", action="store_true", help="Enable the scoped Architect interface.")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    child = launch_client(args.java_home, args.source_instance, args.game, args.port)
-    print(f"Forge client {child.pid}. Logs: {args.game / 'console.log'}", flush=True)
+    game = args.game or (ARCHITECT_GAME if args.architect else DEFAULT_GAME)
+    child = launch_client(args.java_home, args.source_instance, game, args.port, architect=args.architect)
+    print(f"Forge client {child.pid}. Logs: {game / 'console.log'}", flush=True)
     return child.wait()
 
 

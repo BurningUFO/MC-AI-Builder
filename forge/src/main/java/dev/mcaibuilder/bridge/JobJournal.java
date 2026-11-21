@@ -19,7 +19,11 @@ final class JobJournal {
     private final JsonObject location;
 
     JobJournal(ServerLevel level, BuildSite site) {
-        path = level.getServer().getWorldPath(LevelResource.ROOT).resolve("data").resolve("mcaibuilder-journal.json");
+        this(level, site, "mcaibuilder-journal.json");
+    }
+
+    JobJournal(ServerLevel level, BuildSite site, String filename) {
+        path = level.getServer().getWorldPath(LevelResource.ROOT).resolve("data").resolve(filename);
         location = new JsonObject();
         location.addProperty("world", site.world());
         location.addProperty("dimension", level.dimension().location().toString());
@@ -42,7 +46,7 @@ final class JobJournal {
         data.addProperty("schema", 1);
         data.add("site", location);
         Files.createDirectories(path.getParent());
-        Path temp = path.resolveSibling("mcaibuilder-journal.tmp");
+        Path temp = path.resolveSibling(path.getFileName().toString().replace(".json", ".tmp"));
         ByteBuffer bytes = StandardCharsets.UTF_8.encode(data.toString());
         try (FileChannel channel = FileChannel.open(temp, StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {

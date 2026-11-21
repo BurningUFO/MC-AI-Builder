@@ -100,12 +100,23 @@ def main():
         scene.render.filepath = "//" + image
         scenes.append((scene, image))
 
-    scene = scenes[0][0]
+    rear = None
+    if data.get("multi_angle"):
+        proposal = scenes[1][0]
+        rear_view = View("proposed-rear.png", "Rear review camera", "Review", centre,
+                         (-offset[0], -offset[1], offset[2]), scale)
+        rear = add_camera(collection_for(proposal, "Rear review camera"), rear_view)
+    scene = scenes[1][0] if rear is not None else scenes[0][0]
+    bpy.context.window.scene = scene
     set_initial_view(scene, scene.camera, centre, scale)
     bpy.ops.wm.save_as_mainfile(filepath=str(output / "revision-review.blend"), relative_remap=False)
     for scene, image in scenes:
         scene.render.filepath = str(output / image)
         bpy.ops.render.render(scene=scene.name, write_still=True)
+    if rear is not None:
+        proposal.camera = rear
+        proposal.render.filepath = str(output / "proposed-rear.png")
+        bpy.ops.render.render(scene=proposal.name, write_still=True)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ license = "All Rights Reserved"
 
 [[mods]]
 modId = "mcaibuilder"
-version = "0.2.0"
+version = "0.3.0"
 displayName = "MC AI Builder Bridge"
 description = "Local construction plans for a managed Fake Players worker."
 

@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-record BuildSite(String world, int port, String token, Box area, BlockPos spawn) {
+record BuildSite(String world, int port, String token, Box area, BlockPos spawn, ArchitectConfig architect) {
     static BuildSite read(Path config) throws IOException {
         if (!Files.isRegularFile(config)) {
             return null;
@@ -26,7 +26,13 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn)
                 || area.halo().volume() > 24_000) {
             throw Wire.invalid("Invalid bridge world, port, token, or approved site");
         }
-        return new BuildSite(world, port, token, area, spawn);
+        ArchitectConfig architect = null;
+        try {
+            architect = ArchitectConfig.read(data.get("architect"), token);
+        } catch (Wire.Problem problem) {
+            ForgeBridge.LOGGER.warn("Architect disabled. {}", problem.getMessage());
+        }
+        return new BuildSite(world, port, token, area, spawn, architect);
     }
 
     boolean canBuildAt(BlockPos pos) {

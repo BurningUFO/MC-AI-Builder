@@ -12,7 +12,7 @@ $instance = '<PCL 的 BMC4 版本目录>'
 & .\tools\m1.ps1 Smoke -SourceInstance $instance
 ~~~
 
-首次构建需要联网。前端脚本自动查找 Java 17 JDK，可用 `-JavaHome` 指定 JDK 目录。构建缓存就绪后可以用 `Build -Offline`。产物是 `forge/build/libs/mcaibuilder-bridge-0.2.0.jar`。如 PCL 实例在其他位置，给 `Smoke` 或 `Client` 传入 `-SourceInstance`，值为包含对应版本 JSON 和客户端 JAR 的 PCL 版本文件夹。
+首次构建需要联网。前端脚本自动查找 Java 17 JDK，可用 `-JavaHome` 指定 JDK 目录。构建缓存就绪后可以用 `Build -Offline`。产物是 `forge/build/libs/mcaibuilder-bridge-0.3.0.jar`。如 PCL 实例在其他位置，给 `Smoke` 或 `Client` 传入 `-SourceInstance`，值为包含对应版本 JSON 和客户端 JAR 的 PCL 版本文件夹。
 
 `Smoke` 启动一个新的超平坦世界，外部 Python 提交预生成计划，验证施工、暂停恢复、取消、材料扣减和不可达错误。客户端关闭后，截图、逐块结果和游戏日志位于脚本打印的 `mc-test/runs` 子目录。
 
@@ -90,6 +90,10 @@ $review.counts
 同一施工点的候选保留建筑 ID、原点与朝向，版本号递增。样例位置已经使用过时，换用还空闲的位置或新开独立测试世界。M2 支持当前原版方块白名单与干燥楼梯、台阶状态。拆除需要 NPC 的施工记录证明该块由它建造。
 
 正常重开同一世界后，Bridge 检查施工记录、现场、原 NPC 和库存。`progress` 展示 `recovery`，确认检查通过后用 `resume <当前任务 ID>` 继续。遇到未确认交互或世界、库存与记录不符时任务保持停止，记录可供核对。验收与证据见 [M2 验证](m2-validation.md)。
+
+## 游戏内建筑师
+
+M3 使用独立 Python Runtime 处理 `/architect` 需求，通过 Forge 审阅与批准，再沿用 M2 执行。启动、模型配置和测试命令见 [M3 游戏内建筑师](m3-guide.md)。
 
 ## 在 PowerShell 中运行
 

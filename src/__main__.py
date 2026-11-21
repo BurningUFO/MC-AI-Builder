@@ -82,13 +82,16 @@ def prepare_environment() -> dict[str, str]:
                 CUDA_CACHE_PATH=str(cuda), PYTHONDONTWRITEBYTECODE="1")
 
 
-def run_blender(executable: Path, script: Path, *script_args, scene: Path | None = None) -> None:
+def run_blender(executable: Path, script: Path, *script_args, scene: Path | None = None,
+                timeout: float | None = None) -> None:
     command = [str(executable), "--background", "--factory-startup", "--offline-mode", "--disable-autoexec"]
     if scene is not None:
         command.append(str(scene))
     command.extend(["--python-exit-code", "1", "--python", str(script), "--"])
     command.extend(str(value) for value in script_args)
-    subprocess.run(command, cwd=ROOT, env=prepare_environment(), check=True)
+    environment = prepare_environment()
+    environment.pop("MC_ARCHITECT_API_KEY", None)
+    subprocess.run(command, cwd=ROOT, env=environment, check=True, timeout=timeout)
 
 
 def verify(args, folder: Path | None = None) -> None:

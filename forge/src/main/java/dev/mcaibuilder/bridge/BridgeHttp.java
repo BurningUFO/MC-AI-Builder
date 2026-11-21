@@ -24,11 +24,15 @@ final class BridgeHttp implements AutoCloseable {
     private final MinecraftServer game;
     private final ConstructionService construction;
     private final byte[] authorization;
+    private final ArchitectService architect;
+    private final byte[] architectAuthorization;
 
-    BridgeHttp(MinecraftServer game, BuildSite site, ConstructionService construction) throws IOException {
+    BridgeHttp(MinecraftServer game, BuildSite site, ConstructionService construction, ArchitectService architect) throws IOException {
         this.game = game;
         this.construction = construction;
-        authorization = ("Bearer " + site.token()).getBytes(StandardCharsets.UTF_8);
+        this.architect = architect;
+        architectAuthorization = architect == null ? null : bearer(site.architect().token());
+        authorization = bearer(site.token());
         InetAddress loopback = InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
         listener = HttpServer.create(new InetSocketAddress(loopback, site.port()), 8);
         io = Executors.newSingleThreadExecutor(task -> {
@@ -41,11 +45,17 @@ final class BridgeHttp implements AutoCloseable {
         listener.start();
     }
 
+    private static byte[] bearer(String token) {
+        return ("Bearer " + token).getBytes(StandardCharsets.UTF_8);
+    }
+
     private void handle(HttpExchange exchange) throws IOException {
         try (exchange) {
             try {
                 String header = exchange.getRequestHeaders().getFirst("Authorization");
-                if (header == null || !MessageDigest.isEqual(authorization, header.getBytes(StandardCharsets.UTF_8))) {
+                String path = exchange.getRequestURI().getRawPath();
+                byte[] expected = path.startsWith("/architect/") ? architectAuthorization : authorization;
+                if (expected == null || header == null || !MessageDigest.isEqual(expected, header.getBytes(StandardCharsets.UTF_8))) {
                     throw new Wire.Problem(401, "unauthorized", "Bridge token required");
                 }
                 JsonObject response = dispatch(exchange);
@@ -63,6 +73,19 @@ final class BridgeHttp implements AutoCloseable {
         String path = exchange.getRequestURI().getRawPath();
         String method = exchange.getRequestMethod();
         return switch (path) {
+            case "/architect/inbox" -> {
+                requireMethod(method, "GET");
+                yield onGameThread(architect::inbox);
+            }
+            case "/architect/stage", "/architect/answer", "/architect/pause" -> {
+                requireMethod(method, "POST");
+                JsonObject body = readBody(exchange);
+                yield onGameThread(() -> switch (path) {
+                    case "/architect/stage" -> architect.stage(body);
+                    case "/architect/answer" -> architect.answer(body);
+                    default -> architect.pauseRequest(body);
+                });
+            }
             case "/status", "/progress" -> {
                 requireMethod(method, "GET");
                 yield onGameThread(() -> construction.status(path.equals("/progress")));

@@ -31,3 +31,8 @@ __pycache__/
 *.pfx
 Thumbs.db
 .DS_Store
+
+# Local Architect session data and Bridge credentials
+architect-previews/
+mcaibuilder-architect.json
+mcaibuilder.json

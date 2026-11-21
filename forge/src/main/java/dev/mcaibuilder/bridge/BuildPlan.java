@@ -69,7 +69,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     static Set<Block> palette() {
         // Resolve vanilla blocks after the server has finished registry initialization.
         return Set.of(Blocks.STONE, Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS,
-                Blocks.SPRUCE_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
+                Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
                 Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB);
     }
 

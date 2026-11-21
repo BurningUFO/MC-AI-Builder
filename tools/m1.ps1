@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory, Position = 0)]
-    [ValidateSet('Build', 'Client', 'Smoke', 'M2Smoke', 'M2Bmc4')]
+    [ValidateSet('Build', 'Client', 'ArchitectClient', 'Smoke', 'M2Smoke', 'M2Bmc4', 'M3Smoke', 'M3Bmc4', 'M3Live')]
     [string] $Action,
     [string] $JavaHome,
     [string] $SourceInstance = "$env:USERPROFILE\Desktop\PCL2-214-Test\.minecraft\versions\BMC4",
@@ -76,9 +76,15 @@ try {
             throw 'The existing .venv Python is required. See docs\README.md.'
         }
         $fixtureFlags = @()
-        if ($Action -eq 'Client') {
-            if ($Port -eq 0) { $Port = 8765 }
+        if ($Action -in @('Client', 'ArchitectClient')) {
+            if ($Port -eq 0) { $Port = if ($Action -eq 'ArchitectClient') { 8766 } else { 8765 } }
+            if ($Action -eq 'ArchitectClient') { $fixtureFlags += '--architect' }
             $entry = 'tools.m1_client'
+        } elseif ($Action -in @('M3Smoke', 'M3Bmc4', 'M3Live')) {
+            if ($Port -eq 0) { $Port = if ($Action -eq 'M3Bmc4') { 18769 } elseif ($Action -eq 'M3Live') { 18770 } else { 18768 } }
+            if ($Action -eq 'M3Bmc4') { $fixtureFlags += '--bmc4' }
+            if ($Action -eq 'M3Live') { $fixtureFlags += '--live-model' }
+            $entry = 'tests.m3_smoke'
         } elseif ($Action -in @('M2Smoke', 'M2Bmc4')) {
             if ($Port -eq 0) { $Port = if ($Action -eq 'M2Bmc4') { 18767 } else { 18766 } }
             if ($Action -eq 'M2Bmc4') { $fixtureFlags += '--bmc4' }

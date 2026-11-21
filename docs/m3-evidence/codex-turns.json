@@ -1,0 +1,505 @@
+{
+  "sdk_version": "0.171.0",
+  "model_catalog_result": {
+    "id": "gpt-6.2-sol",
+    "model": "gpt-6.2-sol",
+    "hidden": false,
+    "supported_efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      "ultra"
+    ]
+  },
+  "quota": {
+    "primary_window_mins": 10080,
+    "used_percent_before": 13,
+    "used_percent_after": 15
+  },
+  "scope_rejection_sequences": [
+    1,
+    2,
+    3
+  ],
+  "turn_limit": 10,
+  "token_limit": 150000,
+  "turns": 8,
+  "total_tokens": 92180,
+  "records": [
+    {
+      "sequence": 1,
+      "charged_tokens": 11480,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 403,
+      "message_sha256": "a5ca5b6245c77bb8443b9690c37d2b956abb150f65000184165436ed38c62de5",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11311,
+        "output_tokens": 169,
+        "reasoning_output_tokens": 22,
+        "total_tokens": 11480
+      },
+      "sdk_duration_ms": 7721,
+      "item_types": [
+        "functionCallOutput",
+        "reasoning",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "create_design",
+        "kind": "window_wall",
+        "changes": {
+          "width": 8,
+          "height": 3,
+          "style": "medieval",
+          "wood": "minecraft:dark_oak_planks",
+          "masonry": "minecraft:stone_bricks",
+          "glass": "minecraft:glass"
+        },
+        "origin": [
+          6,
+          -60,
+          6
+        ],
+        "rotation": 0
+      },
+      "elapsed_ms": 12375,
+      "synthetic_game_request": "请在这里（原点 6 -60 6，朝北）设计一面 8 格宽、3 格高的中世纪窗墙，用深色橡木和石砖，窗户用普通玻璃。保留默认入口台阶。"
+    },
+    {
+      "sequence": 2,
+      "charged_tokens": 11503,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 774,
+      "message_sha256": "c0325aed3d8c2e0951d9490dd2a85820020fd0e388ab994a0c68349bf7bc8256",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11417,
+        "output_tokens": 86,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11503
+      },
+      "sdk_duration_ms": 5448,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "wood": "minecraft:spruce_planks"
+        },
+        "base_version": 1
+      },
+      "elapsed_ms": 7199,
+      "synthetic_game_request": "把窗墙的深色橡木换成云杉木，其他不变。"
+    },
+    {
+      "sequence": 3,
+      "charged_tokens": 11591,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 989,
+      "message_sha256": "5bf2a3c476408b75a7d83c489c932454f5318acca81d20de8a8db1ab0f161f9b",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11464,
+        "output_tokens": 127,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11591
+      },
+      "sdk_duration_ms": 6353,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "glass": "minecraft:blue_stained_glass"
+        },
+        "base_version": 2
+      },
+      "elapsed_ms": 8404,
+      "synthetic_game_request": "先暂停施工，把窗户换成蓝色染色玻璃，其他已经建好的部分保持不变。"
+    },
+    {
+      "sequence": 4,
+      "charged_tokens": 11456,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 403,
+      "message_sha256": "a5ca5b6245c77bb8443b9690c37d2b956abb150f65000184165436ed38c62de5",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11311,
+        "output_tokens": 145,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11456
+      },
+      "sdk_duration_ms": 7436,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "create_design",
+        "kind": "window_wall",
+        "changes": {
+          "width": 8,
+          "height": 3,
+          "style": "medieval",
+          "wood": "minecraft:dark_oak_planks",
+          "masonry": "minecraft:stone_bricks",
+          "glass": "minecraft:glass",
+          "porch": true
+        },
+        "origin": [
+          6,
+          -60,
+          6
+        ],
+        "rotation": 0
+      },
+      "elapsed_ms": 13034,
+      "synthetic_game_request": "请在这里（原点 6 -60 6，朝北）设计一面 8 格宽、3 格高的中世纪窗墙，用深色橡木和石砖，窗户用普通玻璃。保留默认入口台阶。"
+    },
+    {
+      "sequence": 5,
+      "charged_tokens": 11539,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 774,
+      "message_sha256": "c0325aed3d8c2e0951d9490dd2a85820020fd0e388ab994a0c68349bf7bc8256",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11413,
+        "output_tokens": 126,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11539
+      },
+      "sdk_duration_ms": 6362,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "wood": "minecraft:spruce_planks"
+        },
+        "base_version": 1
+      },
+      "elapsed_ms": 7850,
+      "synthetic_game_request": "把窗墙的深色橡木换成云杉木，其他不变。"
+    },
+    {
+      "sequence": 6,
+      "charged_tokens": 11591,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 989,
+      "message_sha256": "5bf2a3c476408b75a7d83c489c932454f5318acca81d20de8a8db1ab0f161f9b",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11464,
+        "output_tokens": 127,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11591
+      },
+      "sdk_duration_ms": 5779,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "glass": "minecraft:blue_stained_glass"
+        },
+        "base_version": 2
+      },
+      "elapsed_ms": 9297,
+      "synthetic_game_request": "先暂停施工，把窗户换成蓝色染色玻璃，其他已经建好的部分保持不变。"
+    },
+    {
+      "sequence": 7,
+      "charged_tokens": 11454,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 403,
+      "message_sha256": "a5ca5b6245c77bb8443b9690c37d2b956abb150f65000184165436ed38c62de5",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11309,
+        "output_tokens": 145,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11454
+      },
+      "sdk_duration_ms": 7080,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "create_design",
+        "kind": "window_wall",
+        "changes": {
+          "width": 8,
+          "height": 3,
+          "style": "medieval",
+          "wood": "minecraft:dark_oak_planks",
+          "masonry": "minecraft:stone_bricks",
+          "glass": "minecraft:glass",
+          "porch": true
+        },
+        "origin": [
+          6,
+          -60,
+          6
+        ],
+        "rotation": 0
+      },
+      "elapsed_ms": 12377,
+      "synthetic_game_request": "请在这里（原点 6 -60 6，朝北）设计一面 8 格宽、3 格高的中世纪窗墙，用深色橡木和石砖，窗户用普通玻璃。保留默认入口台阶。"
+    },
+    {
+      "sequence": 8,
+      "charged_tokens": 11566,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "status": "completed",
+      "context_bytes": 894,
+      "message_sha256": "5bf2a3c476408b75a7d83c489c932454f5318acca81d20de8a8db1ab0f161f9b",
+      "account": {
+        "mode": "chatgpt"
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11439,
+        "output_tokens": 127,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11566
+      },
+      "sdk_duration_ms": 6710,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "glass": "minecraft:blue_stained_glass"
+        },
+        "base_version": 1
+      },
+      "elapsed_ms": 8435,
+      "synthetic_game_request": "先暂停施工，把窗户换成蓝色染色玻璃，其他已经建好的部分保持不变。"
+    }
+  ]
+}

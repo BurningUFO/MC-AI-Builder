@@ -52,7 +52,8 @@ final class ConstructionService {
         this.palette = palette;
         this.worker = worker;
         borderBlocks = Set.of(Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.BEDROCK, Blocks.STONE,
-                Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS, Blocks.SPRUCE_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS);
+                Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS, Blocks.SPRUCE_PLANKS,
+                Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS);
         journal = new JobJournal(level, site);
         restore(journal.read());
     }
@@ -63,6 +64,28 @@ final class ConstructionService {
         if (current != null && current.plan.id().equals(id) && registered.get(id).payload().equals(payload)) {
             return status(false);
         }
+        InitialBuild initial = validateInitial(payload);
+        BuildPlan plan = initial.plan();
+        List<WorkStep> steps = initial.steps();
+        SiteSnapshot snapshot = SiteSnapshot.capture(level, site, plan);
+        if (current != null) {
+            worker.attach(current.npc);
+        }
+        prepare(steps);
+        archiveCurrent(null);
+        registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
+        current = new ConstructionJob(plan, worker.id(), null, null, snapshot, steps, cargo());
+        schedule();
+        persist();
+        ForgeBridge.LOGGER.info("m1_submit {} {} targets={}", id, plan.buildingId(), plan.targets().size());
+        return status(false);
+    }
+
+    private record InitialBuild(BuildPlan plan, List<WorkStep> steps) {}
+
+    private InitialBuild validateInitial(JsonObject payload) {
+        requireWritable();
+        UUID id = BuildPlan.id(payload, "plan_id");
         requireUnused(id);
         if (current != null && current.state.active()) {
             throw Wire.conflict("job_active", "Pause and propose a change, or finish the active job");
@@ -89,18 +112,52 @@ final class ConstructionService {
             }
             steps.add(step);
         }
-        SiteSnapshot snapshot = SiteSnapshot.capture(level, site, plan);
-        if (current != null) {
-            worker.attach(current.npc);
+        return new InitialBuild(plan, steps);
+    }
+
+    JsonObject inspectInitial(JsonObject payload) {
+        InitialBuild initial = validateInitial(payload);
+        JsonArray changes = new JsonArray();
+        var context = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
+        int keep = 0;
+        for (WorkStep step : initial.steps()) {
+            boolean retained = step.before() == step.after();
+            if (retained) {
+                keep++;
+            }
+            JsonObject row = new JsonObject();
+            row.add("local", Wire.position(step.target().local()));
+            row.add("world", Wire.position(step.pos()));
+            row.addProperty("category", retained ? "keep" : "add");
+            row.add("actual", Wire.state(step.before()));
+            row.add("desired", Wire.state(step.after()));
+            changes.add(row);
+            for (Direction side : Direction.values()) {
+                context.add(step.pos().relative(side));
+            }
         }
-        prepare(steps);
-        archiveCurrent(null);
-        registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
-        current = new ConstructionJob(plan, worker.id(), null, null, snapshot, steps, cargo());
-        schedule();
-        persist();
-        ForgeBridge.LOGGER.info("m1_submit {} {} targets={}", id, plan.buildingId(), plan.targets().size());
-        return status(false);
+        JsonArray neighbors = new JsonArray();
+        for (BlockPos pos : context) {
+            JsonObject row = new JsonObject();
+            row.add("world", Wire.position(pos));
+            row.add("actual", Wire.state(level.getBlockState(pos)));
+            neighbors.add(row);
+        }
+        JsonObject counts = new JsonObject();
+        counts.addProperty("keep", keep);
+        counts.addProperty("add", changes.size() - keep);
+        counts.addProperty("remove", 0);
+        counts.addProperty("replace", 0);
+        counts.addProperty("conflict", 0);
+        JsonObject report = new JsonObject();
+        report.add("new_version", initial.plan().versionInfo());
+        report.add("approved_area", site.area().json());
+        report.addProperty("dimension", level.dimension().location().toString());
+        report.add("counts", counts);
+        report.add("changes", changes);
+        report.add("neighbors", neighbors);
+        report.addProperty("review_sha256", Wire.sha256(report));
+        return report;
     }
 
     JsonObject propose(UUID baseId, JsonObject payload) {
@@ -112,6 +169,19 @@ final class ConstructionService {
             }
             throw Wire.conflict("change_pending", "Resolve the pending review first");
         }
+        BuildPlan next = validateRevision(baseId, payload);
+        worker.halt();
+        current.state = State.PAUSED;
+        current.reason = "change_pending";
+        candidate = new Registration(next, payload.deepCopy(), "proposed");
+        registered.put(next.id(), candidate);
+        persist();
+        return change();
+    }
+
+    BuildPlan validateRevision(UUID baseId, JsonObject payload) {
+        requireWritable();
+        requireCurrent(baseId);
         if (!current.state.active() && current.state != State.COMPLETED) {
             throw Wire.conflict("job_finished", "Only the current running, paused, or completed placement can be changed");
         }
@@ -126,13 +196,7 @@ final class ConstructionService {
         }
         requireImmutableVersion(next);
         site.requireLoaded(level);
-        worker.halt();
-        current.state = State.PAUSED;
-        current.reason = "change_pending";
-        candidate = new Registration(next, payload.deepCopy(), "proposed");
-        registered.put(next.id(), candidate);
-        persist();
-        return change();
+        return next;
     }
 
     JsonObject change() {

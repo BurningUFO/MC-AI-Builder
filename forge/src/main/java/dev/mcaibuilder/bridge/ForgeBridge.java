@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -26,13 +27,19 @@ public final class ForgeBridge {
     private MinecraftServer server;
     private BridgeHttp http;
     private ConstructionService construction;
+    private ArchitectService architect;
 
     public ForgeBridge() {
         MinecraftForge.EVENT_BUS.addListener(this::started);
+        MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
         MinecraftForge.EVENT_BUS.addListener(this::tick);
         MinecraftForge.EVENT_BUS.addListener(this::stopping);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerPlace);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerBreak);
+    }
+
+    private void registerCommands(RegisterCommandsEvent event) {
+        ArchitectCommand.register(event, () -> architect);
     }
 
     private void started(ServerStartedEvent event) {
@@ -50,7 +57,16 @@ public final class ForgeBridge {
             Set<Block> palette = BuildPlan.palette();
             ConstructionService service = new ConstructionService(level, site, palette,
                     new FakePlayersWorker(level, site, palette));
-            http = new BridgeHttp(game, site, service);
+            ArchitectService chat = null;
+            if (site.architect() != null) {
+                try {
+                    chat = new ArchitectService(level, site, service);
+                } catch (IOException | RuntimeException error) {
+                    LOGGER.error("Architect session storage could not be opened.", error);
+                }
+            }
+            http = new BridgeHttp(game, site, service, chat);
+            architect = chat;
             construction = service;
             server = game;
             LOGGER.info("M1 bridge listening on 127.0.0.1:{} in {}", site.port(), site.world());
@@ -89,6 +105,7 @@ public final class ForgeBridge {
             construction.close();
             http = null;
             construction = null;
+            architect = null;
             server = null;
         }
     }
