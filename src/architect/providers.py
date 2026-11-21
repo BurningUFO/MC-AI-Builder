@@ -15,12 +15,16 @@ DESIGN = frozenset(("create_design", "revise_design"))
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
-    "request_resume", "request_cancel", "get_material_status", "clarify", "unsupported",
+    "request_resume", "request_cancel", "get_material_status", "get_capabilities", "clarify", "unsupported",
 }
 BOUNDED_RESPONSE = 128 * 1024
 
 
 class ModelError(RuntimeError):
+    pass
+
+
+class ModelBudgetExhausted(ModelError):
     pass
 
 
@@ -69,6 +73,7 @@ Optional origin is [x,y,z] or "here". Optional rotation is 0 north, 90 east, 180
 Never guess coordinates or non-supported materials. Dark wood can mean dark oak. Each window width must leave at least 2 end posts and 1 center post. Window height must fit between base and cap.
 For a blocked interpretation use {{"action":"clarify","message":"简短的中文澄清问题"}} or
 {{"action":"unsupported","message":"简短说明当前只生成可参数化窗墙"}}.
+For greetings or questions about what the architect can do, use get_capabilities.
 For status, progress, and context use get_build_status, get_construction_progress, or get_world_context.
 For review and preview use preview_design or review_changes. A player statement of agreement, start, or confirm is request_approval.
 For pause, continued construction, or cancellation use pause_construction, request_resume, request_cancel.
@@ -159,6 +164,8 @@ class FixtureProvider:
     def decide(self, context: dict) -> dict:
         text = context["message"].lower()
         visible = context.get("design")
+        if re.search(r"能做什么|介绍一下|what can you|capabilities", text):
+            return {"action": "get_capabilities"}
         if re.search(r"还缺|缺多少|材料够|material shortage", text):
             return {"action": "get_material_status"}
         if re.search(r"进度|施工状态|progress|status", text):

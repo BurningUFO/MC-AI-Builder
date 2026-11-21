@@ -29,6 +29,7 @@ import java.util.UUID;
 /** All methods run on the Minecraft server thread. The model runtime only polls and stages. */
 final class ArchitectService {
     private static final long REQUEST_LIFETIME = Duration.ofMinutes(3).toMillis();
+    private static final long RUNTIME_HEARTBEAT = Duration.ofSeconds(6).toNanos();
     private static final long APPROVAL_LIFETIME = Duration.ofMinutes(10).toMillis();
 
     private record Draft(JsonObject plan, UUID base) {
@@ -66,6 +67,8 @@ final class ArchitectService {
     private final JobJournal journal;
     private final Map<UUID, Session> sessions = new HashMap<>();
     private boolean writable = true;
+    private long runtimePoll;
+    private long runtimePolls;
 
     ArchitectService(ServerLevel level, BuildSite site, ConstructionService construction) throws IOException {
         this.level = level;
@@ -82,6 +85,10 @@ final class ArchitectService {
         String[] parts = input.split("\\s+", 2);
         String verb = parts[0];
         switch (verb) {
+            case "link" -> {
+                tell(player, runtimeOnline() ? "Agent 已连接。" : "Agent 未连接。请查看启动器。");
+                return;
+            }
             case "supply" -> {
                 construction.authorizeWarehouse(player, supplyPosition(input));
                 session.ticket = null;
@@ -115,14 +122,16 @@ final class ArchitectService {
             }
             default -> { }
         }
+        request(player, input);
+    }
+
+    void request(ServerPlayer player, String message) {
+        requirePlayer(player);
+        String input = message.strip();
         if (input.isEmpty() || input.length() > 240) {
             throw Wire.invalid("请输入 1–240 个字符的建筑需求。");
         }
-        if (session.ticket != null) {
-            session.ticket = null;
-            persist();
-        }
-        session.request = null;
+        Session session = sessions.computeIfAbsent(player.getUUID(), ignored -> new Session());
         UUID job = currentJob();
         if (session.active != null && session.active.equals(job)
                 && input.matches("(?is)^(?:pause\\b|(?:先\\s*)?暂停(?:\\s*施工)?)(?:$|[\\s,，。;；：:、].*)")) {
@@ -132,6 +141,15 @@ final class ArchitectService {
                 tell(player, "施工已暂停。");
             }
         }
+        if (!runtimeOnline()) {
+            tell(player, "Agent 未连接。这条需求没有进入模型队列，请查看启动器。");
+            return;
+        }
+        if (session.ticket != null) {
+            session.ticket = null;
+            persist();
+        }
+        session.request = null;
         JsonObject context = worldContext(player);
         context.addProperty("player_id", player.getUUID().toString());
         context.addProperty("message", input);
@@ -182,7 +200,22 @@ final class ArchitectService {
         throw Wire.invalid("请使用 /architect supply x y z 指定眼前的单箱。");
     }
 
+    boolean runtimeOnline() {
+        return writable && runtimePoll != 0 && System.nanoTime() - runtimePoll < RUNTIME_HEARTBEAT;
+    }
+
+    long runtimePolls() {
+        return runtimePolls;
+    }
+
+    boolean playerOnline() {
+        return site.architect().players().stream()
+                .anyMatch(id -> level.getServer().getPlayerList().getPlayer(id) != null);
+    }
+
     JsonObject inbox() {
+        runtimePoll = System.nanoTime();
+        runtimePolls++;
         JsonArray requests = new JsonArray();
         long now = System.currentTimeMillis();
         UUID active = currentJob();
@@ -604,7 +637,9 @@ final class ArchitectService {
     }
 
     private static void tell(ServerPlayer player, Component message) {
-        player.sendSystemMessage(Component.literal("[Architect] ").append(message));
+        player.sendSystemMessage(Component.literal("[Architect] ")
+                .append(Component.literal("MC Builder ").withStyle(net.minecraft.ChatFormatting.AQUA))
+                .append(message));
     }
 
     private static JsonObject ok() {

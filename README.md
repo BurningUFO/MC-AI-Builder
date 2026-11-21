@@ -6,6 +6,10 @@ M1 在 Minecraft Java 1.20.1 和 Forge 47.4.20 中实测完成了 30 块窗墙�
 
 M2 支持同一个 NPC 在施工中暂停并审阅新版本。批准后执行真实拆换与补建，保存重开后检查世界和库存再恢复。
 
+## Windows 双击启动
+
+双击 **Start MC AI Builder.cmd**，等隔离 Minecraft 练习世界与 Agent 显示已连接。用 `@Builder` 发送需求，或按 **Alt+B** 开启对话模式。建筑预览和审批会在游戏聊天中显示。 [三步体验指南](docs/m5-a-guide.md) · [验收记录](docs/m5-a-validation.md)
+
 ![M2 游戏内完工截图](docs/m2-evidence/wall-v2.png)
 
 ## 快速验证

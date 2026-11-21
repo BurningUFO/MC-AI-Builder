@@ -16,7 +16,8 @@ from src.architect.codex_sdk import (
     safety_options, sdk_config, summarize_config,
 )
 from src.architect.design import GLASS, MASONRY, ROOFS, STYLES, WOODS
-from src.architect.providers import ACTIONS, PROMPT, InvalidOutput, ModelError, ModelTimeout, parse_intent
+from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudgetExhausted, ModelError,
+                                     ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
 
 DEFAULT_MODEL = "gpt-6.2-sol"
@@ -122,7 +123,7 @@ class CodexProvider:
         }
         with self._lock:
             if self.turns_started >= self.max_turns:
-                raise ModelError("Codex turn budget exhausted")
+                raise ModelBudgetExhausted("Codex turn budget exhausted")
             sequence = self.budget.reserve(metrics) if self.budget else None
             self.turns_started += 1
         started = perf_counter()
@@ -142,7 +143,7 @@ class CodexProvider:
         finally:
             metrics["elapsed_ms"] = round((perf_counter() - started) * 1000)
             if self.budget and not self.budget.finish(sequence, metrics):
-                raise ModelError("Codex token budget exceeded")
+                raise ModelBudgetExhausted("Codex token budget exceeded")
         return intent, metrics
 
     async def _turn(self, payload: str, metrics: dict) -> dict:

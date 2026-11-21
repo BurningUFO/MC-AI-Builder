@@ -69,6 +69,17 @@ final class BridgeHttp implements AutoCloseable {
         }
     }
 
+    private JsonObject architectHealth() {
+        JsonObject health = new JsonObject();
+        health.addProperty("architect_enabled", architect != null);
+        if (architect != null) {
+            health.addProperty("architect_runtime_online", architect.runtimeOnline());
+            health.addProperty("architect_runtime_polls", architect.runtimePolls());
+            health.addProperty("architect_player_online", architect.playerOnline());
+        }
+        return health;
+    }
+
     private JsonObject dispatch(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getRawPath();
         String method = exchange.getRequestMethod();
@@ -85,6 +96,10 @@ final class BridgeHttp implements AutoCloseable {
                     case "/architect/answer" -> architect.answer(body);
                     default -> architect.pauseRequest(body);
                 });
+            }
+            case "/health" -> {
+                requireMethod(method, "GET");
+                yield onGameThread(this::architectHealth);
             }
             case "/status", "/progress" -> {
                 requireMethod(method, "GET");

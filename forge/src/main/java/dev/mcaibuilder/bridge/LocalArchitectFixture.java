@@ -74,8 +74,11 @@ final class LocalArchitectFixture {
     @SubscribeEvent
     public static void clientChat(ClientChatReceivedEvent event) {
         Path root = fixtureRoot();
+        if (root == null) {
+            return;
+        }
         String message = event.getMessage().getString();
-        if (root == null || !message.startsWith(PREFIX)) {
+        if (!message.startsWith(PREFIX)) {
             return;
         }
         JsonObject row = new JsonObject();

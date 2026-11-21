@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--config", type=Path, required=True, help="Scoped Architect loopback configuration")
     parser.add_argument("--instance", type=Path, required=True, help="PCL instance for local Minecraft assets")
     parser.add_argument("--blender", type=Path, default=ROOT / "tools/blender/blender.exe")
+    parser.add_argument("--stop-file", type=Path, help="Exit gracefully when this local launcher marker appears")
     parser.add_argument("--provider", choices=("http", "fixture", "codex"), default="http")
     parser.add_argument("--timeout", type=float, default=15.0, help="Model connection and response timeout")
     parser.add_argument("--codex-model", default=DEFAULT_MODEL, help="Model for the Codex provider")
@@ -39,7 +40,7 @@ def main():
         runtime = Runtime(client, provider, storage, options.instance.resolve(strict=True),
                           options.blender.resolve(strict=True))
         print(f"Architect runtime ready ({options.provider})", flush=True)
-        runtime.run()
+        runtime.run(options.stop_file.is_file if options.stop_file else lambda: False)
     except KeyboardInterrupt:
         return 0
     except (OSError, ValueError, KeyError) as error:

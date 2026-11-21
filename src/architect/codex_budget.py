@@ -4,7 +4,7 @@ from contextlib import closing
 import json
 import sqlite3
 
-from src.architect.providers import ModelError
+from src.architect.providers import ModelBudgetExhausted
 
 
 # Account for a full attempted turn until SDK usage arrives. Unreported turns
@@ -30,7 +30,7 @@ class CodexBudget:
             db.execute("BEGIN IMMEDIATE")
             count, charged = db.execute("SELECT COUNT(*), COALESCE(SUM(charged_tokens), 0) FROM turns").fetchone()
             if count >= self.max_turns or charged + TOKEN_RESERVATION > self.max_tokens:
-                raise ModelError("Codex turn or token budget exhausted")
+                raise ModelBudgetExhausted("Codex turn or token budget exhausted")
             return db.execute("INSERT INTO turns(charged_tokens, record) VALUES (?, ?)",
                               (TOKEN_RESERVATION, json.dumps(record, ensure_ascii=False))).lastrowid
 

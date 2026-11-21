@@ -222,7 +222,8 @@ def launch_client(
     java_home: Path, source: Path, game: Path, port: int, *,
     smoke: bool = False, m2_smoke: bool = False, bmc4: bool = False,
     architect: bool = False, m3_smoke: bool = False, pack_source: Path | None = None,
-    survival: bool = False, m4_smoke: bool = False,
+    survival: bool = False, m4_smoke: bool = False, managed: bool = False,
+    m5_smoke: bool = False, hide_console: bool = False,
 ) -> subprocess.Popen:
     game = game.resolve()
     if pack_source is not None and not bmc4:
@@ -258,9 +259,10 @@ def launch_client(
     arguments = [
         "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
         "-Dmcaibuilder.localTest=true", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
-        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke).lower()}",
+        f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke or m5_smoke).lower()}",
         f"-Dmcaibuilder.m4Smoke={str(m4_smoke).lower()}",
-        f"-Dmcaibuilder.survival={str(survival).lower()}",
+        f"-Dmcaibuilder.survival={str(survival).lower()}", f"-Dmcaibuilder.managed={str(managed).lower()}",
+        f"-Dmcaibuilder.m5Smoke={str(m5_smoke).lower()}",
         *_arguments(profile["arguments"]["jvm"], values),
         profile["mainClass"], *_arguments(profile["arguments"]["game"], values), "--width", "1100", "--height", "650",
     ]
@@ -273,7 +275,8 @@ def launch_client(
     environment.pop("MC_ARCHITECT_API_KEY", None)
     with logs.open("wb") as log:
         return subprocess.Popen([str(java), f"@{argument_file}"], cwd=game, env=environment,
-                                stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
+                                stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+                                creationflags=subprocess.CREATE_NO_WINDOW if hide_console and os.name == "nt" else 0)
 
 
 def main() -> int:

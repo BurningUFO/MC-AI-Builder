@@ -15,7 +15,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from zipfile import BadZipFile
 
 from src.architect.design import DesignError, Wall, placement
-from src.architect.providers import DESIGN, InvalidOutput, ModelError, ModelTimeout, parse_intent
+from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
@@ -224,6 +224,9 @@ class Runtime:
         except InvalidOutput:
             self.client.answer(request_id, "模型输出未通过建筑意图校验。请重述尺寸或材料。")
             action = "invalid_model_output"
+        except ModelBudgetExhausted:
+            self.client.answer(request_id, "本地 Codex 预算已用完。请在启动器查看请求数和 Token 用量。")
+            action = "model_budget_exhausted"
         except ModelError:
             self.client.answer(request_id, "模型服务暂时不可用。请稍后重发需求。")
             action = "model_unavailable"
@@ -312,6 +315,9 @@ class Runtime:
             text = (f"V{job['building_version']} {job['state']}，已处理 {job['processed']}/{job['total']} 步。"
                     if job else "当前没有属于你的施工任务。")
             self.client.answer(request_id, text)
+        elif action == "get_capabilities":
+            self.client.answer(request_id, "我是 MC Builder。我能设计窗墙、生成 Blender 预览、"
+                               "检查材料和施工进度。你批准具体方案后，我会施工，也能暂停并按新方案改建。")
         elif action == "get_material_status":
             self.client.answer(request_id, describe_supply(request.get("supply", {})))
         elif action == "get_world_context":
@@ -326,11 +332,11 @@ class Runtime:
         else:
             self.client.answer(request_id, safe_message(intent["message"], self.redactions))
 
-    def run(self):
+    def run(self, should_stop=lambda: False):
         pending = {}
         failures = {}
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="architect") as pool:
-            while True:
+            while not should_stop():
                 for request_id, future in list(pending.items()):
                     if not future.done():
                         continue

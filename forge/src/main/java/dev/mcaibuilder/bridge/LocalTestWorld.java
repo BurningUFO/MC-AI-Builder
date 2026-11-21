@@ -58,6 +58,22 @@ final class LocalTestWorld {
         }
         Minecraft client = Minecraft.getInstance();
         Path root = client.gameDirectory.toPath();
+        if (!leavingWorld && (Boolean.getBoolean("mcaibuilder.managed")
+                || client.level != null && Boolean.getBoolean("mcaibuilder.smoke"))) {
+            try {
+                Path stop = root.resolve(".mcaibuilder-stop");
+                // A running integrated server may be ready before the client receives its level.
+                if (Files.isRegularFile(stop) && client.level == null && client.getSingleplayerServer() != null) {
+                    return;
+                }
+                if (Files.deleteIfExists(stop)) {
+                    leaveAndSave(client);
+                    return;
+                }
+            } catch (IOException error) {
+                ForgeBridge.LOGGER.warn("Could not read the isolated save-and-exit request", error);
+            }
+        }
         if (!opened && client.screen instanceof TitleScreen title) {
             opened = true;
             if (Files.isRegularFile(root.resolve("saves").resolve(WORLD_FOLDER).resolve("level.dat"))) {
@@ -79,17 +95,22 @@ final class LocalTestWorld {
                 if (Boolean.getBoolean("mcaibuilder.m2Smoke") || Boolean.getBoolean("mcaibuilder.m3Smoke")) {
                     pollPlayerEdit(client, root);
                 }
-                if (Files.deleteIfExists(root.resolve(".mcaibuilder-stop"))) {
-                    ForgeBridge.LOGGER.info("Test client leaving the world through Minecraft's normal save flow");
-                    leavingWorld = true;
-                    client.level.disconnect();
-                    client.clearLevel(new GenericDirtMessageScreen(Component.translatable("menu.savingLevel")));
-                    client.setScreen(new TitleScreen());
-                }
             } catch (IOException error) {
                 ForgeBridge.LOGGER.warn("M1 fixture signal failed", error);
             }
         }
+    }
+
+    private static void leaveAndSave(Minecraft client) {
+        leavingWorld = true;
+        if (client.level == null) {
+            client.stop();
+            return;
+        }
+        ForgeBridge.LOGGER.info("Isolated client leaving the world through Minecraft's normal save flow");
+        client.level.disconnect();
+        client.clearLevel(new GenericDirtMessageScreen(Component.translatable("menu.savingLevel")));
+        client.setScreen(new TitleScreen());
     }
 
     private static void pollPlayerEdit(Minecraft client, Path root) throws IOException {

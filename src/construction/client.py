@@ -15,7 +15,8 @@ class BridgeError(RuntimeError):
 
 
 class BridgeClient:
-    def __init__(self, config: Path):
+    def __init__(self, config: Path, *, timeout=10):
+        self.timeout = timeout
         settings = json.loads(config.read_text(encoding="utf-8"))
         self.port = settings["port"]
         self.token = settings["token"]
@@ -31,7 +32,7 @@ class BridgeClient:
             headers["Content-Type"] = "application/json"
             data = json.dumps(body, ensure_ascii=False, allow_nan=False).encode("utf-8")
         method = "POST" if data is not None else "GET"
-        with closing(HTTPConnection("127.0.0.1", self.port, timeout=10)) as connection:
+        with closing(HTTPConnection("127.0.0.1", self.port, timeout=self.timeout)) as connection:
             connection.request(method, f"/{endpoint}", body=data, headers=headers)
             with connection.getresponse() as response:
                 result = json.load(response)
@@ -41,6 +42,9 @@ class BridgeClient:
 
     def status(self) -> dict:
         return self._call("status")
+
+    def health(self) -> dict:
+        return self._call("health")
 
     def progress(self) -> dict:
         return self._call("progress")

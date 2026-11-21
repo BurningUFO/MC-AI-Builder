@@ -1,0 +1,19 @@
+{
+  "profile": "forge",
+  "entry": "Windows ShellExecute on the root .cmd",
+  "passed": true,
+  "port_conflict": true,
+  "duplicate": true,
+  "native_mode_toggle": true,
+  "stopped_agent_and_private_offline": true,
+  "agent_reconnected": true,
+  "abnormal_exit": true,
+  "reopened": true,
+  "existing_bridge_reused": true,
+  "save": true,
+  "model_turns": 0,
+  "clean_child_exit_codes": {
+    "game": 0,
+    "runtime": 0
+  }
+}

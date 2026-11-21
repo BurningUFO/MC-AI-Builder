@@ -1,0 +1,160 @@
+{
+  "sdk_version": "0.171.0",
+  "auth_mode": "chatgpt",
+  "charged_tokens": 34970,
+  "turns": [
+    {
+      "sequence": 1,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "context_bytes": 379,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "get_capabilities"
+      },
+      "elapsed_ms": 12276,
+      "sdk_duration_ms": 6909,
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11451,
+        "output_tokens": 42,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11493
+      },
+      "status": "completed",
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      }
+    },
+    {
+      "sequence": 2,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "context_bytes": 593,
+      "item_types": [
+        "functionCallOutput",
+        "reasoning",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "create_design",
+        "kind": "window_wall",
+        "changes": {
+          "width": 8,
+          "height": 3,
+          "style": "medieval",
+          "wood": "minecraft:dark_oak_planks",
+          "masonry": "minecraft:stone_bricks",
+          "glass": "minecraft:glass"
+        },
+        "origin": [
+          6,
+          -60,
+          6
+        ],
+        "rotation": 0
+      },
+      "elapsed_ms": 12585,
+      "sdk_duration_ms": 7631,
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11519,
+        "output_tokens": 166,
+        "reasoning_output_tokens": 13,
+        "total_tokens": 11685
+      },
+      "status": "completed",
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      }
+    },
+    {
+      "sequence": 3,
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "context_bytes": 1121,
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "intent": {
+        "action": "revise_design",
+        "kind": "window_wall",
+        "changes": {
+          "glass": "minecraft:blue_stained_glass"
+        },
+        "base_version": 1
+      },
+      "elapsed_ms": 8152,
+      "sdk_duration_ms": 6161,
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11659,
+        "output_tokens": 133,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11792
+      },
+      "status": "completed",
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      }
+    }
+  ]
+}
