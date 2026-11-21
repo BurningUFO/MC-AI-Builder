@@ -42,6 +42,9 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
                 reason = "checkpoint_state_mismatch";
             } else if (!actual.isAir() && actual != desired && !snapshot.owns(pos)) {
                 reason = "preexisting_block";
+            } else if (site.worldCopy() && actual != desired && !site.area().contains(pos.below())
+                    && BuildTerrain.coversGrass(level, pos, desired, level.getBlockState(pos.below()))) {
+                reason = "terrain_effect_outside_scope";
             }
             if (reason != null) {
                 category = "conflict";
@@ -85,6 +88,11 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
         report.add("old_version", old.versionInfo());
         report.add("new_version", next.versionInfo());
         report.add("approved_area", site.area().json());
+        if (site.worldCopy()) {
+            report.addProperty("authorization", site.scope().toString());
+            report.addProperty("dimension", level.dimension().location().toString());
+            report.add("covered_grass", BuildTerrain.coveredGrass(level, site, next, snapshot::initial));
+        }
         report.add("counts", totals);
         report.add("changes", changes);
         report.addProperty("review_sha256", Wire.sha256(report));

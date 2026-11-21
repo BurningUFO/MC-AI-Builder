@@ -5,15 +5,20 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.RegisterCommandsEvent;
 
-import java.util.function.Supplier;
 
 final class ArchitectCommand {
     private ArchitectCommand() {}
 
-    static void register(RegisterCommandsEvent event, Supplier<ArchitectService> service) {
+    @FunctionalInterface
+    interface Handler {
+        void receive(ServerPlayer player, String message, boolean natural);
+    }
+
+    static void register(RegisterCommandsEvent event, Handler handler) {
         event.getDispatcher().register(Commands.literal("architect")
                 .executes(ctx -> {
                     ctx.getSource().sendSystemMessage(Component.literal(
@@ -22,25 +27,16 @@ final class ArchitectCommand {
                 })
                 .then(Commands.literal("ask")
                         .then(Commands.argument("message", StringArgumentType.greedyString())
-                                .executes(ctx -> run(ctx, service, true))))
+                                .executes(ctx -> run(ctx, handler, true))))
                 .then(Commands.argument("message", StringArgumentType.greedyString())
-                        .executes(ctx -> run(ctx, service, false))));
+                        .executes(ctx -> run(ctx, handler, false))));
     }
 
-    private static int run(CommandContext<CommandSourceStack> ctx, Supplier<ArchitectService> service,
+    private static int run(CommandContext<CommandSourceStack> ctx, Handler handler,
                            boolean naturalOnly) throws CommandSyntaxException {
         var player = ctx.getSource().getPlayerOrException();
         try {
-            ArchitectService architect = service.get();
-            if (architect == null) {
-                throw new Wire.Problem(503, "architect_disabled", "这个世界未启用建筑师。");
-            }
-            String text = StringArgumentType.getString(ctx, "message");
-            if (naturalOnly) {
-                architect.request(player, text);
-            } else {
-                architect.receive(player, text);
-            }
+            handler.receive(player, StringArgumentType.getString(ctx, "message"), naturalOnly);
             return 1;
         } catch (Wire.Problem failure) {
             ctx.getSource().sendFailure(Component.literal(

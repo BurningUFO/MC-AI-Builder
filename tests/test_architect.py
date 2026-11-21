@@ -99,6 +99,34 @@ class ArchitectTests(unittest.TestCase):
             "message": "窗户改为蓝色", "recent": [{"message": "刚设计好窗墙", "action": "create_design"}],
         })
 
+    def test_copy_context_uses_relative_coordinates_and_enforces_player_placement(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder)
+            store = SessionStore(path)
+            request = {
+                "message": "在这里设计窗墙", "request_id": str(uuid4()), "player_id": str(uuid4()),
+                "site_authorization": str(uuid4()), "site_rotation": 90, "dimension": "minecraft:overworld",
+                "position": [1240, 78, -368], "facing": "east", "suggested_origin": [1242, 77, -370],
+                "approved_area": {"min": [1238, 74, -374], "max": [1254, 84, -364]},
+                "ground_near_anchor": {"minecraft:grass_block": 9},
+            }
+            store.remember(str(uuid4()), request["player_id"], "另一个区域的对话", "create_design")
+            runtime = Runtime(Mock(token="fixture"), FixtureProvider(), store, path, path)
+            payload = context_message(runtime.language_context(request, request["message"]))
+            context = json.loads(payload)
+            self.assertEqual(context["position"], [-2, 1, 2])
+            self.assertEqual(context["suggested_origin"], [0, 0, 0])
+            self.assertEqual(context["approved_area"], {"min": [-4, -3, -4], "max": [12, 7, 6]})
+            self.assertEqual(context["recent"], [])
+            self.assertNotIn(request["site_authorization"], payload)
+            self.assertNotIn(request["player_id"], payload)
+            intent = {"action": "create_design", "kind": "window_wall", "changes": {}, "origin": "here"}
+            plan = runtime.design(request, intent)["plan"]
+            self.assertEqual(plan["origin"], request["suggested_origin"])
+            self.assertEqual(plan["rotation"], 90)
+            with self.assertRaises(DesignError):
+                runtime.design(request, {**intent, "origin": [3, 0, 0]})
+
     def test_codex_schema_normalizes_nulls_before_the_existing_validator(self):
         result = decode_intent(json.dumps({
             "action": "revise_design", "kind": "window_wall", "base_version": 1,

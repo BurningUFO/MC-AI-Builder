@@ -17,10 +17,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import static dev.mcaibuilder.bridge.BuildTerrain.NATURAL_SUPPORTS;
 
 import dev.mcaibuilder.bridge.ConstructionJob.State;
 
@@ -54,9 +57,12 @@ final class ConstructionService {
         this.site = site;
         this.palette = palette;
         this.worker = worker;
-        borderBlocks = Set.of(Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.BEDROCK, Blocks.STONE,
+        borderBlocks = new HashSet<>(Set.of(Blocks.DIRT, Blocks.GRASS_BLOCK, Blocks.BEDROCK, Blocks.STONE,
                 Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS, Blocks.SPRUCE_PLANKS,
-                Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS);
+                Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS));
+        if (site.worldCopy()) {
+            borderBlocks.addAll(NATURAL_SUPPORTS);
+        }
         journal = new JobJournal(level, site);
         restore(journal.read());
     }
@@ -72,7 +78,7 @@ final class ConstructionService {
         if (current != null && current.plan.id().equals(id) && registered.get(id).payload().equals(payload)) {
             return status(false);
         }
-        InitialBuild initial = validateInitial(payload);
+        InitialBuild initial = validateInitial(payload, false);
         BuildPlan plan = initial.plan();
         List<WorkStep> steps = initial.steps();
         SupplyCheckpoint supply = prepareSupply(source, plan);
@@ -98,9 +104,9 @@ final class ConstructionService {
         return status(false);
     }
 
-    private record InitialBuild(BuildPlan plan, List<WorkStep> steps) {}
+    private record InitialBuild(BuildPlan plan, List<WorkStep> steps, Map<BlockPos, String> obstacles) {}
 
-    private InitialBuild validateInitial(JsonObject payload) {
+    private InitialBuild validateInitial(JsonObject payload, boolean survey) {
         requireWritable();
         UUID id = BuildPlan.id(payload, "plan_id");
         requireUnused(id);
@@ -118,23 +124,50 @@ final class ConstructionService {
 
         site.requireLoaded(level);
         List<WorkStep> steps = new ArrayList<>();
+        Map<BlockPos, String> obstacles = new LinkedHashMap<>();
+        Set<BlockPos> supported = new HashSet<>();
         for (BuildPlan.Target target : plan.targets()) {
             BlockState actual = level.getBlockState(target.world());
-            if (actual != target.state() && !actual.isAir()) {
-                throw Wire.conflict("occupied_target", "Existing block at " + target.world().toShortString());
-            }
             WorkStep step = new WorkStep(target, actual, false);
             if (actual != target.state()) {
-                requireSafeMutation(step, false);
+                try {
+                    if (!actual.isAir()) {
+                        throw Wire.conflict("occupied_target", "Existing block at " + target.world().toShortString());
+                    }
+                    requireSafeMutation(step, false);
+                    if (site.worldCopy() && !hasSupport(target.world(), supported)) {
+                        throw Wire.conflict("missing_terrain_support", "No approved support at " + target.world().toShortString());
+                    }
+                } catch (Wire.Problem obstacle) {
+                    if (!survey || !site.worldCopy()) {
+                        throw obstacle;
+                    }
+                    obstacles.put(target.world(), obstacle.code);
+                }
+            }
+            if (!obstacles.containsKey(target.world())) {
+                supported.add(target.world());
             }
             steps.add(step);
         }
-        return new InitialBuild(plan, steps);
+        return new InitialBuild(plan, steps, obstacles);
+    }
+
+    private boolean hasSupport(BlockPos target, Set<BlockPos> supported) {
+        for (Direction direction : Direction.values()) {
+            BlockPos neighbor = target.relative(direction);
+            BlockState state = level.getBlockState(neighbor);
+            if (supported.contains(neighbor) || (state.getFluidState().isEmpty()
+                    && (NATURAL_SUPPORTS.contains(state.getBlock()) || palette.contains(state.getBlock())))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     JsonObject inspectInitial(JsonObject payload, UUID owner) {
         Warehouse.Source source = requireWarehouse(owner);
-        InitialBuild initial = validateInitial(payload);
+        InitialBuild initial = validateInitial(payload, true);
         requireWarehouseClear(source, initial.plan());
         JsonArray changes = new JsonArray();
         var context = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
@@ -147,7 +180,11 @@ final class ConstructionService {
             JsonObject row = new JsonObject();
             row.add("local", Wire.position(step.target().local()));
             row.add("world", Wire.position(step.pos()));
-            row.addProperty("category", retained ? "keep" : "add");
+            String obstacle = initial.obstacles().get(step.pos());
+            row.addProperty("category", obstacle != null ? "conflict" : retained ? "keep" : "add");
+            if (obstacle != null) {
+                row.addProperty("reason", obstacle);
+            }
             row.add("actual", Wire.state(step.before()));
             row.add("desired", Wire.state(step.after()));
             changes.add(row);
@@ -164,14 +201,18 @@ final class ConstructionService {
         }
         JsonObject counts = new JsonObject();
         counts.addProperty("keep", keep);
-        counts.addProperty("add", changes.size() - keep);
+        counts.addProperty("add", changes.size() - keep - initial.obstacles().size());
         counts.addProperty("remove", 0);
         counts.addProperty("replace", 0);
-        counts.addProperty("conflict", 0);
+        counts.addProperty("conflict", initial.obstacles().size());
         JsonObject report = new JsonObject();
         report.add("new_version", initial.plan().versionInfo());
         report.add("approved_area", site.area().json());
         report.addProperty("dimension", level.dimension().location().toString());
+        if (site.worldCopy()) {
+            report.addProperty("authorization", site.scope().toString());
+            report.add("covered_grass", BuildTerrain.coveredGrass(level, site, initial.plan(), level::getBlockState));
+        }
         report.add("counts", counts);
         report.add("changes", changes);
         report.add("neighbors", neighbors);
@@ -302,12 +343,38 @@ final class ConstructionService {
         site.requireLoaded(level);
         ChangeReview check = ChangeReview.inspect(level, site, current.plan, candidate.plan(), current.snapshot);
         if (current.supply != null) {
+            if (site.worldCopy()) {
+                requireCheckpointWorker();
+            }
             JsonObject report = check.report();
             report.remove("review_sha256");
             addSupplyReview(report, current.supply.source, check.steps(), current.records);
             report.addProperty("review_sha256", Wire.sha256(report));
         }
         return check;
+    }
+
+    boolean warehouseApproved() {
+        return warehouse != null;
+    }
+
+    boolean siteLoaded() {
+        try {
+            site.requireLoaded(level);
+            return true;
+        } catch (Wire.Problem problem) {
+            return false;
+        }
+    }
+
+    void revokeWarehouse(ServerPlayer player) {
+        requireWritable();
+        if (current != null && current.state.active()) {
+            throw Wire.conflict("warehouse_job_active", "请先结束施工，再撤销供料箱。");
+        }
+        requireWarehouse(player.getUUID());
+        warehouse = null;
+        persist();
     }
 
     void authorizeWarehouse(ServerPlayer player, BlockPos pos) {
@@ -562,7 +629,11 @@ final class ConstructionService {
                     requireCurrentWarehouse(owner);
                 }
                 if (current.state != State.RUNNING) {
-                    requireState(State.PAUSED);
+                    boolean priorNavigationFailure = site.worldCopy() && current.state == State.FAILED
+                            && current.reason != null && RETRYABLE.contains(current.reason);
+                    if (!priorNavigationFailure) {
+                        requireState(State.PAUSED);
+                    }
                     requireNoIntent();
                     if (candidate != null) {
                         throw Wire.conflict("change_pending", "Approve or reject the pending change first");
@@ -582,6 +653,8 @@ final class ConstructionService {
                     }
                     current.state = State.RUNNING;
                     current.reason = null;
+                    current.verification = null;
+                    current.retries = 0;
                     schedule();
                     persist();
                 }
@@ -704,8 +777,10 @@ final class ConstructionService {
             return;
         }
 
-        boolean retry = result.status().equals("failed") && current.predecessor != null && current.intent < 0
-                && result.reason() != null && RETRYABLE.contains(result.reason()) && current.retries == 0;
+        boolean navigationFailure = result.status().equals("failed") && current.intent < 0
+                && result.reason() != null && RETRYABLE.contains(result.reason());
+        boolean retry = navigationFailure && (site.worldCopy() || current.predecessor != null)
+                && current.retries == 0;
         JsonObject record = step.json(retry ? "retrying" : result.status());
         record.addProperty("step", current.cursor);
         record.addProperty("tick", level.getGameTime());
@@ -722,6 +797,13 @@ final class ConstructionService {
         if (retry) {
             current.retries++;
             schedule();
+        } else if (site.worldCopy() && navigationFailure) {
+            pause(result.reason());
+            notifySupplyPause(Wire.conflict(result.reason(), switch (result.reason()) {
+                case "no_reachable_break_stance" -> "找不到区域内可达的拆除站位。";
+                case "no_reachable_placement_stance" -> "找不到区域内可达的放置站位。";
+                default -> "NPC 导航超时。请检查通道和地面高差。";
+            }));
         } else if (result.status().equals("failed")) {
             if (actual == level.getBlockState(step.pos()) && current.cargo.equals(cargo())) {
                 current.intent = -1;
@@ -762,6 +844,10 @@ final class ConstructionService {
         BlockPos target = step.pos();
         if (!site.canBuildAt(target)) {
             throw Wire.conflict("outside_approved_area", "Target outside the approved area");
+        }
+        if (site.worldCopy() && !step.remove() && !site.area().contains(target.below())
+                && BuildTerrain.coversGrass(level, target, step.after(), level.getBlockState(target.below()))) {
+            throw Wire.conflict("terrain_effect_outside_scope", "The block would cover grass outside the approved area");
         }
         for (Direction direction : Direction.values()) {
             BlockPos neighbor = target.relative(direction);
@@ -854,6 +940,7 @@ final class ConstructionService {
         }
 
         JsonArray changes = new JsonArray();
+        JsonArray natural = new JsonArray();
         int outside = 0;
         int outsideChecked = 0;
         int checked = 0;
@@ -871,6 +958,10 @@ final class ConstructionService {
             BlockState actual = level.getBlockState(pos);
             BlockState before = current.snapshot.initial(pos);
             if (actual != before) {
+                if (!beyond && site.worldCopy() && coveredGrassChange(pos, before, actual)) {
+                    natural.add(difference(pos, before, actual));
+                    continue;
+                }
                 if (beyond) {
                     outside++;
                 }
@@ -893,7 +984,19 @@ final class ConstructionService {
         data.addProperty("non_target_changes", changed);
         data.addProperty("outside_approved_changes", outside);
         data.add("first_non_target_changes", changes);
+        if (site.worldCopy()) {
+            data.add("expected_covered_grass_changes", natural);
+        }
         return data;
+    }
+
+    private boolean coveredGrassChange(BlockPos floor, BlockState original, BlockState actual) {
+        BlockPos above = floor.above();
+        BuildPlan.Target cover = current.plan.at(above);
+        return actual == Blocks.DIRT.defaultBlockState() && cover != null
+                && !current.snapshot.modifiedByPlayer(floor) && current.snapshot.owns(above)
+                && level.getBlockState(above) == cover.state()
+                && BuildTerrain.coversGrass(level, above, cover.state(), original);
     }
 
     private static JsonObject difference(BlockPos pos, BlockState expected, BlockState actual) {

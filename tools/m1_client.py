@@ -224,13 +224,19 @@ def launch_client(
     architect: bool = False, m3_smoke: bool = False, pack_source: Path | None = None,
     survival: bool = False, m4_smoke: bool = False, managed: bool = False,
     m5_smoke: bool = False, hide_console: bool = False,
+    world_copy: bool = False, copy_smoke: bool = False,
 ) -> subprocess.Popen:
     game = game.resolve()
     if pack_source is not None and not bmc4:
         raise ValueError("A pack source requires an isolated BMC4 launch.")
-    survival = survival or m4_smoke
-    configure_world(game, port, pack_source=(pack_source or source) if bmc4 else None,
-                    architect=architect or m3_smoke or survival, survival=survival)
+    survival = survival or m4_smoke or world_copy
+    copy = None
+    if world_copy:
+        from tools.world_copy import configure_copy
+        copy, _ = configure_copy(game, port)
+    else:
+        configure_world(game, port, pack_source=(pack_source or source) if bmc4 else None,
+                        architect=architect or m3_smoke or survival, survival=survival)
     profile, classpath = stage_runtime(source)
     native_dir = game / "natives"
     temp = game / "tmp"
@@ -238,17 +244,17 @@ def launch_client(
     for directory in (native_dir, temp, home_dir):
         directory.mkdir(parents=True, exist_ok=True)
     values = {
-        "auth_player_name": "BuilderTester",
+        "auth_player_name": copy["player_name"] if copy else "BuilderTester",
         "version_name": "1.20.1",
         "game_directory": game.as_posix(),
         "assets_root": (RUNTIME / "assets").as_posix(),
         "assets_index_name": profile["assetIndex"]["id"],
-        "auth_uuid": LOCAL_PLAYER_ID,
+        "auth_uuid": UUID(copy["player_uuid"]).hex if copy else LOCAL_PLAYER_ID,
         "auth_access_token": "0",
         "clientid": "",
         "auth_xuid": "",
         "user_type": "legacy",
-        "version_type": "M1 Test",
+        "version_type": "BMC4 Isolated Copy" if copy else "M1 Test",
         "natives_directory": native_dir.as_posix(),
         "launcher_name": "MC-AI-Builder",
         "launcher_version": "0.1",
@@ -258,11 +264,13 @@ def launch_client(
     }
     arguments = [
         "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
-        "-Dmcaibuilder.localTest=true", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
+        f"-Dmcaibuilder.localTest={str(not world_copy).lower()}", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
         f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke or m5_smoke).lower()}",
         f"-Dmcaibuilder.m4Smoke={str(m4_smoke).lower()}",
         f"-Dmcaibuilder.survival={str(survival).lower()}", f"-Dmcaibuilder.managed={str(managed).lower()}",
         f"-Dmcaibuilder.m5Smoke={str(m5_smoke).lower()}",
+        *([f"-Dmcaibuilder.worldCopy={copy['copy_id']}",
+            f"-Dmcaibuilder.copySmoke={str(copy_smoke).lower()}"] if copy else []),
         *_arguments(profile["arguments"]["jvm"], values),
         profile["mainClass"], *_arguments(profile["arguments"]["game"], values), "--width", "1100", "--height", "650",
     ]

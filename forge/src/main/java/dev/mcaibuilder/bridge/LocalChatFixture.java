@@ -19,13 +19,12 @@ import java.nio.file.StandardOpenOption;
 @Mod.EventBusSubscriber(modid = ForgeBridge.MOD_ID, value = Dist.CLIENT)
 final class LocalChatFixture {
     private static Path root() {
-        if (!Boolean.getBoolean("mcaibuilder.localTest") || !Boolean.getBoolean("mcaibuilder.m5Smoke")) {
-            return null;
-        }
         Minecraft client = Minecraft.getInstance();
         Path root = client.gameDirectory.toPath();
-        return Files.isRegularFile(root.resolve(".mcaibuilder-test")) && client.getSingleplayerServer() != null
-                && client.player != null && client.getConnection() != null ? root : null;
+        boolean fixture = CopyProfile.fixture(root) || (Boolean.getBoolean("mcaibuilder.localTest")
+                && Boolean.getBoolean("mcaibuilder.m5Smoke") && Files.isRegularFile(root.resolve(".mcaibuilder-test")));
+        return fixture && client.getSingleplayerServer() != null && client.player != null
+                && client.getConnection() != null ? root : null;
     }
 
     @SubscribeEvent

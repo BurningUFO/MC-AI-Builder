@@ -34,43 +34,70 @@ import java.nio.file.Path;
 final class LocalSupplyFixture {
     @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !Boolean.getBoolean("mcaibuilder.localTest")
-                || !Boolean.getBoolean("mcaibuilder.m4Smoke")) {
+        if (event.phase != TickEvent.Phase.END) {
             return;
         }
         Minecraft client = Minecraft.getInstance();
         Path root = client.gameDirectory.toPath();
+        boolean copy = CopyProfile.fixture(root);
+        boolean practice = Boolean.getBoolean("mcaibuilder.localTest") && Boolean.getBoolean("mcaibuilder.m4Smoke")
+                && Files.isRegularFile(root.resolve(".mcaibuilder-test"));
         Path file = root.resolve(".mcaibuilder-stock-request");
         var server = client.getSingleplayerServer();
-        if (server == null || client.player == null || !Files.isRegularFile(root.resolve(".mcaibuilder-test"))
-                || !Files.isRegularFile(file)) {
+        if ((!copy && !practice) || server == null || client.player == null || !Files.isRegularFile(file)) {
             return;
         }
         try {
             JsonObject request = Wire.object(JsonParser.parseString(Files.readString(file)), "stock request");
             Files.delete(file);
             var id = client.player.getUUID();
-            server.execute(() -> stock(root, server.getPlayerList().getPlayer(id), request));
+            server.execute(() -> stock(root, server.getPlayerList().getPlayer(id), request, copy));
         } catch (IOException | RuntimeException error) {
             ForgeBridge.LOGGER.warn("Cannot read stock fixture input", error);
         }
     }
 
-    private static void stock(Path root, ServerPlayer player, JsonObject request) {
+    private static void stock(Path root, ServerPlayer player, JsonObject request, boolean copy) {
         JsonObject result = new JsonObject();
         result.add("request", request.get("request"));
+        ItemStack hand = null;
+        ItemStack transfer = null;
         try {
-            BuildSite site = BuildSite.read(root.resolve("config").resolve("mcaibuilder.json"));
             BlockPos pos = Wire.position(request.get("position"), "warehouse position");
-            if (site == null || !site.survival() || site.architect() == null || !site.canBuildAt(pos)
-                    || pos.getY() != site.spawn().getY() || player == null
-                    || !site.architect().players().contains(player.getUUID())
-                    || !site.world().equals(player.serverLevel().getServer().getWorldData().getLevelName())
-                    || player.gameMode.getGameModeForPlayer() != GameType.SURVIVAL) {
-                throw new IllegalStateException("Stock fixture is outside the isolated survival site");
+            if (player == null || player.gameMode.getGameModeForPlayer() != GameType.SURVIVAL) {
+                throw new IllegalStateException("The fixture requires a survival test player");
+            }
+            if (copy) {
+                CopyProfile profile = CopyProfile.read(root);
+                var game = player.getServer();
+                var path = profile.world().resolve("data").resolve("mcaibuilder-site-authorization.json");
+                JsonObject state = Wire.object(JsonParser.parseString(Files.readString(path)), "authorization");
+                JsonObject active = Wire.object(state.get("active"), "active authorization");
+                if (!profile.matches(game) || !profile.owns(game, player)
+                        || !profile.id().equals(BuildPlan.id(state, "copy_id"))
+                        || !active.get("dimension").getAsString().equals(player.serverLevel().dimension().location().toString())
+                        || !BuildSite.Box.read(active.get("area"), "stock area").contains(pos)) {
+                    throw new IllegalStateException("Supply fixture must stay within the owner's approved copy area");
+                }
+                hand = player.getMainHandItem().copy();
+                transfer = player.getInventory().getItem(9).copy();
+                player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                player.getInventory().setItem(9, ItemStack.EMPTY);
+            } else {
+                BuildSite site = BuildSite.read(root.resolve("config").resolve("mcaibuilder.json"));
+                if (site == null || !site.survival() || site.architect() == null || !site.canBuildAt(pos)
+                        || pos.getY() != site.spawn().getY() || !site.architect().players().contains(player.getUUID())
+                        || !site.world().equals(player.serverLevel().getServer().getWorldData().getLevelName())) {
+                    throw new IllegalStateException("Stock fixture is outside the isolated survival site");
+                }
             }
             var level = player.serverLevel();
-            player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 2.5, 180, 45);
+            BlockPos stance = request.has("stance") && copy ? Wire.position(request.get("stance"), "test stance")
+                    : pos.offset(0, 0, 2);
+            if (copy && (!BuildTerrain.canStand(level, stance) || stance.distSqr(pos) > 9)) {
+                throw new IllegalStateException("The copied terrain needs a safe test-player stance by the chest");
+            }
+            player.teleportTo(level, stance.getX() + 0.5, stance.getY(), stance.getZ() + 0.5, 180, 45);
             if (request.get("place").getAsBoolean()) {
                 if (!level.getBlockState(pos).isAir() || !player.getMainHandItem().isEmpty()) {
                     throw new IllegalStateException("Test chest position or player hand is occupied");
@@ -128,6 +155,11 @@ final class LocalSupplyFixture {
             result.addProperty("success", false);
             result.addProperty("error", error.getMessage());
             ForgeBridge.LOGGER.warn("Stock fixture did not complete", error);
+        } finally {
+            if (hand != null) {
+                player.setItemInHand(InteractionHand.MAIN_HAND, hand);
+                player.getInventory().setItem(9, transfer);
+            }
         }
         try {
             Files.writeString(root.resolve(".mcaibuilder-stock-result"), result.toString());

@@ -128,6 +128,9 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             case 270 -> Rotation.COUNTERCLOCKWISE_90;
             default -> throw Wire.invalid("Rotation must be 0, 90, 180 or 270 degrees clockwise");
         };
+        if (site.worldCopy() && (!origin.equals(site.origin()) || rotation != site.rotation())) {
+            throw Wire.conflict("placement_scope", "请使用当前施工授权的建筑原点和朝向。");
+        }
         BuildSite.Box declared = BuildSite.Box.read(data.get("local_bounds"), "local_bounds");
         JsonArray actions = Wire.array(data.get("actions"), "actions");
         if (actions.isEmpty() || actions.size() > MAX_ACTIONS) {

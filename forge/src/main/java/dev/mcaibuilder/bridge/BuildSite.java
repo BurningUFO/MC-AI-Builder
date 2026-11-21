@@ -5,12 +5,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Rotation;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
-record BuildSite(String world, int port, String token, Box area, BlockPos spawn, ArchitectConfig architect, boolean survival) {
+record BuildSite(String world, int port, String token, Box area, BlockPos spawn, ArchitectConfig architect, boolean survival,
+                 UUID scope, BlockPos origin, Rotation rotation) {
     static BuildSite read(Path config) throws IOException {
         if (!Files.isRegularFile(config)) {
             return null;
@@ -39,7 +42,11 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn,
         if (!supply.equals("survival") && !(supply.equals("preset") && isolated)) {
             throw Wire.invalid("Preset materials are available only in an isolated test instance");
         }
-        return new BuildSite(world, port, token, area, spawn, architect, supply.equals("survival"));
+        return new BuildSite(world, port, token, area, spawn, architect, supply.equals("survival"), null, null, null);
+    }
+
+    boolean worldCopy() {
+        return scope != null;
     }
 
     boolean canBuildAt(BlockPos pos) {

@@ -161,11 +161,16 @@ class Runtime:
         self.render_lock = Lock()
         self.redactions = (client.token, getattr(provider, "key", None))
 
+    @staticmethod
+    def conversation_key(request):
+        player = request["player_id"]
+        return player + "/" + request["site_authorization"] if "site_authorization" in request else player
+
     def language_context(self, request: dict, message: str) -> dict:
         context = {key: request[key] for key in ("dimension", "position", "facing", "suggested_origin",
                                                  "approved_area", "ground_near_anchor")}
         context["message"] = message
-        context["recent"] = self.store.dialog(request["player_id"])
+        context["recent"] = self.store.dialog(self.conversation_key(request))
         if "available_mod_blocks" in request:
             context["available_mod_blocks"] = sorted(request["available_mod_blocks"])
         if "supply" in request:
@@ -182,6 +187,18 @@ class Runtime:
                 context["design"] = {"kind": "window_wall", "version": plan["building_version"],
                                      "parameters": spec["parameters"], "origin": plan["origin"],
                                      "rotation": plan["rotation"]}
+        if "site_authorization" in request:
+            anchor = request["suggested_origin"]
+
+            def relative(position):
+                return [axis - origin for axis, origin in zip(position, anchor, strict=True)]
+
+            context["fixed_site"] = True
+            context["position"] = relative(context["position"])
+            context["suggested_origin"] = [0, 0, 0]
+            context["approved_area"] = {key: relative(position) for key, position in context["approved_area"].items()}
+            if "design" in context:
+                context["design"]["origin"] = relative(context["design"]["origin"])
         return context
 
     def handle(self, request):
@@ -212,6 +229,8 @@ class Runtime:
                 "warehouse_unavailable": "供料箱暂不可用。请核对获准的原版单箱。",
                 "warehouse_job_scope": "这项施工使用了另一份供料授权。",
                 "warehouse_player_approval": "需要由供料箱的授权玩家批准。",
+                "checkpoint_npc_unavailable": "当前无法核对原 NPC 或其库存。请回到已批准区域等区块加载，再审阅。",
+                "site_not_loaded": "批准的施工区尚未加载，请回到附近后重新审阅。",
             }
             self.client.answer(request_id, messages.get(code, "本次无法继续。请重新询问进度或审阅当前设计。"))
             action = code or "bridge_error"
@@ -233,7 +252,7 @@ class Runtime:
         except (subprocess.SubprocessError, BadZipFile, FileNotFoundError, ValueError):
             self.client.answer(request_id, "暂时无法生成三维预览。请检查本地 Blender 和资源后重新预览。")
             action = "preview_error"
-        self.store.remember(request_id, request["player_id"], message, action)
+        self.store.remember(request_id, self.conversation_key(request), message, action)
 
     @staticmethod
     def proposal_id(request_id):
@@ -266,8 +285,14 @@ class Runtime:
             raise DesignError("当前世界未启用这些受支持的模组材料 " + "、".join(missing) + "。")
         draft = request.get("draft")
         locked = draft["revision"] if draft is not None else "job" in request
-        origin, rotation = placement(intent, request, prior["plan"] if prior else None,
-                                     action == "revise_design" and locked)
+        if "site_authorization" in request:
+            rotation = request["site_rotation"]
+            if intent.get("origin") not in (None, "here", [0, 0, 0]) or intent.get("rotation") not in (None, "here", rotation):
+                raise DesignError("副本使用玩家已授权的原点和朝向。更换位置时请重新审阅施工区。")
+            origin = tuple(request["suggested_origin"])
+        else:
+            origin, rotation = placement(intent, request, prior["plan"] if prior else None,
+                                         action == "revise_design" and locked)
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
                                   building, origin, rotation, wall, action)
         return spec
@@ -293,10 +318,15 @@ class Runtime:
                 material = row["desired"]["id"].removeprefix("minecraft:")
                 materials[material] = materials.get(material, 0) + 1
         details = "、".join(f"{kind} ×{count}" for kind, count in sorted(materials.items())) or "无需新增材料"
-        conflicts = [str(tuple(row["world"])) for row in report["changes"] if row["category"] == "conflict"][:3]
+        reasons = {"occupied_target": "已有方块", "missing_terrain_support": "缺少支撑",
+                   "unsafe_site_boundary": "边缘有敏感方块", "terrain_effect_outside_scope": "会覆盖区域外的草方块"}
+        conflicts = [str(tuple(row["world"])) + reasons.get(row.get("reason"), "")
+                     for row in report["changes"] if row["category"] == "conflict"][:3]
         if "supply" in report:
             details = describe_supply(report["supply"], approval=True)
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
+        if grass := report.get("covered_grass"):
+            reason += f"。墙体覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
         self.client.answer(request_id, f"候选 V{version['building_version']}。保留 {counts['keep']}，"
                            f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
                            f"冲突 {counts['conflict']}。材料 {details}{reason}。",
@@ -314,6 +344,16 @@ class Runtime:
             job = request.get("job")
             text = (f"V{job['building_version']} {job['state']}，已处理 {job['processed']}/{job['total']} 步。"
                     if job else "当前没有属于你的施工任务。")
+            if job and job.get("reason"):
+                reason = job["reason"]
+                description = {
+                    "site_not_loaded": "施工区未加载。请回到区域附近后重新确认继续",
+                    "warehouse_unreachable": "NPC 无法安全到达供料箱。请检查区域内的通道",
+                    "no_reachable_placement_stance": "目标没有可达的放置位置",
+                    "no_reachable_break_stance": "目标没有可达的拆除位置",
+                    "navigation_timeout": "NPC 导航超时。请检查高低差和障碍物",
+                }.get(reason, reason)
+                text += " " + description + "。"
             self.client.answer(request_id, text)
         elif action == "get_capabilities":
             self.client.answer(request_id, "我是 MC Builder。我能设计窗墙、生成 Blender 预览、"

@@ -1,0 +1,58 @@
+package dev.mcaibuilder.bridge;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.Set;
+import java.util.function.Function;
+
+/** A conservative set of natural supports for surveyed terrain. */
+final class BuildTerrain {
+    static final Set<Block> NATURAL_SUPPORTS = Set.of(Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT,
+            Blocks.PODZOL, Blocks.ROOTED_DIRT, Blocks.STONE, Blocks.GRANITE, Blocks.DIORITE, Blocks.ANDESITE,
+            Blocks.DEEPSLATE, Blocks.COBBLED_DEEPSLATE, Blocks.MOSS_BLOCK, Blocks.TERRACOTTA, Blocks.BEDROCK);
+
+    private BuildTerrain() {}
+
+    static boolean coversGrass(ServerLevel level, BlockPos above, BlockState cover, BlockState below) {
+        return below.is(Blocks.GRASS_BLOCK) && cover.isSolidRender(level, above);
+    }
+
+    static JsonArray coveredGrass(ServerLevel level, BuildSite site, BuildPlan plan,
+                                  Function<BlockPos, BlockState> baseline) {
+        JsonArray report = new JsonArray();
+        for (BuildPlan.Target target : plan.targets()) {
+            BlockPos floor = target.world().below();
+            BlockState before = baseline.apply(floor);
+            if (site.area().contains(floor) && plan.at(floor) == null
+                    && coversGrass(level, target.world(), target.state(), before)) {
+                JsonObject row = new JsonObject();
+                row.add("world", Wire.position(floor));
+                row.add("before", Wire.state(before));
+                row.add("possible", Wire.state(Blocks.DIRT.defaultBlockState()));
+                report.add(row);
+            }
+        }
+        return report;
+    }
+
+    static boolean canStand(ServerLevel level, BlockPos feet) {
+        if (!level.hasChunkAt(feet)) {
+            return false;
+        }
+        BlockPos floor = feet.below();
+        BlockPos head = feet.above();
+        BlockState ground = level.getBlockState(floor);
+        BlockState lower = level.getBlockState(feet);
+        BlockState upper = level.getBlockState(head);
+        return ground.getFluidState().isEmpty() && ground.isFaceSturdy(level, floor, Direction.UP)
+                && lower.getFluidState().isEmpty() && lower.getCollisionShape(level, feet).isEmpty()
+                && upper.getFluidState().isEmpty() && upper.getCollisionShape(level, head).isEmpty();
+    }
+}

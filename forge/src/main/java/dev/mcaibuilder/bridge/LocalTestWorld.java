@@ -53,11 +53,15 @@ final class LocalTestWorld {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !enabled()) {
+        if (event.phase != TickEvent.Phase.END) {
             return;
         }
         Minecraft client = Minecraft.getInstance();
         Path root = client.gameDirectory.toPath();
+        boolean copy = CopyProfile.requested() && Files.isRegularFile(root.resolve(CopyProfile.MARKER));
+        if (!copy && !enabled()) {
+            return;
+        }
         if (!leavingWorld && (Boolean.getBoolean("mcaibuilder.managed")
                 || client.level != null && Boolean.getBoolean("mcaibuilder.smoke"))) {
             try {
@@ -76,7 +80,15 @@ final class LocalTestWorld {
         }
         if (!opened && client.screen instanceof TitleScreen title) {
             opened = true;
-            if (Files.isRegularFile(root.resolve("saves").resolve(WORLD_FOLDER).resolve("level.dat"))) {
+            if (copy) {
+                try {
+                    CopyProfile profile = CopyProfile.read(root);
+                    LocalCopyFixture.remember(root, profile);
+                    client.createWorldOpenFlows().loadLevel(title, CopyProfile.FOLDER);
+                } catch (IOException | RuntimeException error) {
+                    ForgeBridge.LOGGER.error("Could not verify the marked BMC4 world copy", error);
+                }
+            } else if (Files.isRegularFile(root.resolve("saves").resolve(WORLD_FOLDER).resolve("level.dat"))) {
                 client.createWorldOpenFlows().loadLevel(title, WORLD_FOLDER);
             } else {
                 createWorld(client);
@@ -86,7 +98,7 @@ final class LocalTestWorld {
             client.stop();
             return;
         }
-        if (client.level != null && !leavingWorld && Boolean.getBoolean("mcaibuilder.smoke")) {
+        if (!copy && client.level != null && !leavingWorld && Boolean.getBoolean("mcaibuilder.smoke")) {
             try {
                 if (Files.deleteIfExists(root.resolve(".mcaibuilder-capture"))) {
                     Screenshot.grab(client.gameDirectory, "m1-wall-built.png", client.getMainRenderTarget(),

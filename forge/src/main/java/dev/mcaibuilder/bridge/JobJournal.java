@@ -23,12 +23,21 @@ final class JobJournal {
     }
 
     JobJournal(ServerLevel level, BuildSite site, String filename) {
-        path = level.getServer().getWorldPath(LevelResource.ROOT).resolve("data").resolve(filename);
+        Path folder = level.getServer().getWorldPath(LevelResource.ROOT).resolve("data");
+        if (site.worldCopy()) {
+            folder = folder.resolve("mcaibuilder-sites").resolve(site.scope().toString());
+        }
+        path = folder.resolve(filename);
         location = new JsonObject();
         location.addProperty("world", site.world());
         location.addProperty("dimension", level.dimension().location().toString());
         location.add("area", site.area().json());
         location.add("spawn", Wire.position(site.spawn()));
+        if (site.worldCopy()) {
+            location.addProperty("authorization", site.scope().toString());
+            location.add("origin", Wire.position(site.origin()));
+            location.addProperty("rotation", site.rotation().ordinal() * 90);
+        }
     }
 
     JsonObject read() throws IOException {
@@ -45,6 +54,10 @@ final class JobJournal {
     void write(JsonObject data) throws IOException {
         data.addProperty("schema", 1);
         data.add("site", location);
+        write(path, data);
+    }
+
+    static void write(Path path, JsonObject data) throws IOException {
         Files.createDirectories(path.getParent());
         Path temp = path.resolveSibling(path.getFileName().toString().replace(".json", ".tmp"));
         ByteBuffer bytes = StandardCharsets.UTF_8.encode(data.toString());

@@ -27,7 +27,7 @@ MAX_CONTEXT_BYTES = 4096
 MAX_RESPONSE_BYTES = 8192
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
-    "ground_near_anchor", "construction", "design", "supply", "available_mod_blocks",
+    "ground_near_anchor", "fixed_site", "construction", "design", "supply", "available_mod_blocks",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 

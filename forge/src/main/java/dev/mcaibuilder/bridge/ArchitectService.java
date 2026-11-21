@@ -68,7 +68,6 @@ final class ArchitectService {
     private final Map<UUID, Session> sessions = new HashMap<>();
     private boolean writable = true;
     private long runtimePoll;
-    private long runtimePolls;
 
     ArchitectService(ServerLevel level, BuildSite site, ConstructionService construction) throws IOException {
         this.level = level;
@@ -90,7 +89,16 @@ final class ArchitectService {
                 return;
             }
             case "supply" -> {
-                construction.authorizeWarehouse(player, supplyPosition(input));
+                if (site.worldCopy() && input.equals("supply revoke")) {
+                    construction.revokeWarehouse(player);
+                    session.ticket = null;
+                    session.request = null;
+                    persist();
+                    tell(player, "供料箱授权已撤销。");
+                    return;
+                }
+                BlockPos chest = site.worldCopy() && input.equals("supply") ? lookedAt(player, 4.5) : supplyPosition(input);
+                construction.authorizeWarehouse(player, chest);
                 session.ticket = null;
                 session.request = null;
                 persist();
@@ -188,6 +196,16 @@ final class ArchitectService {
         return construction.materials(owner);
     }
 
+    private static BlockPos lookedAt(ServerPlayer player, double reach) {
+        BlockHitResult hit = player.serverLevel().clip(new ClipContext(player.getEyePosition(),
+                player.getEyePosition().add(player.getLookAngle().scale(reach)), ClipContext.Block.OUTLINE,
+                ClipContext.Fluid.NONE, player));
+        if (hit.getType() != HitResult.Type.BLOCK) {
+            throw Wire.invalid("请看向附近的原版单箱。");
+        }
+        return hit.getBlockPos();
+    }
+
     private static BlockPos supplyPosition(String input) {
         String[] parts = input.split("\\s+");
         if (parts.length == 4) {
@@ -204,10 +222,6 @@ final class ArchitectService {
         return writable && runtimePoll != 0 && System.nanoTime() - runtimePoll < RUNTIME_HEARTBEAT;
     }
 
-    long runtimePolls() {
-        return runtimePolls;
-    }
-
     boolean playerOnline() {
         return site.architect().players().stream()
                 .anyMatch(id -> level.getServer().getPlayerList().getPlayer(id) != null);
@@ -215,7 +229,6 @@ final class ArchitectService {
 
     JsonObject inbox() {
         runtimePoll = System.nanoTime();
-        runtimePolls++;
         JsonArray requests = new JsonArray();
         long now = System.currentTimeMillis();
         UUID active = currentJob();
@@ -508,9 +521,17 @@ final class ArchitectService {
         if (hit.getType() != HitResult.Type.BLOCK || hit.getDirection() != Direction.UP || !site.canBuildAt(suggested)) {
             suggested = position.relative(facing, 4);
         }
+        if (site.worldCopy()) {
+            suggested = site.origin();
+            facing = site.rotation().rotate(Direction.NORTH);
+        }
         JsonObject out = new JsonObject();
         out.addProperty("dimension", level.dimension().location().toString());
         out.addProperty("facing", facing.getName());
+        if (site.worldCopy()) {
+            out.addProperty("site_authorization", site.scope().toString());
+            out.addProperty("site_rotation", site.rotation().ordinal() * 90);
+        }
         out.add("position", Wire.position(position));
         out.add("suggested_origin", Wire.position(site.canBuildAt(suggested) ? suggested : position));
         out.add("approved_area", site.area().json());

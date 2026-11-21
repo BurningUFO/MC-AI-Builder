@@ -10,6 +10,8 @@ M2 支持同一个 NPC 在施工中暂停并审阅新版本。批准后执行真
 
 双击 **Start MC AI Builder.cmd**，等隔离 Minecraft 练习世界与 Agent 显示已连接。用 `@Builder` 发送需求，或按 **Alt+B** 开启对话模式。建筑预览和审批会在游戏聊天中显示。 [三步体验指南](docs/m5-a-guide.md) · [验收记录](docs/m5-a-validation.md)
 
+在启动器点 **选择世界** 可复制现有 BMC4 单人存档。进入 D 盘副本后，用游戏命令批准施工区、NPC 出生点、建筑原点和供料箱。 [真实世界副本指南](docs/m5-b-guide.md) · [真实地形验收记录](docs/m5-b-validation.md)
+
 ![M2 游戏内完工截图](docs/m2-evidence/wall-v2.png)
 
 ## 快速验证

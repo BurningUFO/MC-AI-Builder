@@ -52,6 +52,8 @@ final class FakePlayersWorker implements ConstructionWorker {
     private static final double REACH = 4.5;
     private static final int MOVE_LIMIT_TICKS = 300;
     private static final int STANCE_RADIUS = 4;
+    private static final double JUMP_AIM_RISE = 1.05;
+    private static final double JUMP_CLEARANCE = 1.5;
     private static final Direction[] FACES = {Direction.UP, Direction.NORTH, Direction.SOUTH,
             Direction.WEST, Direction.EAST, Direction.DOWN};
 
@@ -67,12 +69,14 @@ final class FakePlayersWorker implements ConstructionWorker {
     private double walked;
     private BlockPos mining;
     private long miningSince;
+    private int placementJumps;
 
     FakePlayersWorker(ServerLevel level, BuildSite site, Set<Block> palette) {
         this.level = level;
         this.site = site;
         anchors = new HashSet<>(palette);
-        anchors.addAll(Set.of(Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.BEDROCK));
+        anchors.addAll(site.worldCopy() ? BuildTerrain.NATURAL_SUPPORTS
+                : Set.of(Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.BEDROCK));
     }
 
     @Override
@@ -123,7 +127,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     private void spawn() {
         BlockPos feet = site.spawn();
-        if (!JobHelpers.canStandAt(level, feet)) {
+        if (!canStand(feet)) {
             throw Wire.conflict("spawn_blocked", "The approved NPC spawn has no walkable floor");
         }
         FakePlayerEntity worker = new FakePlayerEntity(level);
@@ -149,6 +153,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         npc = worker;
         npc.getNavigation().stop();
         npc.setJobPaused(true);
+        if (site.worldCopy()) {
+            npc.setNoAi(true);
+        }
         npc.removeAllGoals(goal -> true);
         npc.setCanPickUpLoot(false);
         actor = new FakePlayer(level, new GameProfile(npc.getUUID(), "MCBuilder"));
@@ -210,7 +217,19 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         stopMining();
 
-        String trouble = navigate(step.pos(), current, feet -> chooseAim(step, stack, feet) != null,
+        boolean jumpingPlacement = site.worldCopy() && !step.remove();
+        if (jumpingPlacement && npc.onGround() && canAimAfterJump(step, stack, current)) {
+            if (placementJumps >= 2) {
+                return failure("no_reachable_placement_stance");
+            }
+            stopNavigation();
+            npc.setNoAi(false);
+            npc.getJumpControl().jump();
+            placementJumps++;
+            return null;
+        }
+        String trouble = navigate(step.pos(), current, feet -> chooseAim(step, stack, feet) != null
+                        || (jumpingPlacement && canAimAfterJump(step, stack, feet)),
                 step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance");
         return trouble == null ? null : failure(trouble);
     }
@@ -294,6 +313,9 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private String navigate(BlockPos pos, Vec3 current, Predicate<Vec3> canAim, String unreachable) {
+        if (site.worldCopy() && npc.isNoAi()) {
+            npc.setNoAi(false);
+        }
         long now = level.getGameTime();
         if (deadline == 0) {
             deadline = now + MOVE_LIMIT_TICKS;
@@ -304,18 +326,40 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (destination != null && !npc.getNavigation().isDone()) {
             return null;
         }
+        // Vanilla ground navigation cannot create a path until the worker finishes a step or fall.
+        if (site.worldCopy() && !npc.onGround()) {
+            return null;
+        }
+        int walkable = 0;
+        int visible = 0;
+        int reaches = 0;
         for (BlockPos candidate : stances(pos, current)) {
-            if (!triedStances.add(candidate) || !JobHelpers.canStandAt(level, candidate)
-                    || !canAim.test(Vec3.atBottomCenterOf(candidate))) {
+            if (!triedStances.add(candidate) || !canStand(candidate)) {
                 continue;
             }
+            walkable++;
+            if (!canAim.test(Vec3.atBottomCenterOf(candidate))) {
+                continue;
+            }
+            visible++;
             Path path = npc.getNavigation().createPath(candidate, 0);
-            if (path != null && path.canReach() && insideSite(path) && npc.getNavigation().moveTo(path, 1.15)) {
-                destination = candidate;
-                return null;
+            if (path != null && path.canReach()) {
+                reaches++;
+                if (insideSite(path) && npc.getNavigation().moveTo(path, 1.15)) {
+                    destination = candidate;
+                    return null;
+                }
             }
         }
+        if (site.worldCopy()) {
+            ForgeBridge.LOGGER.info("site_navigation_unreachable {} walkable={} visible={} reachable_paths={}",
+                    unreachable, walkable, visible, reaches);
+        }
         return unreachable;
+    }
+
+    private boolean canStand(BlockPos position) {
+        return site.worldCopy() ? BuildTerrain.canStand(level, position) : JobHelpers.canStandAt(level, position);
     }
 
     private List<BlockPos> stances(BlockPos target, Vec3 current) {
@@ -342,6 +386,17 @@ final class FakePlayersWorker implements ConstructionWorker {
         return true;
     }
 
+    private boolean canAimAfterJump(WorkStep step, ItemStack stack, Vec3 feet) {
+        AABB body = npc.getBoundingBox().move(feet.subtract(npc.position()));
+        AABB jump = body.expandTowards(0, JUMP_CLEARANCE, 0);
+        if (!site.area().contains(BlockPos.containing(jump.minX, jump.minY, jump.minZ))
+                || !site.area().contains(BlockPos.containing(jump.maxX, jump.maxY, jump.maxZ))
+                || !level.noCollision(npc, jump) || new AABB(step.pos()).intersects(jump)) {
+            return false;
+        }
+        return chooseAim(step, stack, feet.add(0, JUMP_AIM_RISE, 0)) != null;
+    }
+
     private Aim chooseAim(WorkStep step, ItemStack stack, Vec3 feet) {
         actor.setPos(feet.x, feet.y, feet.z);
         actor.setOnGround(npc.onGround());
@@ -352,7 +407,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         BuildPlan.Target target = step.target();
         for (Direction face : FACES) {
             BlockPos clicked = target.world().relative(face.getOpposite());
-            if (!anchors.contains(level.getBlockState(clicked).getBlock())) {
+            BlockState support = level.getBlockState(clicked);
+            if (!anchors.contains(support.getBlock()) || site.worldCopy() && !support.getFluidState().isEmpty()) {
                 continue;
             }
             double[] heights = face.getAxis().isHorizontal() ? new double[]{0, -0.25, 0.25} : new double[]{0};
@@ -554,6 +610,12 @@ final class FakePlayersWorker implements ConstructionWorker {
     private void stopNavigation() {
         if (npc != null) {
             npc.getNavigation().stop();
+            if (site.worldCopy()) {
+                npc.getMoveControl().strafe(0, 0);
+                if (npc.onGround()) {
+                    npc.setDeltaMovement(Vec3.ZERO);
+                }
+            }
         }
         destination = null;
     }
@@ -570,6 +632,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         stopNavigation();
         triedStances.clear();
         deadline = 0;
+        placementJumps = 0;
     }
 
     @Override
@@ -577,6 +640,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         haltAction();
         if (npc != null) {
             npc.setDisplayItem(ItemStack.EMPTY);
+            if (site.worldCopy()) {
+                npc.setNoAi(true);
+            }
         }
     }
 
@@ -586,6 +652,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         data.addProperty("backend", "fake_players_item_interaction");
         data.addProperty("present", npc != null && npc.isAlive());
         if (npc != null) {
+            if (site.worldCopy() && npc.getRemovalReason() != null) {
+                data.addProperty("removal_reason", npc.getRemovalReason().name());
+            }
             data.addProperty("entity_type", ForgeRegistries.ENTITY_TYPES.getKey(npc.getType()).toString());
             data.addProperty("npc_id", npc.getUUID().toString());
             data.addProperty("walked_blocks", walked);

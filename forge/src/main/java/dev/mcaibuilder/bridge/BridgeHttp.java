@@ -1,5 +1,6 @@
 package dev.mcaibuilder.bridge;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -12,6 +13,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,19 +25,26 @@ final class BridgeHttp implements AutoCloseable {
     private final HttpServer listener;
     private final ExecutorService io;
     private final MinecraftServer game;
-    private final ConstructionService construction;
+    private static final Set<String> COPY_READS = Set.of("/health", "/status", "/progress", "/change", "/versions");
+    private final Supplier<ConstructionService> construction;
+    private final Supplier<ArchitectService> architect;
+    private final CopySites copy;
+    private long runtimePoll;
+    private long runtimePolls;
     private final byte[] authorization;
-    private final ArchitectService architect;
     private final byte[] architectAuthorization;
 
-    BridgeHttp(MinecraftServer game, BuildSite site, ConstructionService construction, ArchitectService architect) throws IOException {
+    BridgeHttp(MinecraftServer game, int port, String token, String architectToken,
+               Supplier<ConstructionService> construction, Supplier<ArchitectService> architect,
+               CopySites copy) throws IOException {
         this.game = game;
         this.construction = construction;
         this.architect = architect;
-        architectAuthorization = architect == null ? null : bearer(site.architect().token());
-        authorization = bearer(site.token());
+        this.copy = copy;
+        architectAuthorization = architectToken == null ? null : bearer(architectToken);
+        authorization = bearer(token);
         InetAddress loopback = InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
-        listener = HttpServer.create(new InetSocketAddress(loopback, site.port()), 8);
+        listener = HttpServer.create(new InetSocketAddress(loopback, port), 8);
         io = Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, "MC AI Builder HTTP");
             thread.setDaemon(true);
@@ -71,30 +81,74 @@ final class BridgeHttp implements AutoCloseable {
 
     private JsonObject architectHealth() {
         JsonObject health = new JsonObject();
-        health.addProperty("architect_enabled", architect != null);
-        if (architect != null) {
-            health.addProperty("architect_runtime_online", architect.runtimeOnline());
-            health.addProperty("architect_runtime_polls", architect.runtimePolls());
-            health.addProperty("architect_player_online", architect.playerOnline());
+        ArchitectService service = architect.get();
+        health.addProperty("architect_enabled", architectAuthorization != null);
+        health.addProperty("architect_runtime_online",
+                runtimePoll != 0 && System.nanoTime() - runtimePoll < Duration.ofSeconds(6).toNanos());
+        health.addProperty("architect_runtime_polls", runtimePolls);
+        health.addProperty("architect_player_online", copy != null ? copy.playerOnline() : service != null && service.playerOnline());
+        if (copy != null) {
+            health.add("site_authorization", copy.status());
         }
         return health;
+    }
+
+    private JsonObject inbox() {
+        runtimePoll = System.nanoTime();
+        runtimePolls++;
+        ArchitectService service = architect.get();
+        if (service == null) {
+            JsonObject empty = new JsonObject();
+            empty.add("requests", new JsonArray());
+            return empty;
+        }
+        return service.inbox();
+    }
+
+    private ArchitectService architect() {
+        ArchitectService service = architect.get();
+        if (service == null) {
+            throw Wire.conflict("site_not_approved", "请先批准施工区。");
+        }
+        return service;
+    }
+
+    private ConstructionService construction() {
+        ConstructionService service = construction.get();
+        if (service == null) {
+            throw Wire.conflict("site_not_approved", "请先批准施工区。");
+        }
+        return service;
+    }
+
+    private JsonObject status(boolean detailed) {
+        ConstructionService service = construction.get();
+        JsonObject result = service == null ? new JsonObject() : service.status(detailed);
+        if (copy != null) {
+            result.add("site_authorization", copy.status());
+        }
+        return result;
     }
 
     private JsonObject dispatch(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getRawPath();
         String method = exchange.getRequestMethod();
+        if (copy != null && !path.startsWith("/architect/") && !COPY_READS.contains(path)) {
+            throw new Wire.Problem(403, "copy_player_confirmation_required",
+                    "World copies require approval through the saved local player in Minecraft");
+        }
         return switch (path) {
             case "/architect/inbox" -> {
                 requireMethod(method, "GET");
-                yield onGameThread(architect::inbox);
+                yield onGameThread(this::inbox);
             }
             case "/architect/stage", "/architect/answer", "/architect/pause" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
                 yield onGameThread(() -> switch (path) {
-                    case "/architect/stage" -> architect.stage(body);
-                    case "/architect/answer" -> architect.answer(body);
-                    default -> architect.pauseRequest(body);
+                    case "/architect/stage" -> architect().stage(body);
+                    case "/architect/answer" -> architect().answer(body);
+                    default -> architect().pauseRequest(body);
                 });
             }
             case "/health" -> {
@@ -103,16 +157,16 @@ final class BridgeHttp implements AutoCloseable {
             }
             case "/status", "/progress" -> {
                 requireMethod(method, "GET");
-                yield onGameThread(() -> construction.status(path.equals("/progress")));
+                yield onGameThread(() -> status(path.equals("/progress")));
             }
             case "/change", "/versions" -> {
                 requireMethod(method, "GET");
-                yield onGameThread(path.equals("/change") ? construction::change : construction::versions);
+                yield onGameThread(() -> path.equals("/change") ? construction().change() : construction().versions());
             }
             case "/candidate" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
-                yield onGameThread(() -> construction.propose(BuildPlan.id(body, "job_id"),
+                yield onGameThread(() -> construction().propose(BuildPlan.id(body, "job_id"),
                         Wire.object(body.get("plan"), "plan")));
             }
             case "/approve", "/reject" -> {
@@ -121,24 +175,24 @@ final class BridgeHttp implements AutoCloseable {
                 yield onGameThread(() -> {
                     var id = BuildPlan.id(body, "change_id");
                     if (path.equals("/reject")) {
-                        return construction.reject(id);
+                        return construction().reject(id);
                     }
                     String hash = Wire.string(body.get("review_sha256"), "review_sha256");
                     if (!hash.matches("[0-9a-f]{64}")) {
                         throw Wire.invalid("The reviewed SHA-256 is required");
                     }
-                    return construction.approve(id, hash);
+                    return construction().approve(id, hash);
                 });
             }
             case "/build" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
-                yield onGameThread(() -> construction.submit(body));
+                yield onGameThread(() -> construction().submit(body));
             }
             case "/pause", "/resume", "/cancel" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
-                yield onGameThread(() -> construction.control(path.substring(1), BuildPlan.id(body, "job_id")));
+                yield onGameThread(() -> construction().control(path.substring(1), BuildPlan.id(body, "job_id")));
             }
             default -> throw new Wire.Problem(404, "unknown_endpoint", "Unknown bridge endpoint");
         };

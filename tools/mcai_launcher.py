@@ -20,6 +20,7 @@ from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL
 from src.construction.client import BridgeClient, BridgeError
 from src.core.building import write_json
 from tools.m1_client import BRIDGE_JAR, PLAYERS_HASH, PLAYERS_JAR, ROOT, TEST_ROOT, launch_client
+from tools.world_copy import copy_root, create_copy, existing_copies, read_copy, world_choices
 
 
 HOME = ROOT / ".cache" / "m5-launcher"
@@ -167,10 +168,12 @@ class Launcher:
         self.window_updates = Queue()
         self.commands = Queue()
         self.settings = read_object(SETUP)
-        self.port = {"forge": 18777, "bmc4": 18778}.get(checks, 18776)
+        self.port = {"forge": 18777, "bmc4": 18778, "copy": 18780}.get(checks, 18776)
         self.game = self.agent = self.auth = self.bridge = None
         self.game_dir = None
         self.environ = None
+        self.live_site = None
+        self.world_label = ""
         self.login_ok = self.want_agent = self.exiting_game = self.closing = False
         self.game_exit_code = self.agent_exit_code = None
         self.state = {}
@@ -188,7 +191,8 @@ class Launcher:
         state = {"phase": phase, "message": message, "game_pid": self.game.pid if self.game else None,
                  "agent_pid": self.agent.pid if self.agent else None, "game_dir": game,
                  "game_exit_code": self.game_exit_code, "agent_exit_code": self.agent_exit_code,
-                 "login": self.login_status, "pack": self.state.get("pack", "")}
+                 "login": self.login_status, "pack": self.state.get("pack", ""),
+                 "world_label": self.world_label, "site": self.live_site}
         if self.budget.is_file():
             try:
                 usage = CodexBudget(self.budget, MAX_TURNS, MAX_TOKENS).records()
@@ -258,25 +262,71 @@ class Launcher:
         require_free_port(self.port)
         self.environ = find_setup(self.settings)
         self.prepare_bridge()
-        pack = None if self.checks == "forge" else isolated_pack()
-        if self.checks == "bmc4" and not pack:
-            raise ValueError("找不到通过 M4 验收的 387 模组 BMC4 隔离副本。")
+        self.live_site = None
+        copy = self.selected_copy()
+        pack = None
         survival = not self.checks and self.settings.get("survival", False) is True
-        name = f"m5-validation-{self.checks}" if self.checks else "m5-survival" if survival else "m5-player"
-        self.game_dir = local_game(name)
-        self.state["pack"] = "BMC4 · 387 模组" if pack else "Forge · 最小练习世界"
-        if survival:
-            self.state["pack"] += " · 生存供料"
+        if copy:
+            self.game_dir, marker = copy
+            source = Path(marker["source_instance"]).resolve(strict=True)
+            if not forge_profile(source):
+                raise ValueError("副本关联的 Forge 实例已不可读。请在设置确认 PCL 实例。")
+            self.environ["instance"] = source
+            self.state["pack"] = f"BMC4 · {marker['enabled_jars']} 模组 · 生存供料"
+            self.world_label = f"真实世界副本 · {marker['source_label']} · 仅写入 D 盘副本"
+        else:
+            pack = None if self.checks == "forge" else isolated_pack()
+            if self.checks == "bmc4" and not pack:
+                raise ValueError("找不到通过 M4 验收的 387 模组 BMC4 隔离副本。")
+            name = f"m5-validation-{self.checks}" if self.checks else "m5-survival" if survival else "m5-player"
+            self.game_dir = local_game(name)
+            self.state["pack"] = "BMC4 · 387 模组" if pack else "Forge · 最小练习世界"
+            if survival:
+                self.state["pack"] += " · 生存供料"
+            self.world_label = "隔离练习世界 · D 盘"
         stop = self.game_dir / ".mcaibuilder-stop"
-        if (self.game_dir / ".mcaibuilder-test").is_file():
+        if copy or (self.game_dir / ".mcaibuilder-test").is_file():
             stop.unlink(missing_ok=True)
         self.publish("starting", f"正在启动 {self.state['pack']}。首次加载可能需要几分钟。")
         self.game = launch_client(self.environ["java"], self.environ["instance"], self.game_dir, self.port,
-                                  architect=True, bmc4=pack is not None, pack_source=pack, survival=survival,
-                                  managed=True, m5_smoke=bool(self.checks), hide_console=True)
-        self.bridge = BridgeClient(self.game_dir / "config" / "mcaibuilder.json", timeout=1.5)
-        self.deadline = monotonic() + (600 if pack else 150)
+                                  architect=True, bmc4=bool(pack or copy), pack_source=pack, survival=survival,
+                                  managed=True, m5_smoke=self.checks in ("forge", "bmc4"), hide_console=True,
+                                  world_copy=bool(copy), copy_smoke=self.checks == "copy")
+        configuration = "mcaibuilder-copy.json" if copy else "mcaibuilder.json"
+        self.bridge = BridgeClient(self.game_dir / "config" / configuration, timeout=1.5)
+        self.deadline = monotonic() + (600 if pack or copy else 150)
         self.check_login()
+
+    def selected_copy(self):
+        if self.checks == "copy":
+            identity = os.environ.get("MC_AI_BUILDER_COPY_ID", "")
+        elif not self.checks and self.settings.get("world_mode") == "copy":
+            identity = self.settings.get("world_copy", "")
+        else:
+            return None
+        if not re.fullmatch(r"[a-f0-9]{32}", identity):
+            raise ValueError("请在「选择世界」中选取已核验的副本。")
+        game = copy_root() / identity
+        return game, read_copy(game)
+
+    def choose_world(self, selection, path=None):
+        if self.game or self.agent:
+            raise ValueError("请先正常保存并退出当前游戏，再切换世界。")
+        if selection == "new_copy":
+            self.publish("copying", "正在只读复制原世界与模组，并校验所有文件。")
+            instance = find_setup(self.settings)["instance"]
+            path = create_copy(instance, path)
+            selection = "copy"
+        if selection == "copy":
+            record = read_copy(path)
+            self.settings = {**self.settings, "world_mode": "copy", "world_copy": path.name}
+            self.world_label = f"已选副本 · {record['source_label']} · D 盘隔离"
+        else:
+            self.settings = {**self.settings, "world_mode": "practice"}
+            self.world_label = "已选隔离练习世界 · D 盘"
+        write_json(SETUP, self.settings)
+        self.last_error = ""
+        self.live_site = None
 
     def start_agent(self, runtime_polls):
         self.agent_start_poll = runtime_polls
@@ -348,6 +398,7 @@ class Launcher:
             status = self.bridge.health()
         except (OSError, BridgeError, ValueError):
             pass
+        self.live_site = status.get("site_authorization")
         if not status.get("architect_enabled"):
             if monotonic() >= self.deadline:
                 self.publish("bridge_wait", "Forge Bridge 尚未就绪。进入练习世界或查看 Minecraft 日志。")
@@ -375,7 +426,9 @@ class Launcher:
             self.publish("game_only", "Minecraft 正在运行，Agent 已停止。")
 
     def execute(self, action):
-        if action == "start":
+        if isinstance(action, tuple) and action[0] == "choose":
+            self.choose_world(*action[1:])
+        elif action == "start":
             self.start()
         elif action == "stop_agent":
             self.stop_runtime()
@@ -421,15 +474,15 @@ def window(app):
 
     root = tk.Tk()
     root.title("MC AI Builder")
-    root.geometry("620x325")
-    root.minsize(575, 310)
+    root.geometry("675x395")
+    root.minsize(620, 380)
     frame = ttk.Frame(root, padding=20)
     frame.pack(expand=True, fill="both")
     ttk.Label(frame, text="MC AI Builder", font=("Segoe UI", 20, "bold")).pack(anchor="w")
     model_label = f"Codex · {DEFAULT_MODEL} · {DEFAULT_EFFORT} · ChatGPT 登录"
     ttk.Label(frame, text=model_label).pack(anchor="w", pady=(4, 14))
-    status, login, usage, detail = (tk.StringVar() for _ in range(4))
-    for item in (status, login, usage, detail):
+    world, authorization, status, login, usage, detail = (tk.StringVar() for _ in range(6))
+    for item in (world, status, authorization, login, usage, detail):
         ttk.Label(frame, textvariable=item, wraplength=550).pack(anchor="w", pady=3)
     buttons = ttk.Frame(frame)
     buttons.pack(anchor="w", pady=(14, 0))
@@ -497,6 +550,38 @@ def window(app):
            if app.state.get("game_dir") else detail.set("Minecraft 尚未启动。"))
     button(shortcuts, "设置", settings)
 
+    def worlds():
+        if app.game or app.agent:
+            detail.set("请先正常保存并退出当前游戏，再切换世界。")
+            return
+        dialog = tk.Toplevel(root)
+        dialog.title("选择 Minecraft 世界")
+        dialog.transient(root)
+        panel = ttk.Frame(dialog, padding=15)
+        panel.pack(fill="both", expand=True)
+        ttk.Label(panel, text="真实世界副本会完整复制到 D 盘。请先关闭源世界。").pack(anchor="w")
+        choices = [("隔离练习世界", "practice", None)]
+        try:
+            choices.extend((f"已有副本 · {marker['source_label']} · {path.name[:8]}", "copy", path)
+                           for path, marker in existing_copies())
+            instance = find_setup(app.settings)["instance"]
+            choices.extend((f"复制 BMC4 存档 · {path.name}", "new_copy", path)
+                           for path in world_choices(instance))
+        except (OSError, KeyError, ValueError) as error:
+            ttk.Label(panel, text=str(error), wraplength=525).pack(anchor="w", pady=(8, 0))
+        selector = ttk.Combobox(panel, state="readonly", values=[row[0] for row in choices], width=52)
+        selector.pack(fill="x", pady=12)
+        selector.current(0)
+
+        def select():
+            _, mode, path = choices[selector.current()]
+            app.commands.put(("choose", mode, path))
+            dialog.destroy()
+
+        ttk.Button(panel, text="选择世界", command=select).pack(anchor="e")
+
+    world_button = button(shortcuts, "选择世界", worlds)
+
     def refresh():
         try:
             while True:
@@ -505,16 +590,29 @@ def window(app):
                 if phase == "closed":
                     root.destroy()
                     return
+                world.set(state["world_label"] or "可选择隔离练习世界或真实世界副本")
+                site = state.get("site")
+                if site and site.get("approved"):
+                    authorization.set("施工区已批准 · " + site["dimension"] + " · 供料箱"
+                                      + ("已批准" if site["warehouse_approved"] else "待批准")
+                                      + " · 区块" + ("已加载" if site["chunks_loaded"] else "未加载"))
+                elif site:
+                    authorization.set("施工区和供料箱待批准 · 游戏内使用 /architect site")
+                else:
+                    authorization.set("")
                 status.set(state["message"])
                 login.set(state["login"])
                 usage.set("本地预算账本不可读取，请查看 Agent 日志。" if state.get("budget_error") else
                           f"本地预算已用 {state.get('turns', 0)}/{MAX_TURNS} 回合，"
                           f"{state.get('tokens', 0):,}/{MAX_TOKENS:,} Tokens")
                 start_button.config(state="disabled" if phase in (
-                    "checking", "building", "starting", "agent_starting", "ready", "stopping", "stopping_agent"
+                    "checking", "building", "copying", "starting", "agent_starting", "ready", "stopping", "stopping_agent"
                 ) else "normal")
                 agent_button.config(state="normal" if state.get("agent_pid") else "disabled")
                 game_button.config(state="normal" if state.get("game_pid") else "disabled")
+                world_button.config(state="disabled" if state.get("game_pid") or phase in (
+                    "checking", "copying", "building", "starting", "stopping"
+                ) else "normal")
         except Empty:
             pass
         duplicate = app.home / "duplicate"
@@ -527,14 +625,15 @@ def window(app):
 
     root.protocol("WM_DELETE_WINDOW", lambda: app.commands.put("close"))
     Thread(target=app.run, name="mcai-launcher", daemon=True).start()
-    app.commands.put("start")
+    if app.checks or app.settings.get("world_mode"):
+        app.commands.put("start")
     root.after(100, refresh)
     root.mainloop()
 
 
 def main():
     checks = os.environ.get("MC_AI_BUILDER_CHECKS", "")
-    if checks not in ("", "forge", "bmc4"):
+    if checks not in ("", "forge", "bmc4", "copy"):
         raise ValueError("Unknown isolated acceptance profile.")
     app = Launcher(checks)
     handle = single_launcher()

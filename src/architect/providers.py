@@ -70,6 +70,8 @@ Use modded choices only if their block IDs appear in available_mod_blocks. The Q
 Interpret warehouse questions as get_material_status. Warehouse supply is a game setting, never a design field.
 If asked to build the current design from the warehouse, request_approval. No material substitutions unless explicitly requested.
 Optional origin is [x,y,z] or "here". Optional rotation is 0 north, 90 east, 180 south, 270 west, or "here" for current facing.
+When fixed_site is true, use the player's authorized origin and direction. Coordinates in that context are relative
+to the origin. Omit origin and rotation or return "here". If the player wants another site, clarify that site approval must change in Minecraft.
 Never guess coordinates or non-supported materials. Dark wood can mean dark oak. Each window width must leave at least 2 end posts and 1 center post. Window height must fit between base and cap.
 For a blocked interpretation use {{"action":"clarify","message":"简短的中文澄清问题"}} or
 {{"action":"unsupported","message":"简短说明当前只生成可参数化窗墙"}}.

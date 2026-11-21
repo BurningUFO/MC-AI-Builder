@@ -1,0 +1,86 @@
+{
+  "backend": "ChatGPT via official Codex Python SDK 0.171.0",
+  "turns": [
+    {
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "elapsed_ms": 12702,
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11581,
+        "output_tokens": 145,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11726
+      },
+      "status": "completed",
+      "context_bytes": 609,
+      "action": "create_design"
+    },
+    {
+      "requested_model": "gpt-6.2-sol",
+      "requested_effort": "medium",
+      "effective": {
+        "model": "gpt-6.2-sol",
+        "model_provider": "openai",
+        "effort": "medium",
+        "sandbox": "readOnly",
+        "sandbox_network": false,
+        "approval": "never",
+        "ephemeral": true,
+        "instruction_sources": 0
+      },
+      "tools": {
+        "shell_disabled": true,
+        "active_mcp_servers": 0,
+        "notification_commands": 0,
+        "expected_disabled_features": true,
+        "web_search_disabled": true,
+        "project_instructions_disabled": true,
+        "official_chatgpt_endpoint": true,
+        "chatgpt_login_required": true
+      },
+      "item_types": [
+        "functionCallOutput",
+        "agentMessage"
+      ],
+      "elapsed_ms": 7765,
+      "tokens": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 11721,
+        "output_tokens": 133,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 11854
+      },
+      "status": "completed",
+      "context_bytes": 1120,
+      "action": "revise_design"
+    }
+  ],
+  "charged_tokens": 23580
+}

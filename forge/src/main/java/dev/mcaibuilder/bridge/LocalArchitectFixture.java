@@ -23,6 +23,9 @@ final class LocalArchitectFixture {
 
     private static Path fixtureRoot() {
         Path root = Minecraft.getInstance().gameDirectory.toPath();
+        if (CopyProfile.fixture(root)) {
+            return root;
+        }
         return Boolean.getBoolean("mcaibuilder.m3Smoke") && Boolean.getBoolean("mcaibuilder.localTest")
                 && Files.isRegularFile(root.resolve(".mcaibuilder-test")) ? root : null;
     }
