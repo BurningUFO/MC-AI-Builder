@@ -10,7 +10,7 @@ import bpy
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.construction.review_preview import models_for_review
+from src.construction.review_preview import interior_cutaway, models_for_review
 from src.renderers.blender_preview import (
     add_block_mesh, add_camera, blender_space, choose_cycles_device, collection_for,
     configure_scene, pixel_material, set_initial_view, stage_scene,
@@ -60,6 +60,16 @@ def outlines(scene, rows, categories):
             collection.objects.link(bpy.data.objects.new(category.title(), curve))
 
 
+def block_mesh(scene, name, model, index, root):
+    if index:
+        baked = index["states"]
+        materials = {ref: pixel_material(ref, texture, root) for ref, texture in index["textures"].items()}
+        opaque = {key for key, item in baked.items() if item["full_cube"]
+                  and all(not materials[face["texture"]][1] for face in item["faces"])}
+        mesh = collection_for(scene, "Minecraft blocks")
+        add_block_mesh(mesh, name, model.blocks, model.blocks, baked, materials, opaque)
+
+
 def main():
     manifest, root, output = map(Path, sys.argv[sys.argv.index("--") + 1:])
     data = json.loads(manifest.read_text(encoding="utf-8"))
@@ -69,7 +79,8 @@ def main():
     limits = tuple(zip(*points))
     centre = tuple((min(axis) + max(axis) + 1) / 2 for axis in limits)
     scale = max(max(axis) - min(axis) + 1 for axis in limits) * 1.45
-    offset = (scale * 0.52, -scale, scale * 0.66)
+    cottage = report["new_version"]["building_id"].startswith("cottage_")
+    offset = (scale * 0.52, scale if cottage else -scale, scale * 0.66)
     floor = min(limits[1]) - 0.03
     for obj in list(bpy.data.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
@@ -86,13 +97,7 @@ def main():
         scene["review_sha256"] = report["review_sha256"]
         scene["minecraft_blocks"] = len(model.blocks)
         configure_scene(scene, "draft", device)
-        if index:
-            baked = index["states"]
-            materials = {ref: pixel_material(ref, texture, root) for ref, texture in index["textures"].items()}
-            opaque = {key for key, item in baked.items() if item["full_cube"]
-                      and all(not materials[face["texture"]][1] for face in item["faces"])}
-            mesh = collection_for(scene, "Minecraft blocks")
-            add_block_mesh(mesh, name, model.blocks, model.blocks, baked, materials, opaque)
+        block_mesh(scene, name, model, index, root)
         stage_scene(scene, model.blocks or models[1].blocks, centre, floor, (), None)
         outlines(scene, report["changes"], categories)
         view = View(image, name, "Review", centre, offset, scale)
@@ -106,6 +111,22 @@ def main():
         rear_view = View("proposed-rear.png", "Rear review camera", "Review", centre,
                          (-offset[0], -offset[1], offset[2]), scale)
         rear = add_camera(collection_for(proposal, "Rear review camera"), rear_view)
+        cutaway = interior_cutaway(models[1]) if cottage else None
+        if cutaway is not None:
+            interior = bpy.data.scenes.new("Interior cutaway")
+            interior["review_sha256"] = report["review_sha256"]
+            interior["minecraft_blocks"] = len(cutaway.blocks)
+            interior["source_minecraft_blocks"] = len(models[1].blocks)
+            configure_scene(interior, "draft", device)
+            block_mesh(interior, "Interior cutaway", cutaway, proposed_index, root)
+            stage_scene(interior, cutaway.blocks, centre, floor, (), None)
+            image = "proposed-interior.png"
+            interior_centre = (centre[0], max(limits[1]) - 1.75, centre[2])
+            camera = View(image, "Interior cutaway camera", "Review", interior_centre,
+                          (scale * 0.39, scale * 0.92, scale * 0.92), scale * 0.93)
+            interior.camera = add_camera(collection_for(interior, "Interior camera"), camera)
+            interior.render.filepath = "//" + image
+            scenes.append((interior, image))
     scene = scenes[1][0] if rear is not None else scenes[0][0]
     bpy.context.window.scene = scene
     set_initial_view(scene, scene.camera, centre, scale)

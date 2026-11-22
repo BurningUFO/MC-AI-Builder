@@ -172,6 +172,7 @@ final class SiteSurvey {
                 status.add("to", Wire.position(construction.observationTarget().blockPosition()));
                 if (!passive) {
                     status.add("pads", construction.surveyPads());
+                    status.add("cottage_pads", construction.cottagePads());
                 } else if (checkpointView != null) {
                     status.add("focus", Wire.position(checkpointView.focus()
                             .subtract(construction.observationTarget().blockPosition())));

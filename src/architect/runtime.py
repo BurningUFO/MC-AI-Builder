@@ -14,7 +14,7 @@ from time import monotonic, sleep
 from uuid import NAMESPACE_URL, UUID, uuid5
 from zipfile import BadZipFile
 
-from src.architect.design import DesignError, Wall, placement
+from src.architect.design import DESIGNS, DesignError, placement
 from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
@@ -75,9 +75,9 @@ class ArchitectClient(BridgeClient):
 
 def local_db(method):
     @wraps(method)
-    def call(store, *args):
+    def call(store, *args, **kwargs):
         with closing(sqlite3.connect(store.database, timeout=4)) as connection, connection:
-            return method(store, connection, *args)
+            return method(store, connection, *args, **kwargs)
     return call
 
 
@@ -104,7 +104,8 @@ class SessionStore:
         return json.loads(row[0]) if row else None
 
     @local_db
-    def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, wall, action):
+    def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
+                kind="window_wall", footing=None):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
@@ -113,7 +114,9 @@ class SessionStore:
         version = max(largest or 0, from_version) + 1
         plan = make_plan(model, building_id=building_id, version=version, origin=origin, rotation=rotation)
         plan["plan_id"] = plan_id
-        spec = {"parameters": asdict(wall), "plan": plan, "action": action}
+        spec = {"kind": kind, "parameters": asdict(parameters), "plan": plan, "action": action}
+        if footing is not None:
+            spec["footing"] = footing
         folder = self.directory(plan_id)
         model.write(folder / "building.json")
         write_json(folder / "construction-plan.json", plan)
@@ -202,7 +205,7 @@ class Runtime:
             spec = self.store.design(visible.get("plan_id") or visible["job_id"])
             if spec is not None:
                 plan = spec["plan"]
-                context["design"] = {"kind": "window_wall", "version": plan["building_version"],
+                context["design"] = {"kind": spec.get("kind", "window_wall"), "version": plan["building_version"],
                                      "parameters": spec["parameters"], "origin": plan["origin"],
                                      "rotation": plan["rotation"]}
         if "site_authorization" in request:
@@ -259,7 +262,7 @@ class Runtime:
                 "occupied_target": "目标位置已有不相符的方块。请指定空闲施工位置。",
                 "invalid_request": "方案无法通过施工范围或方块约束。请调整尺寸、坐标或材料。",
                 "job_active": "已有施工正在进行。请修改属于你的当前任务，或等待当前任务结束。",
-                "no_draft": "目前没有候选设计。请先描述要建的窗墙。",
+                "no_draft": "目前没有候选设计。请先描述要建的窗墙或住宅。",
                 "warehouse_not_approved": "请先到供料箱旁，用 /architect supply x y z 批准一个原版单箱。",
                 "warehouse_unavailable": "供料箱暂不可用。请核对获准的原版单箱。",
                 "warehouse_job_scope": "这项施工使用了另一份供料授权。",
@@ -299,22 +302,34 @@ class Runtime:
         action = intent["action"]
         prior = None
         old_version = 0
-        building_id = "wall_" + UUID(request["request_id"]).hex
+        kind = intent.get("kind", "window_wall")
+        factory = DESIGNS[kind]
+        prefix = "wall" if kind == "window_wall" else kind
+        building_id = prefix + "_" + UUID(request["request_id"]).hex
         if action == "revise_design":
             visible = request.get("draft") or request.get("job")
             if visible is None:
-                raise DesignError("请先设计一面窗墙。")
+                raise DesignError("请先设计一面窗墙或一栋住宅。")
             prior = self.store.design(visible.get("plan_id") or visible["job_id"])
             if prior is None:
-                raise DesignError("找不到本地设计参数，请重新发起一面窗墙。")
+                raise DesignError("找不到本地设计参数，请重新发起设计。")
+            if kind != prior.get("kind", "window_wall"):
+                raise DesignError("原建筑和本次改图的类型必须一致。")
             plan = prior["plan"]
             old_version = plan["building_version"]
             if old_version != intent["base_version"]:
                 raise DesignError("引用的建筑版本已过期。请描述对当前版本的改动。")
             building_id = plan["building_id"]
-        bases = Wall.edit(prior["parameters"]) if prior else None
-        wall = Wall.edit(intent["changes"], bases)
-        building = wall.building()
+        base = factory.edit(prior["parameters"]) if prior else None
+        parameters = factory.edit(intent["changes"], base)
+        footing = None
+        if kind == "cottage":
+            footing = prior.get("footing") if prior else intent.get("_survey_footing") if request.get("survey") else None
+            if footing is not None and base and (parameters.width, parameters.depth) != (base.width, base.depth):
+                raise DesignError("更改已勘察住宅的占地需要重新观察地基。")
+            building = parameters.building(footing or ())
+        else:
+            building = parameters.building()
         blocks = {block.state.block_id for block in building.blocks.values()}
         missing = sorted(block for block in blocks if not block.startswith("minecraft:")
                          and block not in request.get("available_mod_blocks", {}))
@@ -336,7 +351,7 @@ class Runtime:
             origin, rotation = placement(intent, request, prior["plan"] if prior else None,
                                          action == "revise_design" and locked)
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
-                                  building, origin, rotation, wall, action)
+                                  building, origin, rotation, parameters, action, kind=kind, footing=footing)
         return spec
 
     def review(self, request_id, mode, plan=None, *, observation_reason=""):
@@ -349,8 +364,11 @@ class Runtime:
         folder = self.store.directory(plan_id) / digest[:16]
         folder.mkdir(parents=True, exist_ok=True)
         report_file = folder / "review.json"
+        previews = ("revision-review.blend", "proposed.png", "proposed-rear.png")
+        if version["building_id"].startswith("cottage_"):
+            previews += ("proposed-interior.png",)
         with self.render_lock:
-            if not all((folder / name).is_file() for name in ("revision-review.blend", "proposed.png", "proposed-rear.png")):
+            if not all((folder / name).is_file() for name in previews):
                 write_json(report_file, report)
                 self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
         counts = report["counts"]
@@ -368,7 +386,7 @@ class Runtime:
             details = describe_supply(report["supply"], approval=True)
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         if grass := report.get("covered_grass"):
-            reason += f"。墙体覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
+            reason += f"。建筑覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
         observed = safe_message(observation_reason, self.redactions)[:160].rstrip("。.!！")
         prefix = f"现场判断 {observed}。 " if observed else ""
         self.client.answer(request_id, prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
@@ -400,7 +418,7 @@ class Runtime:
                 text += " " + description + "。"
             self.client.answer(request_id, text)
         elif action == "get_capabilities":
-            self.client.answer(request_id, "我是 MC Builder。我能设计窗墙、生成 Blender 预览、"
+            self.client.answer(request_id, "我是 MC Builder。我能设计窗墙和单层住宅、生成 Blender 预览、"
                                "检查材料和施工进度。你批准具体方案后，我会施工，也能暂停并按新方案改建。")
         elif action == "get_material_status":
             self.client.answer(request_id, describe_supply(request.get("supply", {})))

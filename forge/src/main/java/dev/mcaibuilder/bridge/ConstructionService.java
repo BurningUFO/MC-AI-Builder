@@ -15,11 +15,13 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -147,7 +149,8 @@ final class ConstructionService {
                         throw Wire.conflict("occupied_target", "Existing block at " + target.world().toShortString());
                     }
                     requireSafeMutation(step, false);
-                    if (surveyed && target.local().getY() == 0 && !surveyFoundation(target.world())
+                    if (surveyed && target.local().getY() <= 0 && !surveyFoundation(target.world())
+                            && !supported.contains(target.world().below())
                             || site.worldCopy() && !hasSupport(target.world(), supported)) {
                         throw Wire.conflict("missing_terrain_support", "No approved support at " + target.world().toShortString());
                     }
@@ -201,6 +204,108 @@ final class ConstructionService {
             }
         }
         return pads;
+    }
+
+    JsonArray cottagePads() {
+        JsonArray result = new JsonArray();
+        Map<BlockPos, Integer> foundation = new HashMap<>();
+        for (BlockPos offset : BlockPos.withinManhattan(BlockPos.ZERO, 2, 1, 2)) {
+            BlockPos origin = site.origin().offset(offset);
+            for (Rotation rotation : Rotation.values()) {
+                JsonArray sizes = new JsonArray();
+                for (int width : new int[]{7, 9}) {
+                    for (int depth : new int[]{7, 9}) {
+                        JsonObject fit = cottageFit(origin, rotation, width, depth, foundation);
+                        if (fit != null) {
+                            sizes.add(fit);
+                        }
+                    }
+                }
+                if (!sizes.isEmpty()) {
+                    JsonObject pad = new JsonObject();
+                    pad.add("offset", Wire.position(offset));
+                    pad.addProperty("rotation", rotation.ordinal() * 90);
+                    pad.add("sizes", sizes);
+                    result.add(pad);
+                    if (result.size() == 8) {
+                        return result;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private JsonObject cottageFit(BlockPos origin, Rotation rotation, int width, int depth,
+                                   Map<BlockPos, Integer> foundation) {
+        int xEdge = width / 2;
+        int zEdge = depth / 2;
+        int footingCount = 0;
+        JsonArray footingRows = new JsonArray();
+        for (int z = -zEdge; z <= zEdge; z++) {
+            int mask = 0;
+            for (int x = -xEdge; x <= xEdge; x++) {
+                BlockPos floor = origin.offset(new BlockPos(x, 0, z).rotate(rotation));
+                int depthBelowFloor = foundation.computeIfAbsent(floor, this::cottageColumn);
+                if (depthBelowFloor < 0) {
+                    return null;
+                }
+                if (depthBelowFloor == 1) {
+                    mask |= 1 << (x + xEdge);
+                    footingCount++;
+                }
+            }
+            footingRows.add(mask);
+        }
+        if (footingCount > width * depth / 2) {
+            return null;
+        }
+        JsonArray entrances = new JsonArray();
+        String[] names = {"left", "center", "right"};
+        int[] doorway = {-xEdge + 2, 0, xEdge - 2};
+        for (int i = 0; i < names.length; i++) {
+            BlockPos approach = origin.offset(new BlockPos(doorway[i], 0, -zEdge - 1).rotate(rotation));
+            if (site.area().contains(approach.above(2)) && site.area().contains(approach)
+                    && (BuildTerrain.canStand(level, approach) || BuildTerrain.canStand(level, approach.above()))) {
+                entrances.add(names[i]);
+            }
+        }
+        if (entrances.isEmpty()) {
+            return null;
+        }
+        boolean eaves = true;
+        for (int x = -xEdge; x <= xEdge && eaves; x++) {
+            BlockPos edge = origin.offset(new BlockPos(x, 3, -zEdge - 1).rotate(rotation));
+            eaves = site.canBuildAt(edge) && level.hasChunkAt(edge) && level.getBlockState(edge).isAir();
+        }
+        JsonObject fit = new JsonObject();
+        fit.addProperty("width", width);
+        fit.addProperty("depth", depth);
+        fit.addProperty("eaves", eaves);
+        fit.add("entries", entrances);
+        fit.add("footing_rows", footingRows);
+        return fit;
+    }
+
+    private int cottageColumn(BlockPos floor) {
+        if (!level.hasChunkAt(floor)) {
+            return -1;
+        }
+        int gap = 0;
+        if (!surveyFoundation(floor)) {
+            BlockPos footing = floor.below();
+            if (!site.canBuildAt(footing) || !level.getBlockState(footing).isAir() || !surveyFoundation(footing)) {
+                return -1;
+            }
+            gap = 1;
+        }
+        for (int y = 0; y <= 3; y++) {
+            BlockPos pos = floor.above(y);
+            if (!site.canBuildAt(pos) || !level.getBlockState(pos).isAir()) {
+                return -1;
+            }
+        }
+        return gap;
     }
 
     private boolean surveyFoundation(BlockPos target) {
@@ -917,10 +1022,10 @@ final class ConstructionService {
                 continue;
             }
             BlockState state = level.getBlockState(neighbor);
-            // Short vanilla grass is supported from below. Changing an adjacent
-            // horizontal cell in the approved area leaves that support intact.
+            // Vanilla grass depends on its vertical support and, for tall grass, the other half.
             boolean sideGrass = site.worldCopy() && site.area().contains(neighbor)
-                    && direction.getAxis().isHorizontal() && state.is(Blocks.GRASS) && state.canSurvive(level, neighbor);
+                    && direction.getAxis().isHorizontal() && (state.is(Blocks.GRASS) || state.is(Blocks.TALL_GRASS))
+                    && state.canSurvive(level, neighbor);
             if (state.isAir() || borderBlocks.contains(state.getBlock()) || sideGrass) {
                 continue;
             }

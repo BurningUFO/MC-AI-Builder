@@ -14,6 +14,8 @@ M2 支持同一个 NPC 在施工中暂停并审阅新版本。批准后执行真
 
 M6 支持 NPC 第一人称主动观察及施工复查。使用 `/architect survey` 根据地形设计，或用 `/architect supervise` 在半程、异常和完工时复查。模型发出的修改候选仍需在游戏中批准。 [M6 游戏内体验指南](docs/m6-guide.md) · [施工闭环验收](docs/m6-d-validation.md)
 
+M7-A 支持带入口、窗组、屋顶和简单家具的三维单层住宅。使用 `/architect survey` 把现场地形和 NPC 视野纳入布局选择，并在 Blender 审阅外观与室内剖视。 [住宅体验指南](docs/m7-a-guide.md) · [验收记录](docs/m7-a-validation.md)
+
 施工 NPC 可由授权玩家用 `/architect observe` 观察第一人称视角。图像与姿态元数据保存到本地缓存，并与同一观测 ID 的局部 Forge 样本配对。 [NPC 观测说明](docs/m6-a-validation.md) · [视觉与世界状态](docs/m6-b-validation.md)
 
 ![M2 游戏内完工截图](docs/m2-evidence/wall-v2.png)

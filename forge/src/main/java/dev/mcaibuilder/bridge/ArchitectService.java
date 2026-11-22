@@ -501,15 +501,18 @@ final class ArchitectService {
             }
             String folder = previewFolder(session.draft.id(), hash);
             Path root = FMLPaths.GAMEDIR.get().resolve(folder);
+            boolean cottage = session.draft.plan.get("building_id").getAsString().startsWith("cottage_");
             if (!Files.isRegularFile(root.resolve("revision-review.blend"))
                     || !Files.isRegularFile(root.resolve("proposed.png"))
-                    || !Files.isRegularFile(root.resolve("proposed-rear.png"))) {
+                    || !Files.isRegularFile(root.resolve("proposed-rear.png"))
+                    || (cottage && !Files.isRegularFile(root.resolve("proposed-interior.png")))) {
                 throw Wire.conflict("preview_unavailable", "设计预览尚未就绪，请重新预览。");
             }
             session.ticket = new Ticket(UUID.randomUUID(), hash, System.currentTimeMillis() + APPROVAL_LIFETIME);
             persist();
             tell(player, message);
-            tell(player, "预览 " + folder + "/revision-review.blend（含两角度图片）。");
+            tell(player, "预览 " + folder + "/revision-review.blend（含两角度图片"
+                    + (cottage ? "和室内剖视" : "") + "）。");
             var buttons = Component.literal("");
             if (live.getAsJsonObject("counts").get("conflict").getAsInt() == 0) {
                 buttons.append(button("批准 " + session.ticket.code, "approve " + session.ticket.code)).append("  ");

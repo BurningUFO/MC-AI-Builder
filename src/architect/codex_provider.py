@@ -17,7 +17,8 @@ from src.architect.codex_sdk import (
     WORK_ROOT, auth_summary, config_request, require_safe_config, safe_failure,
     safety_options, sdk_config, summarize_config,
 )
-from src.architect.design import GLASS, MASONRY, ROOFS, STYLES, WOODS
+from src.architect.design import (COTTAGE_ROOFS, COTTAGE_SIZES, DESIGNS, ENTRIES, GLASS, INTERIORS,
+                                  MASONRY, ROOFS, ROOF_FORMS, STYLES, WINDOW_LAYOUTS, WOODS)
 from src.architect.observations import rgb_png
 from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudgetExhausted, ModelError,
                                      ModelTimeout, parse_intent)
@@ -42,12 +43,19 @@ WALL_FIELDS = {
        for key, values in (("style", STYLES), ("wood", WOODS), ("masonry", MASONRY), ("glass", GLASS), ("roof", ROOFS))},
     "porch": {"type": ["boolean", "null"]},
 }
+DESIGN_FIELDS = {
+    **WALL_FIELDS,
+    "depth": {"type": ["integer", "null"], "enum": [*COTTAGE_SIZES, None]},
+    **{key: {"type": ["string", "null"], "enum": [*values, None]}
+       for key, values in (("entry", ENTRIES), ("windows", WINDOW_LAYOUTS), ("roof_form", ROOF_FORMS),
+                           ("interior", INTERIORS), ("roof", tuple(dict.fromkeys((*ROOFS, *COTTAGE_ROOFS)))))},
+}
 FIELDS = {
     "action": {"type": "string", "enum": sorted(ACTIONS)},
-    "kind": {"type": ["string", "null"], "enum": ["window_wall", None]},
+    "kind": {"type": ["string", "null"], "enum": [*DESIGNS, None]},
     "changes": {
-        "type": ["object", "null"], "properties": WALL_FIELDS,
-        "required": list(WALL_FIELDS), "additionalProperties": False,
+        "type": ["object", "null"], "properties": DESIGN_FIELDS,
+        "required": list(DESIGN_FIELDS), "additionalProperties": False,
     },
     "base_version": {"type": ["integer", "null"]},
     "origin": {"anyOf": [
@@ -88,8 +96,8 @@ def decode_intent(output: str) -> dict:
             raise ValueError("Unexpected intent fields")
         normalized = {key: value for key, value in raw.items() if value is not None}
         if isinstance(normalized.get("changes"), dict):
-            if set(normalized["changes"]) - WALL_FIELDS.keys():
-                raise ValueError("Unexpected wall fields")
+            if set(normalized["changes"]) - DESIGN_FIELDS.keys():
+                raise ValueError("Unexpected building fields")
             normalized["changes"] = {key: value for key, value in normalized["changes"].items() if value is not None}
         return parse_intent(normalized)
     except (TypeError, ValueError, RecursionError):
@@ -213,12 +221,12 @@ class CodexProvider:
         return await self._sdk_turn(scene_input(payload, image), VISION_PROMPT, SCENE_SCHEMA, decode_scene, metrics)
 
     async def _survey_turn(self, payload, image, metrics):
-        return await self._sdk_turn(scene_input(payload, image), survey.PROMPT, survey.schema(WALL_FIELDS),
-                                    lambda output: survey.decode(output, WALL_FIELDS), metrics)
+        return await self._sdk_turn(scene_input(payload, image), survey.PROMPT, survey.schema(DESIGN_FIELDS),
+                                    lambda output: survey.decode(output, DESIGN_FIELDS), metrics)
 
     async def _feedback_turn(self, payload, image, metrics):
-        return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(WALL_FIELDS),
-                                    lambda output: feedback.decode(output, WALL_FIELDS), metrics)
+        return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),
+                                    lambda output: feedback.decode(output, DESIGN_FIELDS), metrics)
 
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread

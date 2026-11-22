@@ -100,7 +100,7 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
         }
 
         removals.sort(Comparator.comparing(WorkStep::pos, BuildPlan.BUILD_ORDER.reversed()));
-        placements.sort(Comparator.comparing(WorkStep::target, BuildPlan.PLACEMENT_ORDER));
+        placements.sort(next.revisionPlacementOrder());
         removals.addAll(placements);
         JsonObject totals = new JsonObject();
         counts.forEach(totals::addProperty);

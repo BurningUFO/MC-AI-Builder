@@ -1,4 +1,4 @@
-"""Generate supported wall designs from validated parameters, never model-authored code."""
+"""Generate supported Minecraft buildings from validated architectural components."""
 
 from dataclasses import asdict, dataclass
 
@@ -12,6 +12,13 @@ WOODS = ("minecraft:oak_planks", "minecraft:spruce_planks", "minecraft:dark_oak_
 MASONRY = ("minecraft:stone_bricks", "minecraft:cobblestone", "minecraft:stone")
 GLASS = ("minecraft:glass", "minecraft:light_blue_stained_glass", "minecraft:blue_stained_glass")
 STYLES = ("medieval", "plain")
+COTTAGE_SIZES = (7, 9)
+ENTRIES = ("left", "center", "right")
+WINDOW_LAYOUTS = ("compact", "paired", "wide")
+ROOF_FORMS = ("flat", "eaves")
+COTTAGE_ROOFS = ("minecraft:spruce_planks", "minecraft:dark_oak_planks", "minecraft:stone_bricks",
+                 "minecraft:stone_brick_slab", QUARK_ROOF)
+INTERIORS = ("bench", "bench_and_table", "open")
 ROTATION = {"north": 0, "east": 90, "south": 180, "west": 270}
 
 
@@ -89,6 +96,85 @@ class Wall:
                 wall.place((x, 0, 1), "minecraft:oak_stairs", facing="north",
                            half="bottom", shape="straight", waterlogged="false")
         return wall
+
+
+@dataclass(frozen=True)
+class Cottage:
+    """One centered floor plan, a two-block walkable room, and a separately chosen roof."""
+
+    width: int = 7
+    depth: int = 9
+    entry: str = "center"
+    windows: str = "paired"
+    roof_form: str = "flat"
+    wood: str = "minecraft:spruce_planks"
+    masonry: str = "minecraft:stone_bricks"
+    glass: str = "minecraft:glass"
+    roof: str = "minecraft:spruce_planks"
+    interior: str = "bench_and_table"
+
+    @classmethod
+    def edit(cls, changes: dict, base=None):
+        if not isinstance(changes, dict) or set(changes) - set(cls.__dataclass_fields__):
+            raise DesignError("住宅参数仅支持占地、入口、窗组、屋顶、木石玻璃和基本室内布局。")
+        config = asdict(base or cls())
+        config.update(changes)
+        cottage = cls(**config)
+        cottage.validate()
+        return cottage
+
+    def validate(self):
+        if any(type(n) is not int or n not in COTTAGE_SIZES for n in (self.width, self.depth)):
+            raise DesignError("单层住宅的宽和深各选 7 格或 9 格。")
+        if self.entry not in ENTRIES or self.windows not in WINDOW_LAYOUTS:
+            raise DesignError("住宅入口可居左、居中或居右。窗组可选紧凑、成对或宽窗。")
+        if self.roof_form not in ROOF_FORMS or self.roof not in COTTAGE_ROOFS:
+            raise DesignError("住宅可用平屋顶或前檐屋顶，并使用受支持的覆顶材料。")
+        if self.wood not in WOODS or self.masonry not in MASONRY or self.glass not in GLASS:
+            raise DesignError("请选择已支持的木材、石材和普通或蓝色玻璃。")
+        if self.interior not in INTERIORS:
+            raise DesignError("室内支持长凳、长凳和桌台或开放布局。")
+
+    def building(self, footing=()) -> Building:
+        self.validate()
+        model = Building("Timber and stone cottage")
+        x_edge, z_edge = self.width // 2, self.depth // 2
+        xs, zs = range(-x_edge, x_edge + 1), range(-z_edge, z_edge + 1)
+        for x, z in footing:
+            if x not in xs or z not in zs:
+                raise DesignError("地基支脚超出已核对的住宅占地。")
+            model.place((x, -1, z), self.masonry)
+        # Left and right are measured from inside the cottage looking out its front.
+        door_x = {"left": -x_edge + 2, "center": 0, "right": x_edge - 2}[self.entry]
+        windows = {"compact": (0,), "paired": (-2, 2), "wide": (-1, 0, 1)}[self.windows]
+
+        for z in zs:
+            for x in xs:
+                boundary = abs(x) == x_edge or abs(z) == z_edge
+                model.place((x, 0, z), self.masonry if boundary else self.wood)
+                if not boundary or (x == door_x and z == -z_edge):
+                    continue
+                corner = abs(x) == x_edge and abs(z) == z_edge
+                position = x if abs(z) == z_edge else z
+                is_window = not corner and position in windows
+                model.place((x, 1, z), self.glass if is_window else self.masonry)
+                model.place((x, 2, z), self.glass if is_window else self.wood)
+
+        if self.interior != "open":
+            for x in (-x_edge + 1, -x_edge + 2):
+                model.place((x, 1, z_edge - 1), "minecraft:oak_slab", type="bottom", waterlogged="false")
+        if self.interior == "bench_and_table":
+            model.place((0, 1, z_edge - 1), self.masonry)
+
+        roof_front = -z_edge - (self.roof_form == "eaves")
+        roof_state = {"type": "bottom", "waterlogged": "false"} if self.roof == "minecraft:stone_brick_slab" else {}
+        for z in range(roof_front, z_edge + 1):
+            for x in xs:
+                model.place((x, 3, z), self.roof, **roof_state)
+        return model
+
+
+DESIGNS = {"window_wall": Wall, "cottage": Cottage}
 
 
 def placement(intent: dict, context: dict, prior: dict | None, locked: bool) -> tuple[tuple[int, int, int], int]:

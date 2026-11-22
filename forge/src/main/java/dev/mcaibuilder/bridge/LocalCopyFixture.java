@@ -12,6 +12,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -19,6 +20,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -103,6 +105,7 @@ final class LocalCopyFixture {
                 case "field" -> field(player, input);
                 case "leave" -> leave(player);
                 case "survey" -> result.add("terrain", survey(player));
+                case "clear_grass" -> result.add("cleared", clearGrass(player, input));
                 case "snapshot" -> result.add("blocks", snapshot(player, BuildSite.Box.read(input.get("area"), "area")));
                 default -> throw new IOException("Unknown copy fixture action");
             }
@@ -176,6 +179,26 @@ final class LocalCopyFixture {
             }
         }
         return terrain;
+    }
+
+    private static JsonObject clearGrass(ServerPlayer player, JsonObject input) {
+        // This local fixture simulates a test player preparing a plot before any construction review.
+        ServerLevel level = player.serverLevel();
+        BlockPos pos = Wire.position(input.get("position"), "position");
+        if (!pos.equals(player.blockPosition()) || player.isSpectator() || player.isCreative()) {
+            throw Wire.invalid("The survival test player must stand on the marked grass.");
+        }
+        var state = level.getBlockState(pos);
+        boolean plant = state.is(Blocks.GRASS) || state.is(Blocks.TALL_GRASS)
+                || state.is(Blocks.FERN) || state.is(Blocks.LARGE_FERN)
+                || "minecraft:bush".equals(String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock())));
+        if (!plant || !state.getCollisionShape(level, pos).isEmpty() || !level.mayInteract(player, pos)
+                || !player.gameMode.destroyBlock(pos) || !level.getBlockState(pos).isAir()) {
+            throw Wire.invalid("Only the listed non-solid plants can be cleared by the test player.");
+        }
+        JsonObject result = Wire.state(state);
+        result.add("pos", Wire.position(pos));
+        return result;
     }
 
     private static JsonArray snapshot(ServerPlayer player, BuildSite.Box area) {

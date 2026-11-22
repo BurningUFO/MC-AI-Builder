@@ -206,11 +206,11 @@ def world_context(metadata: dict, *, now=None) -> dict:
         raise ValueError("Malformed paired observation.") from None
 
 
-def scene_context_message(context: dict) -> str:
+def scene_context_message(context: dict, *, max_bytes=MAX_CONTEXT) -> str:
     payload = _public_fields(context)
     while True:
         encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":"))
-        if len(encoded.encode("utf-8")) <= MAX_CONTEXT:
+        if len(encoded.encode("utf-8")) <= max_bytes:
             return encoded
         if not payload["cells"]:
             raise ValueError("Scene context exceeds the input limit.")

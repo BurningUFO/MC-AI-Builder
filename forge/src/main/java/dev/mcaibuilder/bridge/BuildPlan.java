@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -18,8 +19,10 @@ import net.minecraft.world.level.block.state.properties.Half;
 import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -76,6 +79,40 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         value.addProperty("rotation", rotation.ordinal() * 90);
         value.add("world_bounds", worldBounds.json());
         return value;
+    }
+
+    private static Comparator<Target> supportedLayers(List<Target> targets, Map<BlockPos, Target> cells) {
+        var distance = new HashMap<BlockPos, Integer>();
+        var frontier = new ArrayDeque<BlockPos>();
+        for (Target target : targets) {
+            if (target.local().getY() <= 0 || cells.containsKey(target.world().below())) {
+                distance.put(target.world(), 0);
+                frontier.add(target.world());
+            }
+        }
+        while (!frontier.isEmpty()) {
+            BlockPos support = frontier.removeFirst();
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                BlockPos next = support.relative(direction);
+                if (cells.containsKey(next) && distance.putIfAbsent(next, distance.get(support) + 1) == null) {
+                    frontier.addLast(next);
+                }
+            }
+        }
+        return Comparator.<Target>comparingInt(target -> target.world().getY())
+                .thenComparingInt(target -> distance.getOrDefault(target.world(), Integer.MAX_VALUE))
+                .thenComparing(PLACEMENT_ORDER);
+    }
+
+    Comparator<WorkStep> revisionPlacementOrder() {
+        if (!buildingId.startsWith("cottage_")) {
+            return Comparator.comparing(WorkStep::target, PLACEMENT_ORDER);
+        }
+        var order = new HashMap<BlockPos, Integer>();
+        for (int i = 0; i < targets.size(); i++) {
+            order.put(targets.get(i).world(), i);
+        }
+        return Comparator.comparingInt(step -> order.get(step.pos()));
     }
 
     static Set<Block> palette() {
@@ -186,7 +223,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
-        targets.sort(PLACEMENT_ORDER);
+        targets.sort(buildingId.startsWith("cottage_") ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER);
         JsonArray blocks = new JsonArray();
         model.values().forEach(blocks::add);
         String modelHash = Wire.sha256(blocks);

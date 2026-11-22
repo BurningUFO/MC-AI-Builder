@@ -302,7 +302,11 @@ def exercise(run, java_home, source, port, bmc4, model, trace):
         chat.send(child, "这一版的施工进度如何？", "V3 completed")
 
         if not bmc4:
-            extension = chat.card(child, "把这面墙改成 9 格宽，其他部分保留。")
+            sensitive = chat.card(child, "把这面墙改成 9 格宽，其他部分保留。", can_approve=False)
+            require(any(row.get("reason") == "unsafe_site_boundary" for row in sensitive["report"]["changes"]),
+                    "An adjacent existing stair prevents extending the porch")
+            chat.send(child, "reject " + sensitive["code"], "已拒绝")
+            extension = chat.card(child, "把这面墙改成 9 格宽，并去掉门前台阶和平台。")
             proof = place_fixture_block(child, run, [14, -60, 6])
             chat.send(child, "approve " + extension["code"], "review_changed")
             refreshed = chat.card(child, "请重新审阅现场变化。", can_approve=False)
