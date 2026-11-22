@@ -17,4 +17,12 @@
 
 批准开工后，可以用 `/architect plan 建议先铺屋顶背侧，给入口留出通道` 提交顺序建议。策略只可调整已经批准且尚未开始的屋顶工作组。新增、拆除、更换材料或改变范围仍通过原有审阅和审批。模型超时或策略过期时，NPC 继续按确定性的安全顺序施工。捕捉不到配对画面时，规划器可以改用结构化数据。玩家可以正常暂停、取消或另行发起改图。
 
+## 把批准的副本工作区交给 Builder
+
+1. 标记副本施工区、NPC 出发点、原点和朝向，执行 `/architect site autonomy auto`。用 `/architect site protect x1 y1 z1 x2 y2 z2` 标记必须保留的方块，再通过 `/architect site review` 一次确认整个范围。供料箱沿用 `/architect supply`，需要的铲、镐、斧和剪刀由实际库存提供。
+2. 输入 `@Builder 这块区域交给你，帮我建栋木石住宅。挡路的草木、泥土和普通木石你来处理。`。也可以用 `/architect work` 发起任务。Builder 比较现场和候选布局，解释选择，再按已签许可连续清障、取料和建造。箱子、机器、标记过的资产和影响工作区外的动作会单独反馈。若 Builder 提问，可用 `/architect work 保留箱子并绕开` 回答，原任务目标随同这次答复继续处理。只想看方案时，用 `/architect survey` 或在需求中明确「只设计」。
+3. 用 `/architect worksite` 或启动器查看许可、清障进度和工具。缺料时补给原授权箱，再通过游戏内继续。用 `/architect site autonomy revoke` 撤销自主许可。需要重新授权时，重新审阅施工区。图像共享由启动器单独控制，关闭后自主勘察使用 Forge 的结构化现场摘要。预览恢复后，可用 `/architect work retry` 重新核对已保存的自主方案。
+
+[自主施工验证](m7-q-validation.md)
+
 [主动观察与施工复查](m6-guide.md) · [住宅验收记录](m7-a-validation.md) · [性能测量](m7-p-profiling.md)

@@ -5,15 +5,25 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -25,6 +35,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 /** Local acceptance input and readback, enabled only for an explicitly marked copy test. */
 @Mod.EventBusSubscriber(modid = ForgeBridge.MOD_ID, value = Dist.CLIENT)
@@ -106,6 +117,8 @@ final class LocalCopyFixture {
                 case "leave" -> leave(player);
                 case "survey" -> result.add("terrain", survey(player));
                 case "clear_grass" -> result.add("cleared", clearGrass(player, input));
+                case "worksite_seed" -> result.add("placed", seedWorksite(player, input));
+                case "worksite_capacity" -> result.add("capacity", checkFullCargo(player, input));
                 case "snapshot" -> result.add("blocks", snapshot(player, BuildSite.Box.read(input.get("area"), "area")));
                 default -> throw new IOException("Unknown copy fixture action");
             }
@@ -198,6 +211,100 @@ final class LocalCopyFixture {
         }
         JsonObject result = Wire.state(state);
         result.add("pos", Wire.position(pos));
+        return result;
+    }
+
+    private static JsonObject seedWorksite(ServerPlayer player, JsonObject input) {
+        // Only the test player in a marked copy can create fixtures. Construction never uses this entry point.
+        String id = Wire.string(input.get("id"), "block item");
+        if (!Set.of("minecraft:dirt", "minecraft:grass_block", "minecraft:stone", "minecraft:oak_log",
+                "minecraft:oak_planks", "minecraft:stone_bricks", "minecraft:oak_sapling",
+                "supplementaries:pedestal").contains(id)) {
+            throw Wire.invalid("Unsupported worksite fixture item");
+        }
+        BlockPos pos = Wire.position(input.get("position"), "position");
+        ServerLevel level = player.serverLevel();
+        var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(id));
+        if (!(item instanceof BlockItem buildingItem) || !level.hasChunkAt(pos)
+                || !level.getBlockState(pos).isAir() || !level.mayInteract(player, pos) || player.isSpectator()
+                || player.getEyePosition().distanceToSqr(Vec3.atCenterOf(pos)) > 4.25 * 4.25
+                || !level.isInWorldBounds(pos)) {
+            throw Wire.invalid("Test placement needs a registered block, a nearby loaded air target and authorization");
+        }
+        var saved = player.getMainHandItem().copy();
+        try {
+            for (Direction face : Direction.values()) {
+                BlockPos support = pos.relative(face.getOpposite());
+                if (level.getBlockState(support).isAir()) {
+                    continue;
+                }
+                Vec3 point = Vec3.atCenterOf(support).add(face.getStepX() * .5, face.getStepY() * .5, face.getStepZ() * .5);
+                var hit = new BlockHitResult(point, face, support, false);
+                var stack = new ItemStack(item);
+                player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+                if (player.gameMode.useItemOn(player, level, stack, InteractionHand.MAIN_HAND, hit).consumesAction()
+                        && level.getBlockState(pos).is(buildingItem.getBlock())) {
+                    break;
+                }
+            }
+            if (!level.getBlockState(pos).is(buildingItem.getBlock())) {
+                throw Wire.invalid("Minecraft rejected test placement of " + id + " at " + pos.toShortString());
+            }
+            if (item == Items.OAK_SAPLING && input.has("grow") && input.get("grow").getAsBoolean()) {
+                var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+                for (int attempt = 0; attempt < 12 && level.getBlockState(pos).is(Blocks.OAK_SAPLING); attempt++) {
+                    var meal = new ItemStack(Items.BONE_MEAL);
+                    player.setItemInHand(InteractionHand.MAIN_HAND, meal);
+                    player.gameMode.useItemOn(player, level, meal, InteractionHand.MAIN_HAND, hit);
+                }
+                if (!level.getBlockState(pos).is(BlockTags.LOGS)) {
+                    throw Wire.invalid("The native sapling did not grow into a tree");
+                }
+            }
+            return Wire.state(level.getBlockState(pos));
+        } finally {
+            player.setItemInHand(InteractionHand.MAIN_HAND, saved);
+        }
+    }
+
+    private static JsonObject checkFullCargo(ServerPlayer player, JsonObject input) {
+        var pos = Wire.position(input.get("position"), "supply pos");
+        var level = player.serverLevel();
+        if (!level.hasChunkAt(pos) || player.distanceToSqr(Vec3.atCenterOf(pos)) > 16
+                || !(level.getBlockEntity(pos) instanceof ChestBlockEntity chest)
+                || Warehouse.find(chest, Items.STONE_BRICKS) < 0) {
+            throw Wire.invalid("Capacity fixture requires the nearby loaded test chest with stone bricks");
+        }
+        // Simulated cargo in the real server. Keep the NPC and chest inventories untouched.
+        var full = new SimpleContainer(1);
+        full.setItem(0, new ItemStack(Items.DIRT, 64));
+        String chestHash = Warehouse.digest(chest);
+        String cargoHash = Warehouse.cargoDigest(full);
+        var target = new BuildPlan.Target(BlockPos.ZERO, pos.above(), Blocks.STONE_BRICKS.defaultBlockState(), Items.STONE_BRICKS);
+        var step = new WorkStep(target, Blocks.AIR.defaultBlockState(), false);
+        int denied = 0;
+        try {
+            Warehouse.requireNextItem(chest, full, step);
+        } catch (Wire.Problem problem) {
+            if (problem.code.equals("inventory_full")) {
+                denied++;
+            }
+        }
+        try {
+            Warehouse.planTransfer(chest, full, java.util.List.of(step), 0, Warehouse.COTTAGE_TRIP_ITEMS);
+        } catch (Wire.Problem problem) {
+            if (problem.code.equals("inventory_full")) {
+                denied++;
+            }
+        }
+        boolean unchanged = chestHash.equals(Warehouse.digest(chest)) && cargoHash.equals(Warehouse.cargoDigest(full));
+        if (denied != 2 || !unchanged) {
+            throw Wire.invalid("Unsafe full-cargo checkout");
+        }
+        var result = new JsonObject();
+        result.addProperty("simulated_cargo", true);
+        result.addProperty("rejected_checks", denied);
+        result.addProperty("chest_and_test_cargo_unchanged", unchanged);
         return result;
     }
 

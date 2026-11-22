@@ -1,9 +1,12 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+from zipfile import ZipFile
 
-from src.assets.archives import AssetError
-from src.assets.catalog import choose_palette
-from src.assets.models import bake_element, model_groups
-from src.core.building import BlockState
+from src.assets.archives import Archives, AssetError, Source
+from src.assets.catalog import build_index, choose_palette
+from src.assets.models import ModelLibrary, bake_element, model_groups
+from src.core.building import BlockState, Building
 from src.generators.medieval import VANILLA
 
 
@@ -38,6 +41,38 @@ class AssetTests(unittest.TestCase):
         self.assertEqual({v[2] for v in north["vertices"]}, {0.0, 0.5})
         self.assertEqual({v[1] for v in slab["vertices"]}, {0.5})
         self.assertEqual(south["texture"], "minecraft:block/spruce_planks")
+
+    def test_backported_assets_inside_vanilla_namespace_are_discovered(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "mods").mkdir()
+            base, extension = root / "client.jar", root / "mods" / "example-extension.jar"
+            original = "assets/minecraft/blockstates/stone.json"
+            backport = "assets/minecraft/blockstates/new_plant.json"
+            with ZipFile(base, "w") as archive:
+                archive.writestr(original, "{}")
+            with ZipFile(extension, "w") as archive:
+                archive.writestr(original, '{"unexpected_override": true}')
+                archive.writestr(backport, "{}")
+            with Archives(root) as archives:
+                archives.sources["minecraft"] = Source("minecraft", base, archives.enter_context(ZipFile(base)), "test")
+                self.assertEqual(archives.block_info("minecraft:new_plant")["source_jar"], extension.name)
+                self.assertEqual(archives.read("minecraft:stone", "blockstates", "json"), b"{}")
+                self.assertEqual(archives.read("minecraft:new_plant", "blockstates", "json"), b"{}")
+
+    def test_unrenderable_observation_keeps_its_outline_without_relaxing_design_assets(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            scene = Building("Current worksite")
+            scene.place((0, 0, 0), "example:unrenderable_vegetation")
+            with Archives(root) as archives:
+                archives.installation = {}
+                library = ModelLibrary(archives)
+                index = build_index(root, scene, library, {}, outline_observations=True)
+                self.assertEqual(index["unrendered_observations"], ["example:unrenderable_vegetation"])
+                self.assertEqual(index["states"], {})
+                with self.assertRaises(AssetError):
+                    build_index(root, scene, library, {})
 
     def test_missing_mod_falls_back_to_known_vanilla_blocks(self):
         class MissingLibrary:

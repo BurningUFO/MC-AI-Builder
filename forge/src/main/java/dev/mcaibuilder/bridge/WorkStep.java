@@ -7,9 +7,28 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.List;
 import java.util.Set;
 
-record WorkStep(BuildPlan.Target target, BlockState before, boolean remove) {
+record WorkStep(BuildPlan.Target target, BlockState before, boolean remove, boolean clearance) {
+    WorkStep(BuildPlan.Target target, BlockState before, boolean remove) {
+        this(target, before, remove, false);
+    }
+
+    static WorkStep clear(BuildPlan plan, BlockPos pos, BlockState state) {
+        BlockPos local = plan.localPosition(pos);
+        return new WorkStep(new BuildPlan.Target(local, pos, state, state.getBlock().asItem()), state, true, true);
+    }
+
+    BlockPos secondary() {
+        return clearance && Clearance.pairedPlant(before) ? pos().above() : null;
+    }
+
+    List<BlockPos> affected() {
+        BlockPos secondary = secondary();
+        return secondary == null ? List.of(pos()) : List.of(pos(), secondary);
+    }
+
     BlockPos pos() {
         return target.world();
     }
@@ -20,7 +39,13 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove) {
 
     JsonObject json(String status) {
         JsonObject data = new JsonObject();
-        data.addProperty("operation", remove ? "remove" : "place");
+        data.addProperty("operation", clearance ? "clear" : remove ? "remove" : "place");
+        if (clearance) {
+            data.addProperty("clearance_kind", Clearance.kind(before));
+            if (secondary() != null) {
+                data.add("also_clears", Wire.position(secondary()));
+            }
+        }
         data.add("local", Wire.position(target.local()));
         data.add("world", Wire.position(pos()));
         data.add("expected", Wire.state(after()));
@@ -42,6 +67,16 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove) {
         BlockState before = Wire.readState(Wire.object(data.get("expected_before"), "expected_before"));
         BlockState after = Wire.readState(Wire.object(data.get("expected"), "expected"));
         return switch (operation) {
+            case "clear" -> {
+                if (!site.worldCopy() || site.worksite().mode().equals("manual") || before.isAir()
+                        || before.hasBlockEntity() || !before.getFluidState().isEmpty()
+                        || Clearance.kind(before).equals("unknown") || Clearance.upperHalf(before)
+                        || Clearance.pairedPlant(before) && !site.canBuildAt(pos.above())
+                        || after != Blocks.AIR.defaultBlockState()) {
+                    throw Wire.invalid("Unsafe clearance in the journal");
+                }
+                yield clear(plan, pos, before);
+            }
             case "remove" -> {
                 if (!palette.contains(before.getBlock()) || after != Blocks.AIR.defaultBlockState()) {
                     throw Wire.invalid("Unsafe removal in the journal");

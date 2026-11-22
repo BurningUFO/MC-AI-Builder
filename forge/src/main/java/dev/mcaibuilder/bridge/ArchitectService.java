@@ -32,7 +32,7 @@ final class ArchitectService {
     private static final long RUNTIME_HEARTBEAT = Duration.ofSeconds(6).toNanos();
     private static final long APPROVAL_LIFETIME = Duration.ofMinutes(10).toMillis();
 
-    private record Draft(JsonObject plan, UUID base, boolean surveyed, String visualGoal) {
+    private record Draft(JsonObject plan, UUID base, boolean surveyed, String visualGoal, boolean autonomous) {
         UUID id() { return BuildPlan.id(plan, "plan_id"); }
     }
 
@@ -128,6 +128,32 @@ final class ArchitectService {
                         : "建议已记录。此版本的规划机会已用，施工仍按已生效的安全顺序进行。");
                 return;
             }
+            case "work" -> {
+                if (parts.length != 2) {
+                    throw Wire.invalid("请提供自主建设的建筑需求。");
+                }
+                if (parts[1].equals("retry")) {
+                    retryWorksitePreview(player, session);
+                } else {
+                    request(player, parts[1], true, false, false, !reviewOnly(parts[1]));
+                }
+                return;
+            }
+            case "worksite" -> {
+                var state = construction.worksiteStatus();
+                tell(player, "自主建设 " + state.get("state").getAsString() + " · "
+                        + state.get("mode").getAsString() + " · "
+                        + state.getAsJsonArray("protected_areas").size() + " 处保护区。");
+                JsonObject task = ownedJob(session);
+                if (task != null && task.has("preparation")) {
+                    JsonObject preparation = task.getAsJsonObject("preparation");
+                    tell(player, "清障 " + preparation.get("cleared").getAsInt() + " / "
+                            + preparation.get("total").getAsInt()
+                            + (preparation.has("next") ? "。待处理 " + preparation.get("next") + " · "
+                                    + preparation.get("tool").getAsString() : "。"));
+                }
+                return;
+            }
             case "materials" -> {
                 JsonObject supply = supplyContext(session, player.getUUID());
                 if (!supply.get("mode").getAsString().equals("survival")) {
@@ -145,7 +171,7 @@ final class ArchitectService {
                 }
                 UUID id = parseUuid(parts[1]);
                 if (verb.equals("approve") || verb.equals("reject")) {
-                    decide(player, session, id, verb.equals("approve"));
+                    decide(player, session, id, verb.equals("approve"), false);
                 } else {
                     control(player, session, id, verb);
                 }
@@ -156,12 +182,46 @@ final class ArchitectService {
         request(player, input);
     }
 
+    private void retryWorksitePreview(ServerPlayer player, Session session) {
+        if (!construction.autonomousAvailable()) {
+            throw Wire.conflict("worksite_permission_inactive", "请先审阅同一工作区的有效自主许可。");
+        }
+        if (session.draft == null || !session.draft.autonomous) {
+            throw Wire.conflict("no_draft", "当前工作区没有可重新预览的自主方案。");
+        }
+        if (!runtimeOnline()) {
+            tell(player, "Agent 未连接。请查看启动器。");
+            return;
+        }
+        session.ticket = null;
+        queue(player, session, "重新预览并核对现有自主建设方案", false, false, null);
+        session.request.input.addProperty("worksite", true);
+        session.request.input.addProperty("retry_worksite", true);
+        tell(player, "正在重新核对同一方案和现场。");
+    }
+
     void request(ServerPlayer player, String message) {
         request(player, message, false, false, false);
     }
 
     void request(ServerPlayer player, String message, boolean surveyed, boolean watch, boolean inspect) {
+        boolean autonomous = !surveyed && !watch && !inspect && construction.autonomousAvailable()
+                && message.matches("(?is).*(?:直接建|帮我建|给我建|交给你.*建|^build me\\b).*")
+                && !reviewOnly(message);
+        request(player, message, surveyed || autonomous, watch, inspect, autonomous);
+    }
+
+    private static boolean reviewOnly(String message) {
+        return message.matches("(?is).*(?:只设计|只要设计|只看|先预览|不(?:要|用|需要)\\s*(?:动工|施工|建)"
+                + "|别\\s*(?:动工|施工|建)|先别建|do not build|don.t build|preview only).*");
+    }
+
+    private void request(ServerPlayer player, String message, boolean surveyed, boolean watch, boolean inspect,
+                         boolean autonomous) {
         requirePlayer(player);
+        if (autonomous && !construction.autonomousAvailable()) {
+            throw Wire.conflict("worksite_permission_inactive", "请先用 /architect site autonomy 选择权限并审阅施工区。");
+        }
         if ((surveyed || watch || inspect) && !site.worldCopy()) {
             throw Wire.conflict("survey_requires_copy", "主动观察需要使用获准的世界副本。");
         }
@@ -195,6 +255,9 @@ final class ArchitectService {
                 && (inspect || pause && !input.matches("(?i)^(?:pause|(?:先\\s*)?暂停(?:\\s*施工)?)[。.!！]?$"))
                 ? "requested" : null;
         queue(player, session, input, surveyed, watch, feedback);
+        if (autonomous) {
+            session.request.input.addProperty("worksite", true);
+        }
         tell(player, "收到，正在处理。");
     }
 
@@ -351,7 +414,7 @@ final class ArchitectService {
         UUID owner = pending.player.getUUID();
         if (survey == null || !survey.matches(request.id, owner)) {
             stopSurvey();
-            survey = new SiteSurvey(construction, request.id, owner, passive);
+            survey = new SiteSurvey(construction, request.id, owner, passive, request.input.has("worksite"));
         }
         return survey.handle(body, pending.player);
     }
@@ -476,9 +539,10 @@ final class ArchitectService {
         if (request.input.has("watch_build")) {
             visualGoal = request.input.get("message").getAsString();
         }
-        Draft next = new Draft(plan.deepCopy(), base, surveyed, visualGoal);
+        boolean autonomous = base == null && request.input.has("worksite");
+        Draft next = new Draft(plan.deepCopy(), base, surveyed, visualGoal, autonomous);
         if (base == null) {
-            construction.inspectInitial(plan, pending.player.getUUID(), surveyed);
+            construction.inspectInitial(plan, pending.player.getUUID(), surveyed, autonomous);
         } else {
             construction.validateRevision(base, plan);
         }
@@ -552,8 +616,16 @@ final class ArchitectService {
             tell(player, message);
             tell(player, "预览 " + folder + "/revision-review.blend（含两角度图片"
                     + (cottage ? "和室内剖视" : "") + "）。");
+            boolean clear = live.getAsJsonObject("counts").get("conflict").getAsInt() == 0;
+            if (clear && session.draft.autonomous && session.request.input.has("worksite")) {
+                stopSurvey();
+                UUID code = session.ticket.code;
+                session.request = null;
+                decide(player, session, code, true, true);
+                return ok();
+            }
             var buttons = Component.literal("");
-            if (live.getAsJsonObject("counts").get("conflict").getAsInt() == 0) {
+            if (clear) {
                 buttons.append(button("批准 " + session.ticket.code, "approve " + session.ticket.code)).append("  ");
             }
             buttons.append(button("拒绝 " + session.ticket.code, "reject " + session.ticket.code));
@@ -572,7 +644,7 @@ final class ArchitectService {
         return ok();
     }
 
-    private void decide(ServerPlayer player, Session session, UUID code, boolean approve) {
+    private void decide(ServerPlayer player, Session session, UUID code, boolean approve, boolean delegated) {
         if (session.ticket == null || session.draft == null || !session.ticket.code.equals(code)
                 || session.ticket.expires <= System.currentTimeMillis() || session.request != null) {
             throw Wire.conflict("stale_approval", "这个确认已失效，请审阅当前候选。");
@@ -615,7 +687,7 @@ final class ArchitectService {
             if (!approve) {
                 discardRevision(draft);
             } else if (draft.base == null) {
-                construction.submit(draft.plan, player.getUUID(), draft.surveyed);
+                construction.submit(draft.plan, player.getUUID(), draft.surveyed, draft.autonomous);
             } else {
                 construction.approve(draft.id(), ticket.hash, player.getUUID());
             }
@@ -631,7 +703,11 @@ final class ArchitectService {
         }
         ForgeBridge.LOGGER.info("architect_decision player={} candidate={} approved={} hash={}",
                 player.getUUID(), draft.id(), approve, ticket.hash);
-        tell(player, approve ? "已批准 V" + draft.plan.get("building_version").getAsInt() + "，NPC 开始施工。"
+        if (delegated) {
+            ForgeBridge.LOGGER.info("worksite_delegated scope={} candidate={} hash={}", site.scope(), draft.id(), ticket.hash);
+        }
+        tell(player, approve ? (delegated ? "按工作区许可启动 V" : "已批准 V")
+                + draft.plan.get("building_version").getAsInt() + "，NPC 开始施工。"
                 : "已拒绝这个候选。你可以询问进度或确认继续旧任务。");
     }
 
@@ -655,7 +731,7 @@ final class ArchitectService {
 
     private JsonObject inspect(Draft draft, boolean stageIfMissing, UUID owner) {
         if (draft.base == null) {
-            return construction.inspectInitial(draft.plan, owner, draft.surveyed);
+            return construction.inspectInitial(draft.plan, owner, draft.surveyed, draft.autonomous);
         }
         if (!draft.base.equals(currentJob())) {
             throw Wire.conflict("architect_job_scope", "基础施工任务已经变化。");
@@ -790,7 +866,9 @@ final class ArchitectService {
                 boolean surveyed = data.has("surveyed") && data.get("surveyed").getAsBoolean();
                 BuildPlan.read(plan, site, BuildPlan.palette(), surveyed || data.has("base"));
                 String goal = data.has("visual_goal") ? Wire.string(data.get("visual_goal"), "visual goal") : null;
-                session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null, surveyed, goal);
+                boolean autonomous = data.has("autonomous") && data.get("autonomous").getAsBoolean();
+                session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null,
+                        surveyed, goal, autonomous);
                 if (data.has("code")) {
                     session.ticket = new Ticket(BuildPlan.id(data, "code"), Wire.string(data.get("hash"), "hash"),
                             data.get("expires").getAsLong(), 0);
@@ -824,6 +902,9 @@ final class ArchitectService {
                 }
                 if (session.draft.surveyed) {
                     row.addProperty("surveyed", true);
+                }
+                if (session.draft.autonomous) {
+                    row.addProperty("autonomous", true);
                 }
                 if (session.draft.base != null) {
                     row.addProperty("base", session.draft.base.toString());

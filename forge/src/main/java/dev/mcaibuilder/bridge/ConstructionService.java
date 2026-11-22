@@ -59,6 +59,7 @@ final class ConstructionService {
     private Registration candidate;
     private Warehouse.Source warehouse;
     private boolean journalBlocked;
+    private boolean autonomyRevoked;
 
     ConstructionService(ServerLevel level, BuildSite site, Set<Block> palette, ConstructionWorker worker) throws IOException {
         this.level = level;
@@ -84,6 +85,10 @@ final class ConstructionService {
     }
 
     JsonObject submit(JsonObject payload, UUID owner, boolean surveyed) {
+        return submit(payload, owner, surveyed, false);
+    }
+
+    JsonObject submit(JsonObject payload, UUID owner, boolean surveyed, boolean autonomous) {
         long approvalStarted = BuildPerformance.clock();
         requireWritable();
         Warehouse.Source source = requireWarehouse(owner);
@@ -91,11 +96,12 @@ final class ConstructionService {
         if (current != null && current.plan.id().equals(id) && registered.get(id).payload().equals(payload)) {
             return status(false);
         }
-        InitialBuild initial = validateInitial(payload, false, surveyed);
+        InitialBuild initial = validateInitial(payload, false, surveyed, autonomous);
         BuildPlan plan = initial.plan();
         List<WorkStep> steps = initial.steps();
         SupplyCheckpoint supply = prepareSupply(source, plan);
         SiteSnapshot snapshot = SiteSnapshot.capture(level, site, plan);
+        snapshot.trackClearance(initial.clearance());
         if (current != null) {
             if (site.survival()) {
                 if (!current.supply.checked || current.supply.intent != null) {
@@ -113,6 +119,7 @@ final class ConstructionService {
         archiveCurrent(null);
         registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
         current = new ConstructionJob(plan, worker.id(), null, null, snapshot, steps, cargo());
+        current.autonomous = autonomous;
         current.supply = supply;
         startPerformance(approvalStarted);
         schedule();
@@ -121,10 +128,90 @@ final class ConstructionService {
         return status(false);
     }
 
-    private record InitialBuild(BuildPlan plan, List<WorkStep> steps, Map<BlockPos, String> obstacles) {}
+    private record InitialBuild(BuildPlan plan, List<WorkStep> placements, List<WorkStep> clearance,
+                                Map<BlockPos, String> obstacles, String strategy) {
+        List<WorkStep> steps() {
+            if (clearance.isEmpty()) {
+                return placements;
+            }
+            List<WorkStep> steps = new ArrayList<>(clearance);
+            steps.addAll(placements);
+            return steps;
+        }
+    }
 
-    private InitialBuild validateInitial(JsonObject payload, boolean reportObstacles, boolean surveyed) {
+    boolean autonomousAvailable() {
+        return site.worldCopy() && !autonomyRevoked && site.worksite().active(System.currentTimeMillis());
+    }
+
+    JsonObject worksiteStatus() {
+        JsonObject value = site.worksite().json();
+        value.addProperty("active", autonomousAvailable());
+        value.addProperty("state", autonomyRevoked ? "revoked" : autonomousAvailable() ? "active"
+                : site.worksite().mode().equals("manual") ? "manual" : "expired");
+        if (site.scope() != null) {
+            value.addProperty("authorization", site.scope().toString());
+        }
+        return value;
+    }
+
+    private void requireAutonomy() {
+        if (!autonomousAvailable()) {
+            throw Wire.conflict("worksite_permission_inactive", "自主建设权限已过期或撤销，请重新审阅工作区。");
+        }
+    }
+
+    void revokeAutonomy() {
         requireWritable();
+        autonomyRevoked = true;
+        if (current != null && current.autonomous && current.state == State.RUNNING) {
+            pause("worksite_permission_inactive");
+        }
+        persist();
+    }
+
+    private Set<BlockPos> worksiteEnvelope(BuildPlan plan) {
+        Set<BlockPos> cells = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
+        for (BuildPlan.Target target : plan.targets()) {
+            cells.add(target.world());
+            if (plan.buildingId().startsWith("cottage_") && target.local().getY() == 0) {
+                for (int y = 1; y <= 3; y++) {
+                    cells.add(target.world().above(y));
+                }
+            }
+        }
+        return cells;
+    }
+
+    private Map<BlockPos, BlockState> clearance(BuildPlan plan, Map<BlockPos, String> obstacles) {
+        var inspect = new Clearance(level, site);
+        Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
+        for (BlockPos pos : worksiteEnvelope(plan)) {
+            BlockState state = level.getBlockState(pos);
+            BuildPlan.Target target = plan.at(pos);
+            if (state.isAir() || (target != null && target.state() == state) || cells.containsKey(pos)) {
+                continue;
+            }
+            Clearance.Finding finding = inspect.inspect(pos);
+            if (finding.risk() != null) {
+                obstacles.put(pos, finding.risk());
+            } else {
+                cells.putAll(inspect.states(finding));
+            }
+        }
+        if (!Clearance.limited(cells)) {
+            obstacles.put(plan.origin(), "clearance_limit");
+            return Map.of();
+        }
+        return cells;
+    }
+
+    private InitialBuild validateInitial(JsonObject payload, boolean reportObstacles, boolean surveyed,
+                                         boolean autonomous) {
+        requireWritable();
+        if (autonomous) {
+            requireAutonomy();
+        }
         UUID id = BuildPlan.id(payload, "plan_id");
         requireUnused(id);
         if (current != null && current.state.active()) {
@@ -140,44 +227,66 @@ final class ConstructionService {
         }
 
         site.requireLoaded(level);
-        List<WorkStep> steps = new ArrayList<>();
+        List<WorkStep> placements = new ArrayList<>();
         Map<BlockPos, String> obstacles = new LinkedHashMap<>();
+        Map<BlockPos, BlockState> preparation = autonomous ? clearance(plan, obstacles) : Map.of();
+        if (!reportObstacles && !obstacles.isEmpty()) {
+            throw Wire.conflict(obstacles.values().iterator().next(), "现场存在须由玩家决定的障碍，请重新勘察。");
+        }
+        String strategy = autonomous && payload.has("worksite_order")
+                ? Wire.string(payload.get("worksite_order"), "worksite_order") : "route_first";
+        if (!strategy.equals("route_first") && !strategy.equals("tree_first")) {
+            throw Wire.invalid("Unknown worksite clearance order");
+        }
+        List<WorkStep> removal = preparation.entrySet().stream()
+                .filter(entry -> !Clearance.upperHalf(entry.getValue()))
+                .map(entry -> WorkStep.clear(plan, entry.getKey(), entry.getValue()))
+                .sorted(Clearance.order(strategy)).toList();
         Set<BlockPos> supported = new HashSet<>();
         for (BuildPlan.Target target : plan.targets()) {
-            BlockState actual = level.getBlockState(target.world());
+            BlockPos pos = target.world();
+            BlockState actual = preparation.containsKey(pos) ? AIR : level.getBlockState(pos);
             WorkStep step = new WorkStep(target, actual, false);
-            if (actual != target.state()) {
+            if (actual != target.state() && !obstacles.containsKey(pos)) {
                 try {
                     if (!actual.isAir()) {
-                        throw Wire.conflict("occupied_target", "Existing block at " + target.world().toShortString());
+                        throw Wire.conflict("occupied_target", "Existing block at " + pos.toShortString());
                     }
                     requireSafeMutation(step, false);
-                    if (surveyed && target.local().getY() <= 0 && !surveyFoundation(target.world())
-                            && !supported.contains(target.world().below())
-                            || site.worldCopy() && !hasSupport(target.world(), supported)) {
-                        throw Wire.conflict("missing_terrain_support", "No approved support at " + target.world().toShortString());
-                    }
+                    requirePlannedSupport(target, surveyed, supported, preparation.keySet());
                 } catch (Wire.Problem obstacle) {
                     if (!reportObstacles || !site.worldCopy()) {
                         throw obstacle;
                     }
-                    obstacles.put(target.world(), obstacle.code);
+                    obstacles.put(pos, obstacle.code);
                 }
             }
-            if (!obstacles.containsKey(target.world())) {
-                supported.add(target.world());
+            if (!obstacles.containsKey(pos)) {
+                supported.add(pos);
             }
-            steps.add(step);
+            placements.add(step);
         }
-        return new InitialBuild(plan, steps, obstacles);
+        return new InitialBuild(plan, placements, removal, obstacles, strategy);
+    }
+
+    private void requirePlannedSupport(BuildPlan.Target target, boolean surveyed,
+                                       Set<BlockPos> supported, Set<BlockPos> prepared) {
+        BlockPos pos = target.world();
+        BlockPos below = pos.below();
+        boolean firm = !prepared.contains(below) && surveyFoundation(pos);
+        if (surveyed && target.local().getY() <= 0 && !firm && !supported.contains(below)
+                || site.worldCopy() && !hasSupport(pos, supported, prepared)) {
+            throw Wire.conflict("missing_terrain_support", "No approved support at " + pos.toShortString());
+        }
     }
 
     BlockPos surveyFocus() {
         return site.origin();
     }
 
-    JsonArray surveyPads() {
+    JsonArray surveyPads(boolean autonomous) {
         var pads = new JsonArray();
+        Clearance clearance = autonomous ? new Clearance(level, site) : null;
         var center = site.origin();
         for (var rotation : net.minecraft.world.level.block.Rotation.values()) {
             // Try the marked spot first, then look for a short shift to flat terrain.
@@ -185,12 +294,28 @@ final class ConstructionService {
             for (BlockPos offset : BlockPos.withinManhattan(BlockPos.ZERO, 4, 2, 4)) {
                 BlockPos origin = center.offset(offset);
                 int span = 0;
+                int readySpan = 0;
+                Map<BlockPos, BlockState> clearing = new HashMap<>();
+                Map<BlockPos, String> blockers = new LinkedHashMap<>();
                 for (int x = 0; x < 12; x++) {
                     BlockPos pos = origin.offset(new BlockPos(x, 0, 0).rotate(rotation));
-                    if (!site.canBuildAt(pos) || !site.canBuildAt(pos.above(2)) || !surveyFoundation(pos)
-                            || !level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()
-                            || !level.getBlockState(pos.above(2)).isAir()) {
+                    if (!surveyFoundation(pos) || !site.area().contains(pos.above(2))) {
                         break;
+                    }
+                    if (clearance == null) {
+                        if (!fillable(pos) || !fillable(pos.above()) || !fillable(pos.above(2))) {
+                            break;
+                        }
+                    } else {
+                        for (int y = 0; y <= 2; y++) {
+                            inspectSurveyCell(pos.above(y), clearance, clearing, blockers);
+                        }
+                        if (!Clearance.limited(clearing)) {
+                            blockers.putIfAbsent(pos, "clearance_limit");
+                        }
+                        if (blockers.isEmpty()) {
+                            readySpan++;
+                        }
                     }
                     span++;
                 }
@@ -199,6 +324,10 @@ final class ConstructionService {
                     pad.add("offset", Wire.position(offset));
                     pad.addProperty("rotation", rotation.ordinal() * 90);
                     pad.addProperty("span", span);
+                    if (clearance != null) {
+                        addSurveyClearance(pad, clearing, blockers);
+                        pad.addProperty("actionable_span", readySpan);
+                    }
                     pads.add(pad);
                     if (++alternatives >= 2) {
                         break;
@@ -209,28 +338,35 @@ final class ConstructionService {
         return pads;
     }
 
-    JsonArray cottagePads() {
+    JsonArray cottagePads(boolean autonomous) {
         JsonArray result = new JsonArray();
         Map<BlockPos, Integer> foundation = new HashMap<>();
-        for (BlockPos offset : BlockPos.withinManhattan(BlockPos.ZERO, 2, 1, 2)) {
+        Clearance clearance = autonomous ? new Clearance(level, site) : null;
+        int maximum = autonomous ? 16 : 8;
+        int radius = autonomous ? 4 : 2;
+        Map<String, Integer> viableSizes = new HashMap<>();
+        for (BlockPos offset : BlockPos.withinManhattan(BlockPos.ZERO, radius, autonomous ? 0 : 1, radius)) {
             BlockPos origin = site.origin().offset(offset);
             for (Rotation rotation : Rotation.values()) {
+                if (autonomous && !offset.equals(BlockPos.ZERO) && rotation != site.rotation()) {
+                    continue;
+                }
                 JsonArray sizes = new JsonArray();
                 for (int width : new int[]{7, 9}) {
                     for (int depth : new int[]{7, 9}) {
-                        JsonObject fit = cottageFit(origin, rotation, width, depth, foundation);
+                        JsonObject fit = cottageFit(origin, rotation, width, depth, foundation, clearance);
                         if (fit != null) {
                             sizes.add(fit);
                         }
                     }
                 }
-                if (!sizes.isEmpty()) {
+                if (!sizes.isEmpty() && (!autonomous || offerCottage(sizes, result.size(), viableSizes))) {
                     JsonObject pad = new JsonObject();
                     pad.add("offset", Wire.position(offset));
                     pad.addProperty("rotation", rotation.ordinal() * 90);
                     pad.add("sizes", sizes);
                     result.add(pad);
-                    if (result.size() == 8) {
+                    if (result.size() == maximum) {
                         return result;
                     }
                 }
@@ -239,17 +375,34 @@ final class ConstructionService {
         return result;
     }
 
+    private static boolean offerCottage(JsonArray sizes, int offered, Map<String, Integer> viableSizes) {
+        List<String> available = new ArrayList<>();
+        for (JsonElement row : sizes) {
+            JsonObject fit = row.getAsJsonObject();
+            if (fit.get("actionable").getAsBoolean()) {
+                available.add(fit.get("width").getAsInt() + "x" + fit.get("depth").getAsInt());
+            }
+        }
+        if (offered >= 8 && available.stream().allMatch(size -> viableSizes.getOrDefault(size, 0) >= 2)) {
+            return false;
+        }
+        available.forEach(size -> viableSizes.merge(size, 1, Integer::sum));
+        return true;
+    }
+
     private JsonObject cottageFit(BlockPos origin, Rotation rotation, int width, int depth,
-                                   Map<BlockPos, Integer> foundation) {
+                                   Map<BlockPos, Integer> foundation, Clearance clearance) {
         int xEdge = width / 2;
         int zEdge = depth / 2;
         int footingCount = 0;
+        Map<BlockPos, BlockState> clearing = new HashMap<>();
+        Map<BlockPos, String> blockers = new LinkedHashMap<>();
         JsonArray footingRows = new JsonArray();
         for (int z = -zEdge; z <= zEdge; z++) {
             int mask = 0;
             for (int x = -xEdge; x <= xEdge; x++) {
                 BlockPos floor = origin.offset(new BlockPos(x, 0, z).rotate(rotation));
-                int depthBelowFloor = foundation.computeIfAbsent(floor, this::cottageColumn);
+                int depthBelowFloor = foundation.computeIfAbsent(floor, pos -> cottageColumn(pos, clearance));
                 if (depthBelowFloor < 0) {
                     return null;
                 }
@@ -257,11 +410,19 @@ final class ConstructionService {
                     mask |= 1 << (x + xEdge);
                     footingCount++;
                 }
+                if (clearance != null) {
+                    for (int y = 0; y <= 3; y++) {
+                        inspectSurveyCell(floor.above(y), clearance, clearing, blockers);
+                    }
+                }
             }
             footingRows.add(mask);
         }
         if (footingCount > width * depth / 2) {
             return null;
+        }
+        if (!Clearance.limited(clearing)) {
+            blockers.put(origin, "clearance_limit");
         }
         JsonArray entrances = new JsonArray();
         String[] names = {"left", "center", "right"};
@@ -274,7 +435,10 @@ final class ConstructionService {
             }
         }
         if (entrances.isEmpty()) {
-            return null;
+            if (clearance == null) {
+                return null;
+            }
+            blockers.putIfAbsent(origin, "blocked_approach");
         }
         boolean eaves = true;
         for (int x = -xEdge; x <= xEdge && eaves; x++) {
@@ -287,10 +451,113 @@ final class ConstructionService {
         fit.addProperty("eaves", eaves);
         fit.add("entries", entrances);
         fit.add("footing_rows", footingRows);
+        if (clearance != null) {
+            addSurveyClearance(fit, clearing, blockers);
+        }
         return fit;
     }
 
-    private int cottageColumn(BlockPos floor) {
+    private void inspectSurveyCell(BlockPos pos, Clearance clearance, Map<BlockPos, BlockState> clearing,
+                                   Map<BlockPos, String> blockers) {
+        if (!site.canBuildAt(pos)) {
+            blockers.put(pos, site.worksite().protectedAt(pos) ? "protected_area" : "worker_access");
+        } else if (!clearing.containsKey(pos) && !level.getBlockState(pos).isAir()) {
+            Clearance.Finding finding = clearance.inspect(pos);
+            if (finding.risk() != null) {
+                blockers.put(pos, finding.risk());
+            } else {
+                clearing.putAll(clearance.states(finding));
+            }
+        }
+    }
+
+    private void addSurveyClearance(JsonObject option, Map<BlockPos, BlockState> clearing,
+                                           Map<BlockPos, String> blockers) {
+        option.add("clearance", Clearance.counts(clearing));
+        Map<String, Integer> codes = new java.util.TreeMap<>();
+        blockers.values().forEach(reason -> codes.merge(reason, 1, Integer::sum));
+        JsonObject risks = new JsonObject();
+        codes.forEach(risks::addProperty);
+        option.add("restrictions", risks);
+        option.addProperty("actionable", blockers.isEmpty());
+    }
+
+    private boolean fillable(BlockPos pos) {
+        return site.canBuildAt(pos) && level.hasChunkAt(pos) && level.getBlockState(pos).isAir();
+    }
+
+    JsonArray worksiteFacts() {
+        requireAutonomy();
+        site.requireLoaded(level);
+        var clearance = new Clearance(level, site);
+        var samples = new LinkedHashMap<String, JsonObject>();
+        BlockPos origin = site.origin();
+        for (BlockPos pos : BlockPos.withinManhattan(origin, 6, 4, 6)) {
+            if (pos.getY() < origin.getY() || !site.area().contains(pos) || level.getBlockState(pos).isAir()) {
+                continue;
+            }
+            String kind = Clearance.kind(level.getBlockState(pos));
+            Clearance.Finding finding = clearance.inspect(pos);
+            if (finding.risk() == null && kind.equals("leaves")) {
+                continue;
+            }
+            JsonObject fact = clearance.describe(pos);
+            String key = fact.get("id").getAsString() + "/" + finding.risk();
+            if (!samples.containsKey(key)) {
+                fact.add("offset_from_mark", Wire.position(pos.subtract(origin)));
+                fact.addProperty("group_cells", finding.cells().size());
+                if (finding.risk() != null) {
+                    fact.addProperty("risk", finding.risk());
+                }
+                samples.put(key, fact);
+            }
+            if (samples.size() == 8) {
+                break;
+            }
+        }
+        var data = new JsonArray();
+        samples.values().forEach(data::add);
+        return data;
+    }
+
+    JsonArray worksiteFindings() {
+        requireAutonomy();
+        site.requireLoaded(level);
+        var findings = new java.util.TreeMap<String, java.util.TreeMap<String, Integer>>();
+        var representative = new java.util.TreeMap<String, BlockPos>();
+        BlockPos origin = site.origin();
+        for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-6, -1, -6), origin.offset(6, 5, 6))) {
+            if (!site.area().contains(pos)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(pos);
+            if (state.isAir()) {
+                continue;
+            }
+            String reason = site.worksite().protectedAt(pos) ? "protected_area"
+                    : Clearance.managed(state) || level.getBlockEntity(pos) != null ? "protected_facility"
+                    : !state.getFluidState().isEmpty() || WorldObservation.hazard(state) ? "hazardous_terrain" : null;
+            if (reason != null) {
+                String id = Wire.state(state).get("id").getAsString();
+                findings.computeIfAbsent(reason, ignored -> new java.util.TreeMap<>()).merge(id, 1, Integer::sum);
+                representative.putIfAbsent(reason, pos.subtract(origin));
+            }
+        }
+        JsonArray ret = new JsonArray();
+        findings.forEach((reason, members) -> {
+            JsonObject group = new JsonObject();
+            group.addProperty("reason", reason);
+            group.addProperty("count", members.values().stream().mapToInt(Integer::intValue).sum());
+            JsonArray examples = new JsonArray();
+            members.keySet().stream().limit(4).forEach(examples::add);
+            group.add("examples", examples);
+            group.add("sample_from_mark", Wire.position(representative.get(reason)));
+            ret.add(group);
+        });
+        return ret;
+    }
+
+    private int cottageColumn(BlockPos floor, Clearance clearance) {
         if (!level.hasChunkAt(floor)) {
             return -1;
         }
@@ -304,7 +571,7 @@ final class ConstructionService {
         }
         for (int y = 0; y <= 3; y++) {
             BlockPos pos = floor.above(y);
-            if (!site.canBuildAt(pos) || !level.getBlockState(pos).isAir()) {
+            if (clearance == null ? !fillable(pos) : !site.area().contains(pos) || !level.hasChunkAt(pos)) {
                 return -1;
             }
         }
@@ -322,11 +589,11 @@ final class ConstructionService {
                 && state.isFaceSturdy(level, floor, Direction.UP);
     }
 
-    private boolean hasSupport(BlockPos target, Set<BlockPos> supported) {
+    private boolean hasSupport(BlockPos target, Set<BlockPos> supported, Set<BlockPos> prepared) {
         for (Direction direction : Direction.values()) {
             BlockPos neighbor = target.relative(direction);
             BlockState state = level.getBlockState(neighbor);
-            if (supported.contains(neighbor) || (state.getFluidState().isEmpty()
+            if (supported.contains(neighbor) || (!prepared.contains(neighbor) && state.getFluidState().isEmpty()
                     && (NATURAL_SUPPORTS.contains(state.getBlock()) || palette.contains(state.getBlock())))) {
                 return true;
             }
@@ -335,13 +602,23 @@ final class ConstructionService {
     }
 
     JsonObject inspectInitial(JsonObject payload, UUID owner, boolean surveyed) {
+        return inspectInitial(payload, owner, surveyed, false);
+    }
+
+    JsonObject inspectInitial(JsonObject payload, UUID owner, boolean surveyed, boolean autonomous) {
         Warehouse.Source source = requireWarehouse(owner);
-        InitialBuild initial = validateInitial(payload, true, surveyed);
+        InitialBuild initial = validateInitial(payload, true, surveyed, autonomous);
         requireWarehouseClear(source, initial.plan());
         JsonArray changes = new JsonArray();
         var context = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
         int keep = 0;
-        for (WorkStep step : initial.steps()) {
+        int replace = 0;
+        int remove = 0;
+        Set<BlockPos> shown = new HashSet<>();
+        Set<BlockPos> clearance = new HashSet<>();
+        initial.clearance().forEach(step -> clearance.addAll(step.affected()));
+        for (WorkStep step : initial.placements()) {
+            shown.add(step.pos());
             boolean retained = step.before() == step.after();
             if (retained) {
                 keep++;
@@ -350,15 +627,47 @@ final class ConstructionService {
             row.add("local", Wire.position(step.target().local()));
             row.add("world", Wire.position(step.pos()));
             String obstacle = initial.obstacles().get(step.pos());
-            row.addProperty("category", obstacle != null ? "conflict" : retained ? "keep" : "add");
+            boolean replacement = !retained && obstacle == null && clearance.contains(step.pos());
+            if (replacement) {
+                replace++;
+            }
+            row.addProperty("category", obstacle != null ? "conflict" : retained ? "keep" : replacement ? "replace" : "add");
             if (obstacle != null) {
                 row.addProperty("reason", obstacle);
             }
-            row.add("actual", Wire.state(step.before()));
+            row.add("actual", Wire.state(level.getBlockState(step.pos())));
             row.add("desired", Wire.state(step.after()));
             changes.add(row);
             for (Direction side : Direction.values()) {
                 context.add(step.pos().relative(side));
+            }
+        }
+        for (BlockPos pos : clearance.stream().sorted(BuildPlan.BUILD_ORDER).toList()) {
+            if (!shown.contains(pos)) {
+                JsonObject row = new JsonObject();
+                row.add("world", Wire.position(pos));
+                row.add("local", Wire.position(initial.plan().localPosition(pos)));
+                row.addProperty("category", "remove");
+                row.add("actual", Wire.state(level.getBlockState(pos)));
+                row.add("desired", Wire.state(AIR));
+                changes.add(row);
+                remove++;
+            }
+            for (Direction side : Direction.values()) {
+                context.add(pos.relative(side));
+            }
+        }
+        for (var entry : initial.obstacles().entrySet()) {
+            if (!shown.contains(entry.getKey())) {
+                BlockPos pos = entry.getKey();
+                JsonObject row = new JsonObject();
+                row.add("world", Wire.position(pos));
+                row.add("local", Wire.position(WorkStep.clear(initial.plan(), pos, AIR).target().local()));
+                row.addProperty("category", "conflict");
+                row.addProperty("reason", entry.getValue());
+                row.add("actual", Wire.state(level.getBlockState(pos)));
+                row.add("desired", Wire.state(AIR));
+                changes.add(row);
             }
         }
         JsonArray neighbors = new JsonArray();
@@ -370,9 +679,9 @@ final class ConstructionService {
         }
         JsonObject counts = new JsonObject();
         counts.addProperty("keep", keep);
-        counts.addProperty("add", changes.size() - keep - initial.obstacles().size());
-        counts.addProperty("remove", 0);
-        counts.addProperty("replace", 0);
+        counts.addProperty("add", changes.size() - keep - replace - remove - initial.obstacles().size());
+        counts.addProperty("remove", remove);
+        counts.addProperty("replace", replace);
         counts.addProperty("conflict", initial.obstacles().size());
         JsonObject report = new JsonObject();
         report.add("new_version", initial.plan().versionInfo());
@@ -385,6 +694,21 @@ final class ConstructionService {
         report.add("counts", counts);
         report.add("changes", changes);
         report.add("neighbors", neighbors);
+        if (autonomous) {
+            JsonObject preparation = new JsonObject();
+            preparation.addProperty("authorization", site.scope().toString());
+            preparation.addProperty("mode", site.worksite().mode());
+            preparation.addProperty("order", initial.strategy());
+            JsonArray planned = new JsonArray();
+            Map<BlockPos, BlockState> states = new LinkedHashMap<>();
+            for (WorkStep step : initial.clearance()) {
+                planned.add(step.json("pending"));
+                step.affected().forEach(pos -> states.put(pos, level.getBlockState(pos)));
+            }
+            preparation.add("actions", planned);
+            preparation.add("counts", Clearance.counts(states));
+            report.add("preparation", preparation);
+        }
         addSupplyReview(report, source, initial.steps(), new JsonArray());
         report.addProperty("review_sha256", Wire.sha256(report));
         return report;
@@ -417,6 +741,9 @@ final class ConstructionService {
     }
 
     BuildPlan validateRevision(UUID baseId, JsonObject payload) {
+        if (current != null && current.preparing()) {
+            throw Wire.conflict("worksite_preparation_pending", "请完成或取消已批准的现场清理，再修改建筑。");
+        }
         requireWritable();
         requireCurrent(baseId);
         if (!current.state.active() && current.state != State.COMPLETED) {
@@ -781,6 +1108,9 @@ final class ConstructionService {
         if (BuildPerformance.ENABLED) {
             worker.profile(current.performance);
             current.performance.begin(level.getGameTime(), worker.position());
+        if (current.preparing() && current.clearanceStarted == 0) {
+            current.clearanceStarted = BuildPerformance.clock();
+        }
             current.performance.span(BuildPerformance.Span.APPROVAL, approvalStarted);
         }
     }
@@ -843,6 +1173,9 @@ final class ConstructionService {
     JsonObject control(String operation, UUID id, UUID owner) {
         requireWritable();
         requireCurrent(id);
+        if (operation.equals("resume") && current.autonomous) {
+            requireAutonomy();
+        }
         switch (operation) {
             case "pause" -> {
                 if (current.state != State.PAUSED) {
@@ -932,8 +1265,10 @@ final class ConstructionService {
     }
 
     void externalEdit(ServerLevel editedLevel, Entity entity, BlockPos pos) {
-        if (current == null || editedLevel != level || entity == null || worker.isActor(entity)
-                || !site.area().contains(pos) || !current.snapshot.recordExternalEdit(pos)) {
+        if (editedLevel != level || entity == null || worker.isActor(entity) || !site.area().contains(pos)) {
+            return;
+        }
+        if (current == null || !current.snapshot.recordExternalEdit(pos)) {
             return;
         }
         if (current.state == State.RUNNING && current.snapshot.footprint().contains(pos)) {
@@ -955,6 +1290,9 @@ final class ConstructionService {
         }
         long tickStarted = BuildPerformance.clock();
         try {
+            if (current.autonomous) {
+                requireAutonomy();
+            }
             site.requireLoaded(level);
             if (current.supply != null) {
                 long inventoryStarted = BuildPerformance.clock();
@@ -995,12 +1333,23 @@ final class ConstructionService {
             return;
         }
         WorkStep step = current.steps.get(current.cursor);
+        if (current.autonomous && !step.clearance() && !current.groundVerified
+                && current.cursor == current.initialClearanceSteps) {
+            verifyPreparedGround();
+        }
         BlockState actual = level.getBlockState(step.pos());
+        if (actual != step.before() && admitNewObstacle(step, actual)) {
+            return;
+        }
         if (actual != step.before() || actual != current.snapshot.expected(step.pos())
-                || current.snapshot.modifiedByPlayer(step.pos()) || (step.remove() && !current.snapshot.owns(step.pos()))) {
+                || current.snapshot.modifiedByPlayer(step.pos())
+                || step.remove() && !step.clearance() && !current.snapshot.owns(step.pos())) {
             current.conflicts = checkpointConflicts();
             pause("world_conflict");
             persist();
+            if (current.autonomous) {
+                notifySupplyPause(Wire.conflict("world_conflict", "现场出现无法自动处理的改动，请确认是否保留或调整方案。"));
+            }
             return;
         }
 
@@ -1009,7 +1358,12 @@ final class ConstructionService {
             result = new ConstructionWorker.Result("already_present", null, null);
             worker.halt();
         } else {
-            requireSafeMutation(step, current.predecessor != null);
+            if (step.clearance()) {
+                new Clearance(level, site, current.snapshot::modifiedByPlayer)
+                        .requireLive(step, current.clearancePositions, current.snapshot::expected);
+            } else {
+                requireSafeMutation(step, current.predecessor != null);
+            }
             if (current.supply != null && !worker.hasSupply(step)) {
                 resupply();
                 return;
@@ -1071,6 +1425,10 @@ final class ConstructionService {
                 }
             }
             current.cursor++;
+            if (step.clearance() && !current.preparing()) {
+                current.performance.span(BuildPerformance.Span.CLEARANCE, current.clearanceStarted);
+                current.clearanceStarted = 0;
+            }
             current.intent = -1;
             current.retries = 0;
             if (current.cursor == current.steps.size()) {
@@ -1080,6 +1438,64 @@ final class ConstructionService {
             }
         }
         persist();
+    }
+
+    private boolean admitNewObstacle(WorkStep pending, BlockState actual) {
+        if (!current.autonomous || current.intent >= 0 || pending.remove() || !pending.before().isAir()
+                || current.clearanceReplans >= ConstructionJob.MAX_CLEARANCE_REPLANS
+                || Clearance.kind(actual).equals("unknown")) {
+            return false;
+        }
+        Clearance check = new Clearance(level, site, current.snapshot::modifiedByPlayer);
+        Clearance.Finding finding = check.inspect(pending.pos());
+        if (finding.risk() != null || finding.cells().isEmpty() || finding.cells().stream().anyMatch(pos ->
+                !current.snapshot.expected(pos).isAir() || current.snapshot.modifiedByPlayer(pos))) {
+            return false;
+        }
+        Map<BlockPos, BlockState> additions = check.states(finding);
+        Set<BlockPos> touched = new HashSet<>(current.clearancePositions);
+        touched.addAll(additions.keySet());
+        if (touched.size() > Clearance.MAX_CELLS) {
+            return false;
+        }
+        for (BlockPos pos : additions.keySet()) {
+            BuildPlan.Target above = current.plan.at(pos.above());
+            if (above != null && level.getBlockState(pos.above()) == above.state()) {
+                return false;
+            }
+        }
+        List<WorkStep> inserted = additions.entrySet().stream().filter(e -> !Clearance.upperHalf(e.getValue()))
+                .map(e -> WorkStep.clear(current.plan, e.getKey(), e.getValue()))
+                .sorted(Clearance.order("route_first")).toList();
+        worker.halt();
+        current.planning.invalidate("worksite_replanned");
+        current.snapshot.observeClearance(additions);
+        current.clearancePositions.addAll(additions.keySet());
+        List<WorkStep> queue = new ArrayList<>(current.steps);
+        queue.addAll(current.cursor, inserted);
+        current.steps = List.copyOf(queue);
+        current.clearanceReplans++;
+        current.retries = 0;
+        current.clearanceStarted = BuildPerformance.clock();
+        current.performance.event("worksite_replanned");
+        ForgeBridge.LOGGER.info("worksite_replanned {} cells={} at={}", current.plan.id(), additions.size(), current.cursor);
+        schedule();
+        persist();
+        return true;
+    }
+
+    private void verifyPreparedGround() {
+        for (BlockPos pos : current.clearancePositions) {
+            if (!level.getBlockState(pos).isAir() || current.snapshot.modifiedByPlayer(pos)) {
+                throw Wire.conflict("worksite_preparation_changed", "已清理位置发生变化，请重新核对地基。");
+            }
+        }
+        Set<BlockPos> supported = new HashSet<>();
+        for (BuildPlan.Target target : current.plan.targets()) {
+            requirePlannedSupport(target, true, supported, Set.of());
+            supported.add(target.world());
+        }
+        current.groundVerified = true;
     }
 
     private void beginInteraction() {
@@ -1376,7 +1792,7 @@ final class ConstructionService {
 
     boolean offerPlanning(UUID job) {
         return site.worldCopy() && !journalBlocked && candidate == null && job != null
-                && job.equals(currentJobId()) && current.state == State.RUNNING;
+                && job.equals(currentJobId()) && current.state == State.RUNNING && !current.preparing();
     }
 
     JsonObject executionState() {
@@ -1389,6 +1805,9 @@ final class ConstructionService {
             }
             if (current.planning.hasRecord()) {
                 result.add("planning", current.planning.status());
+            }
+            if (current.autonomous) {
+                result.add("preparation", current.preparationStatus());
             }
         }
         return result;
@@ -1512,6 +1931,32 @@ final class ConstructionService {
         return cargo;
     }
 
+    private JsonObject rereadClearanceDrops() {
+        int observed = 0, present = 0;
+        for (JsonElement element : current.records) {
+            JsonObject record = element.getAsJsonObject();
+            if (!record.get("operation").getAsString().equals("clear") || !record.has("interaction_evidence")) {
+                continue;
+            }
+            for (JsonElement entry : record.getAsJsonObject("interaction_evidence").getAsJsonArray("drops")) {
+                JsonObject drop = entry.getAsJsonObject();
+                int count = drop.get("count").getAsInt();
+                observed += count;
+                if (drop.has("entity_id") && level.getEntity(BuildPlan.id(drop, "entity_id"))
+                        instanceof net.minecraft.world.entity.item.ItemEntity ground
+                        && Warehouse.id(ground.getItem().getItem()).equals(drop.get("id").getAsString())) {
+                    present += Math.min(count, ground.getItem().getCount());
+                }
+            }
+        }
+        JsonObject result = new JsonObject();
+        result.addProperty("spawned_items", observed);
+        result.addProperty("still_observed_in_world", present);
+        result.addProperty("unlocated_without_inventory_credit", observed - present);
+        result.addProperty("recovered_items", 0);
+        return result;
+    }
+
     private JsonObject recovery() {
         JsonObject details = new JsonObject();
         try {
@@ -1523,6 +1968,9 @@ final class ConstructionService {
             details.addProperty("inventory_matches_checkpoint", entity && current.cargo.equals(cargo()));
             details.add("conflicts", conflicts);
             details.addProperty("interaction_confirmed", current.intent < 0);
+            if (current.autonomous) {
+                details.add("clearance_drops", rereadClearanceDrops());
+            }
             if (current.supply != null) {
                 boolean matched = current.supply.stockHash.equals(
                         Warehouse.digest(Warehouse.open(level, current.supply.source)));
@@ -1619,6 +2067,9 @@ final class ConstructionService {
         if (warehouse != null) {
             state.add("warehouse", warehouse.json());
         }
+        if (autonomyRevoked) {
+            state.addProperty("autonomy_revoked", true);
+        }
         if (current != null) {
             state.add("current", current.checkpoint());
         }
@@ -1659,6 +2110,7 @@ final class ConstructionService {
             registered.put(plan.id(), new Registration(plan, payload, disposition));
         }
         history = Wire.object(data.get("history"), "journal history");
+        autonomyRevoked = data.has("autonomy_revoked") && data.get("autonomy_revoked").getAsBoolean();
         if (data.has("survey_npc") && site.worldCopy()) {
             surveyNpc = BuildPlan.id(data, "survey_npc");
         }

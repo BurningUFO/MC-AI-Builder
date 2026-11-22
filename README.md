@@ -18,6 +18,8 @@ M7-A 支持带入口、窗组、屋顶和简单家具的三维单层住宅。使
 
 M7-P 改进住宅的连续施工和分批供料。启动器可选开启并行规划，让 Codex 在 NPC 施工期间观察现场并调整下一个已批准的屋顶工作组。 [性能测量](docs/m7-p-profiling.md) · [对照验收](docs/m7-p-validation.md)
 
+M7-Q 可在已签署自主许可的 BMC4 副本工作区中批量清除普通植被、整理表层土石，并按许可处理确认的天然小树。玩家可预先标记保护区，Builder 将现场出现的重要资产汇总后询问。 [工作区使用与验证](docs/m7-q-validation.md)
+
 施工 NPC 可由授权玩家用 `/architect observe` 观察第一人称视角。图像与姿态元数据保存到本地缓存，并与同一观测 ID 的局部 Forge 样本配对。 [NPC 观测说明](docs/m6-a-validation.md) · [视觉与世界状态](docs/m6-b-validation.md)
 
 ![M2 游戏内完工截图](docs/m2-evidence/wall-v2.png)

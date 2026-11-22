@@ -48,7 +48,9 @@ def preview_review(report_path: Path, instance: Path, output: Path, blender: Pat
     with timed("asset_models"), Archives(instance, vanilla_only=False) as archives:
         archives.discover()
         library = ModelLibrary(archives)
-        indices = [build_index(ROOT, model, library, {}) if model.blocks else None for model in models]
+        indices = [build_index(ROOT, model, library, {},
+                               outline_observations=(index == 0 and "preparation" in report))
+                   if model.blocks else None for index, model in enumerate(models)]
     with TemporaryDirectory(prefix=".review-", dir=output) as name:
         stage = Path(name)
         manifest = stage / "review.json"

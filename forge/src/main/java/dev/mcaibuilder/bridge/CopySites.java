@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -44,6 +45,9 @@ final class CopySites {
         BlockPos spawn;
         BlockPos origin;
         Rotation rotation;
+        String autonomy = "manual";
+        int minutes = 480;
+        final List<BuildSite.Box> protectedAreas = new ArrayList<>();
 
         Selection(ServerLevel level) {
             this.level = level;
@@ -53,12 +57,14 @@ final class CopySites {
             if (first == null || second == null || spawn == null || origin == null || rotation == null) {
                 throw Wire.invalid("请标记 pos1、pos2、spawn 和 origin，再审阅施工区。");
             }
-            return new Permit(UUID.randomUUID(), level.dimension(), box(first, second), spawn, origin, rotation);
+            long expiry = autonomy.equals("manual") ? 0 : System.currentTimeMillis() + Duration.ofMinutes(minutes).toMillis();
+            return new Permit(UUID.randomUUID(), level.dimension(), box(first, second), spawn, origin, rotation,
+                    new WorksitePermit(autonomy, expiry, protectedAreas));
         }
     }
 
     private record Permit(UUID id, ResourceKey<Level> dimension, BuildSite.Box area, BlockPos spawn,
-                          BlockPos origin, Rotation rotation) {
+                          BlockPos origin, Rotation rotation, WorksitePermit worksite) {
         JsonObject json() {
             JsonObject data = new JsonObject();
             data.addProperty("authorization", id.toString());
@@ -67,6 +73,7 @@ final class CopySites {
             data.add("spawn", Wire.position(spawn));
             data.add("origin", Wire.position(origin));
             data.addProperty("rotation", rotation.ordinal() * 90);
+            data.add("worksite", worksite.json());
             return data;
         }
 
@@ -79,7 +86,8 @@ final class CopySites {
             }
             return new Permit(BuildPlan.id(data, "authorization"), ResourceKey.create(Registries.DIMENSION, key),
                     BuildSite.Box.read(data.get("area"), "area"), Wire.position(data.get("spawn"), "spawn"),
-                    Wire.position(data.get("origin"), "origin"), Rotation.values()[rotation / 90]);
+                    Wire.position(data.get("origin"), "origin"), Rotation.values()[rotation / 90],
+                    WorksitePermit.read(data.getAsJsonObject("worksite")));
         }
     }
 
@@ -124,6 +132,9 @@ final class CopySites {
         out.addProperty("mode", "world_copy");
         out.addProperty("approved", active != null);
         out.addProperty("warehouse_approved", active != null && active.construction().warehouseApproved());
+        if (active != null) {
+            out.add("worksite", active.construction().worksiteStatus());
+        }
         out.addProperty("chunks_loaded", active != null && active.construction().siteLoaded());
         return out;
     }
@@ -141,6 +152,8 @@ final class CopySites {
                 tell(player, "已清空本次标记。用 pos1 和 pos2 重新选择。");
             }
             case "review" -> review(player);
+            case "autonomy" -> autonomy(player, parts);
+            case "protect" -> protect(player, parts);
             case "confirm" -> {
                 if (parts.length != 2) {
                     throw Wire.invalid("请使用施工区审阅中的批准按钮。");
@@ -165,7 +178,81 @@ final class CopySites {
             return;
         }
         tell(player, summary(active.permit()) + "。供料箱" + (active.construction().warehouseApproved() ? "已授权" : "待授权")
-                + "，区块" + (active.construction().siteLoaded() ? "已加载" : "未加载") + "。");
+                + "，区块" + (active.construction().siteLoaded() ? "已加载" : "未加载")
+                + "。自主建设 " + active.construction().worksiteStatus().get("state").getAsString() + "。");
+    }
+
+    private Selection editable(ServerPlayer player) {
+        if (selection == null) {
+            selection = new Selection(player.serverLevel());
+            if (active != null && active.permit().dimension().equals(player.serverLevel().dimension())) {
+                Permit permit = active.permit();
+                selection.first = permit.area().min();
+                selection.second = permit.area().max();
+                selection.spawn = permit.spawn();
+                selection.origin = permit.origin();
+                selection.rotation = permit.rotation();
+                selection.protectedAreas.addAll(permit.worksite().protectedAreas());
+            }
+        }
+        if (selection.level != player.serverLevel()) {
+            throw Wire.invalid("编辑施工区时需在同一维度。");
+        }
+        return selection;
+    }
+
+    private void autonomy(ServerPlayer player, String[] parts) {
+        if (parts.length == 2 && parts[1].equals("revoke")) {
+            if (active == null) {
+                throw Wire.conflict("site_not_approved", "当前没有施工区。");
+            }
+            active.architect().requirePlayer(player);
+            active.construction().revokeAutonomy();
+            tell(player, "已撤销自主建设许可。");
+            return;
+        }
+        if (parts.length < 2 || parts.length > 3 || !WorksitePermit.MODES.contains(parts[1])) {
+            throw Wire.invalid("使用 /architect site autonomy auto、manual 或 revoke。");
+        }
+        int minutes;
+        try {
+            minutes = parts.length == 3 ? Integer.parseInt(parts[2]) : 480;
+        } catch (NumberFormatException error) {
+            throw Wire.invalid("许可时长应为 1–480 分钟。");
+        }
+        if (minutes < 1 || minutes > 480) {
+            throw Wire.invalid("许可时长应为 1–480 分钟。");
+        }
+        Selection draft = editable(player);
+        draft.autonomy = parts[1];
+        draft.minutes = minutes;
+        review = null;
+        tell(player, "已标记自主权限 " + draft.autonomy + "。请用 /architect site review 审阅。");
+    }
+
+    private void protect(ServerPlayer player, String[] parts) {
+        Selection draft = editable(player);
+        if (parts.length == 2 && parts[1].equals("reset")) {
+            draft.protectedAreas.clear();
+        } else {
+            if ((parts.length != 4 && parts.length != 7) || draft.protectedAreas.size() >= 8) {
+                throw Wire.invalid("用 site protect x y z 或两组三维坐标，最多八处。");
+            }
+            try {
+                BlockPos first = position(parts, 1);
+                BlockPos last = parts.length == 7 ? position(parts, 4) : first;
+                draft.protectedAreas.add(box(first, last));
+            } catch (NumberFormatException error) {
+                throw Wire.invalid("保护范围需要方块整数坐标。");
+            }
+        }
+        review = null;
+        tell(player, "已标记 " + draft.protectedAreas.size() + " 处保护区。请审阅施工区。");
+    }
+
+    private static BlockPos position(String[] parts, int offset) {
+        return new BlockPos(Integer.parseInt(parts[offset]), Integer.parseInt(parts[offset + 1]),
+                Integer.parseInt(parts[offset + 2]));
     }
 
     private void mark(ServerPlayer player, String[] parts, String kind) {
@@ -216,6 +303,11 @@ final class CopySites {
         }
         Permit permit = selection.snapshot();
         validateLive(permit, player);
+        if (!permit.worksite().mode().equals("manual")) {
+            tell(player, "自主建设许可允许 Builder 在此区域自行清障、挖掘普通木石、取料和建造。"
+                    + "箱子、机器和标记保护区需要你决定。时长 " + selection.minutes + " 分钟，保留 " + permit.worksite().protectedAreas().size()
+                    + " 处保护区。");
+        }
         JsonObject hashBody = permit.json();
         hashBody.addProperty("owner", copy.owner().toString());
         hashBody.addProperty("copy_id", copy.id().toString());
@@ -255,8 +347,13 @@ final class CopySites {
                 || permit.origin().equals(permit.spawn().above()) || permit.area().halo().volume() > 24_000) {
             throw Wire.invalid("区域需容纳原点、NPC 脚下与头部，包含边缘最多 24,000 格。");
         }
+        if (permit.worksite().protectedAreas().stream().anyMatch(protectedArea ->
+                !permit.area().contains(protectedArea.min()) || !permit.area().contains(protectedArea.max())
+                        || protectedArea.contains(permit.spawn()) || protectedArea.contains(permit.spawn().above()))) {
+            throw Wire.invalid("保护区需在施工区内，且应留出 NPC 出发位置。");
+        }
         return new BuildSite(copy.id().toString(), copy.port(), copy.token(), permit.area(), permit.spawn(),
-                copy.architect(), true, permit.id(), permit.origin(), permit.rotation());
+                copy.architect(), true, permit.id(), permit.origin(), permit.rotation(), permit.worksite());
     }
 
     private void validateLive(Permit permit, ServerPlayer player) {
@@ -264,6 +361,9 @@ final class CopySites {
         ServerLevel level = player.serverLevel();
         if (permit.dimension() != level.dimension() || !site.area().contains(player.blockPosition())) {
             throw Wire.conflict("site_player_outside", "请在待授权区域内确认。");
+        }
+        if (!permit.worksite().mode().equals("manual") && !permit.worksite().active(System.currentTimeMillis())) {
+            throw Wire.conflict("worksite_permission_expired", "本次自主许可已超时，请重新审阅。");
         }
         site.requireLoaded(level);
         if (!BuildTerrain.canStand(level, permit.spawn())) {

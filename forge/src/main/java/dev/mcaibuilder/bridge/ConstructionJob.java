@@ -3,15 +3,19 @@ package dev.mcaibuilder.bridge;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
 final class ConstructionJob {
+    static final int MAX_CLEARANCE_REPLANS = 8;
+
     enum State {
         RUNNING, PAUSED, CANCELLED, COMPLETED, FAILED;
 
@@ -45,6 +49,12 @@ final class ConstructionJob {
     JsonArray conflicts = new JsonArray();
     JsonObject cargo;
     boolean reopened;
+    boolean autonomous;
+    long clearanceStarted;
+    boolean groundVerified;
+    final Set<BlockPos> clearancePositions = new HashSet<>();
+    final int initialClearanceSteps;
+    int clearanceReplans;
     SupplyCheckpoint supply;
 
     ConstructionJob(BuildPlan plan, UUID npc, UUID predecessor, JsonObject approvedReview,
@@ -55,7 +65,30 @@ final class ConstructionJob {
         this.approvedReview = approvedReview;
         this.snapshot = snapshot;
         this.steps = List.copyOf(steps);
+        this.initialClearanceSteps = (int) steps.stream().takeWhile(WorkStep::clearance).count();
+        steps.stream().filter(WorkStep::clearance).forEach(step -> clearancePositions.addAll(step.affected()));
         this.cargo = cargo;
+    }
+
+    boolean preparing() {
+        return cursor < steps.size() && steps.get(cursor).clearance();
+    }
+
+    JsonObject preparationStatus() {
+        JsonObject data = new JsonObject();
+        data.addProperty("total", steps.stream().filter(WorkStep::clearance).mapToInt(step -> step.affected().size()).sum());
+        int cleared = steps.subList(0, cursor).stream().filter(WorkStep::clearance)
+                .mapToInt(step -> step.affected().size()).sum();
+        data.addProperty("cleared", cleared);
+        data.addProperty("replans", clearanceReplans);
+        data.addProperty("phase", preparing() ? "clear" : state == State.COMPLETED ? "verify" : "build");
+        if (preparing()) {
+            WorkStep step = steps.get(cursor);
+            data.add("next", Wire.position(step.pos()));
+            data.addProperty("kind", Clearance.kind(step.before()));
+            data.addProperty("tool", Warehouse.id(Warehouse.item(step)));
+        }
+        return data;
     }
 
     JsonObject status(boolean detailed) {
@@ -71,6 +104,10 @@ final class ConstructionJob {
         job.addProperty("skipped", cursor - placed - removed);
         job.addProperty("reopened", reopened);
         job.addProperty("in_flight", intent >= 0);
+        if (autonomous) {
+            job.addProperty("autonomous", true);
+            job.add("preparation", preparationStatus());
+        }
         if (planning.hasRecord()) {
             job.add("planning", planning.status());
         }
@@ -116,6 +153,9 @@ final class ConstructionJob {
         data.add("conflicts", conflicts);
         data.addProperty("intent", intent);
         data.addProperty("retries", retries);
+        if (clearanceReplans > 0) {
+            data.addProperty("clearance_replans", clearanceReplans);
+        }
         data.add("verification", verification);
         data.add("approved_change", approvedReview);
         if (supply != null) {
@@ -132,7 +172,7 @@ final class ConstructionJob {
         List<WorkStep> queue = new ArrayList<>();
         for (JsonElement row : Wire.array(data.get("queue"), "queue")) {
             WorkStep step = WorkStep.read(Wire.object(row, "step"), plan, palette, site);
-            if (!snapshot.footprint().contains(step.pos())) {
+            if (!snapshot.footprint().containsAll(step.affected())) {
                 throw Wire.invalid("Journal step is outside the recorded footprint");
             }
             queue.add(step);
@@ -156,6 +196,15 @@ final class ConstructionJob {
         job.conflicts = Wire.array(data.get("conflicts"), "conflicts");
         job.verification = optionalObject(data, "verification");
         job.reopened = true;
+        job.autonomous = data.has("autonomous") && data.get("autonomous").getAsBoolean();
+        job.clearanceReplans = data.has("clearance_replans") ? Wire.integer(data.get("clearance_replans"), "clearance_replans") : 0;
+        if (job.clearanceReplans < 0 || job.clearanceReplans > MAX_CLEARANCE_REPLANS
+                || job.clearanceReplans > 0 && !job.autonomous
+                || job.autonomous && (!site.worldCopy() || site.worksite().mode().equals("manual"))
+                || !job.clearancePositions.isEmpty() && !job.autonomous
+                || job.clearancePositions.size() > Clearance.MAX_CELLS) {
+            throw Wire.invalid("Saved clearance is outside its worksite authorization or phase");
+        }
         JsonObject planning = optionalObject(data, "planning");
         if (planning != null) {
             job.planning.restore(planning);

@@ -23,6 +23,7 @@ final class RemovalEvidence {
     private final FakePlayer actor;
     private final BlockPos position;
     private final BlockState before;
+    private final boolean clearance;
     final JsonArray drops = new JsonArray();
     int leftClicks;
     int breakEvents;
@@ -32,6 +33,7 @@ final class RemovalEvidence {
         this.actor = actor;
         position = step.pos();
         before = step.before();
+        clearance = step.clearance();
     }
 
     static RemovalEvidence begin(FakePlayer actor, WorkStep step) {
@@ -74,6 +76,9 @@ final class RemovalEvidence {
             JsonObject data = new JsonObject();
             data.addProperty("id", ForgeRegistries.ITEMS.getKey(stack.getItem()).toString());
             data.addProperty("count", stack.getCount());
+            if (attempt.clearance) {
+                data.addProperty("entity_id", drop.getUUID().toString());
+            }
             attempt.drops.add(data);
         }
     }

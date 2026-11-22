@@ -110,7 +110,7 @@ class SessionStore:
 
     @local_db
     def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
-                kind="window_wall", footing=None):
+                kind="window_wall", footing=None, worksite_order=None):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
@@ -119,6 +119,8 @@ class SessionStore:
         version = max(largest or 0, from_version) + 1
         plan = make_plan(model, building_id=building_id, version=version, origin=origin, rotation=rotation)
         plan["plan_id"] = plan_id
+        if worksite_order is not None:
+            plan["worksite_order"] = worksite_order
         spec = {"kind": kind, "parameters": asdict(parameters), "plan": plan, "action": action}
         if footing is not None:
             spec["footing"] = footing
@@ -249,15 +251,22 @@ class Runtime:
         action = "error"
         try:
             prepared = self.store.design(self.proposal_id(request_id))
-            if request.get("feedback"):
+            if request.get("retry_worksite"):
+                self.review(request_id, "review")
+                action = "preview_design"
+            elif request.get("feedback"):
                 action = feedback.check(self, request, message, prepared=prepared,
                                         safe=lambda value: safe_message(value, self.redactions))
             elif request.get("survey"):
                 if prepared is None:
+                    if request.get("worksite"):
+                        recent = self.store.dialog(self.conversation_key(request))
+                        if recent and recent[-1]["action"] == "worksite_question":
+                            request = {**request, "pending_worksite_goal": recent[-1]["message"][:240]}
                     intent, reason = survey.suggest(self, request, message)
                     if intent is None:
                         self.client.answer(request_id, safe_message(reason, self.redactions))
-                        action = "unsuitable"
+                        action = "worksite_question" if request.get("worksite") else "unsuitable"
                     else:
                         spec = self.design(request, intent)
                         self.review(request_id, "new", spec["plan"], observation_reason=reason)
@@ -273,7 +282,7 @@ class Runtime:
             else:
                 action = prepared["action"]
                 intent = {"action": action}
-            if not request.get("survey") and not request.get("feedback"):
+            if not any(request.get(flag) for flag in ("survey", "feedback", "retry_worksite")):
                 self.dispatch(request, intent, prepared)
         except BridgeError as error:
             code = error.body.get("error") or "bridge_error"
@@ -292,7 +301,10 @@ class Runtime:
             self.client.answer(request_id, self.record_diagnostic(action).recovery)
         except (subprocess.SubprocessError, BadZipFile, FileNotFoundError, ValueError):
             action = "preview_error"
-            self.client.answer(request_id, self.record_diagnostic(action).recovery)
+            recovery = self.record_diagnostic(action).recovery
+            if request.get("worksite"):
+                recovery += "修复预览后可用 /architect work retry 复核同一方案。"
+            self.client.answer(request_id, recovery)
         self.store.remember(request_id, self.conversation_key(request), message, action)
 
     def record_diagnostic(self, code):
@@ -360,8 +372,10 @@ class Runtime:
         else:
             origin, rotation = placement(intent, request, prior["plan"] if prior else None,
                                          action == "revise_design" and locked)
+        worksite_order = intent.get("_worksite_order") if request.get("worksite") else None
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
-                                  building, origin, rotation, parameters, action, kind=kind, footing=footing)
+                                  building, origin, rotation, parameters, action, kind=kind, footing=footing,
+                                  worksite_order=worksite_order)
         return spec
 
     def review(self, request_id, mode, plan=None, *, observation_reason=""):
@@ -392,7 +406,10 @@ class Runtime:
                 materials[material] = materials.get(material, 0) + 1
         details = "、".join(f"{kind} ×{count}" for kind, count in sorted(materials.items())) or "无需新增材料"
         reasons = {"occupied_target": "已有方块", "missing_terrain_support": "缺少支撑",
-                   "unsafe_site_boundary": "边缘有敏感方块", "terrain_effect_outside_scope": "会覆盖区域外的草方块"}
+                   "unsafe_site_boundary": "边缘有敏感方块", "terrain_effect_outside_scope": "会覆盖区域外的草方块",
+                   "protected_facility": "保护设施", "protected_area": "玩家保护区", "player_structure": "玩家改动",
+                   "outside_effect": "可能影响范围外或保护对象", "unsafe_interaction": "原生挖掘不可用",
+                   "hazardous_terrain": "液体或危险地形", "worksite_preparation_changed": "清理现场已变化"}
         conflicts = [str(tuple(row["world"])) + reasons.get(row.get("reason"), "")
                      for row in report["changes"] if row["category"] == "conflict"][:3]
         if "supply" in report:
@@ -400,6 +417,12 @@ class Runtime:
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         if grass := report.get("covered_grass"):
             reason += f"。建筑覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
+        if preparation := report.get("preparation"):
+            summary = preparation["counts"]
+            labels = {"vegetation": "草木", "soil": "泥土", "stone": "天然石块", "logs": "原木", "leaves": "树叶",
+                      "wood": "木料", "masonry": "砌块", "hand": "其他可清理障碍"}
+            groups = "、".join(f"{labels[kind]} {count}" for kind, count in summary.items())
+            reason += "。现场准备 " + (groups or "无需清理")
         observed = safe_message(observation_reason, self.redactions)[:160].rstrip("。.!！")
         prefix = f"现场判断 {observed}。 " if observed else ""
         self.client.answer(request_id, prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"

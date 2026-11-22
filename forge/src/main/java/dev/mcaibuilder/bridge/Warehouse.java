@@ -39,7 +39,7 @@ final class Warehouse {
     private static final String SEAL = "mcaibuilder_supply";
     static final int TRIP_ITEMS = 16;
     static final int COTTAGE_TRIP_ITEMS = 48;
-    private static final Set<Item> TOOLS = Set.of(Items.IRON_AXE, Items.IRON_PICKAXE);
+    private static final Set<Item> TOOLS = Set.of(Items.IRON_AXE, Items.IRON_PICKAXE, Items.IRON_SHOVEL, Items.SHEARS);
 
     private Warehouse() {}
 
@@ -102,6 +102,15 @@ final class Warehouse {
     }
 
     static Item item(WorkStep step) {
+        if (step.clearance()) {
+            return switch (Clearance.kind(step.before())) {
+                case "vegetation", "hand" -> Items.AIR;
+                case "leaves" -> Items.SHEARS;
+                case "soil" -> Items.IRON_SHOVEL;
+                case "logs", "wood" -> Items.IRON_AXE;
+                default -> Items.IRON_PICKAXE;
+            };
+        }
         return step.remove() ? FakePlayersWorker.toolFor(step.before()) : step.target().item();
     }
 
@@ -186,8 +195,9 @@ final class Warehouse {
         Map<Item, Integer> recoverable = new LinkedHashMap<>();
         for (int index = cursor; index < steps.size(); index++) {
             WorkStep step = steps.get(index);
-            if (step.before() != step.after()) {
-                required.merge(item(step), 1, Integer::sum);
+            Item requirement = item(step);
+            if (step.before() != step.after() && requirement != Items.AIR) {
+                required.merge(requirement, 1, Integer::sum);
             }
             if (step.remove()) {
                 estimateDrops(level, step, recoverable);
@@ -243,7 +253,7 @@ final class Warehouse {
         var table = level.getServer().getLootData().getLootTable(step.before().getBlock().getLootTable());
         var params = new LootParams.Builder(level).withParameter(LootContextParams.BLOCK_STATE, step.before())
                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(step.pos()))
-                .withParameter(LootContextParams.TOOL, item(step).getDefaultInstance())
+                .withParameter(LootContextParams.TOOL, item(step) == Items.AIR ? ItemStack.EMPTY : item(step).getDefaultInstance())
                 .create(LootContextParamSets.BLOCK);
         // This fixed-seed estimate stays outside cargo; actual break events record the real drops.
         var context = new LootContext.Builder(params).withOptionalRandomSeed(step.pos().asLong() | 1).create(null);
@@ -343,6 +353,9 @@ final class Warehouse {
                 break;
             }
             Item item = item(step);
+            if (item == Items.AIR) {
+                continue;
+            }
             int available = remainingCargo.getOrDefault(item, 0);
             if (available > 0) {
                 remainingCargo.put(item, available - 1);

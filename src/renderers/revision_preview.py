@@ -66,8 +66,13 @@ def block_mesh(scene, name, model, index, root):
         materials = {ref: pixel_material(ref, texture, root) for ref, texture in index["textures"].items()}
         opaque = {key for key, item in baked.items() if item["full_cube"]
                   and all(not materials[face["texture"]][1] for face in item["faces"])}
-        mesh = collection_for(scene, "Minecraft blocks")
-        add_block_mesh(mesh, name, model.blocks, model.blocks, baked, materials, opaque)
+        missing = index.get("unrendered_observations", [])
+        if missing:
+            scene["observations_shown_as_outlines"] = ", ".join(missing)
+        rendered = {pos: block for pos, block in model.blocks.items() if block.state.key in baked}
+        if rendered:
+            mesh = collection_for(scene, "Minecraft blocks")
+            add_block_mesh(mesh, name, rendered, rendered, baked, materials, opaque)
 
 
 def main():

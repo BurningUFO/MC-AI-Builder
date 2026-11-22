@@ -17,6 +17,7 @@ final class SiteSnapshot {
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private final Map<BlockPos, BlockState> baseline = new HashMap<>();
     private final Map<BlockPos, BlockState> written = new HashMap<>();
+    private final Map<BlockPos, BlockState> observed = new HashMap<>();
     private final Set<BlockPos> footprint = new HashSet<>();
     private final Set<BlockPos> playerEdits = new HashSet<>();
 
@@ -37,6 +38,14 @@ final class SiteSnapshot {
         plan.targets().forEach(target -> footprint.add(target.world()));
     }
 
+    void trackClearance(Iterable<WorkStep> queue) {
+        for (WorkStep step : queue) {
+            if (step.clearance()) {
+                footprint.addAll(step.affected());
+            }
+        }
+    }
+
     Set<BlockPos> footprint() {
         return Set.copyOf(footprint);
     }
@@ -46,7 +55,7 @@ final class SiteSnapshot {
     }
 
     BlockState expected(BlockPos pos) {
-        return written.getOrDefault(pos, initial(pos));
+        return written.getOrDefault(pos, observed.getOrDefault(pos, initial(pos)));
     }
 
     boolean owns(BlockPos pos) {
@@ -61,14 +70,28 @@ final class SiteSnapshot {
         return playerEdits.add(pos.immutable());
     }
 
+    void observeClearance(Map<BlockPos, BlockState> cells) {
+        cells.forEach((pos, state) -> {
+            footprint.add(pos);
+            written.remove(pos);
+            observed.put(pos, state);
+        });
+    }
+
     void written(WorkStep step) {
-        written.put(step.pos(), step.after());
+        step.affected().forEach(pos -> {
+            observed.remove(pos);
+            written.put(pos, step.after());
+        });
     }
 
     JsonObject json() {
         JsonObject value = new JsonObject();
         value.add("baseline", states(baseline));
         value.add("written", states(written));
+        if (!observed.isEmpty()) {
+            value.add("observed", states(observed));
+        }
         value.add("footprint", positions(footprint));
         value.add("player_edits", positions(playerEdits));
         return value;
@@ -78,9 +101,14 @@ final class SiteSnapshot {
         SiteSnapshot snapshot = new SiteSnapshot();
         readStates(snapshot.baseline, value.get("baseline"), site.area().halo());
         readStates(snapshot.written, value.get("written"), site.area());
+        if (value.has("observed")) {
+            readStates(snapshot.observed, value.get("observed"), site.area());
+        }
         readPositions(snapshot.footprint, value.get("footprint"), site.area());
         readPositions(snapshot.playerEdits, value.get("player_edits"), site.area());
-        if (!snapshot.footprint.containsAll(snapshot.written.keySet())) {
+        if (!snapshot.footprint.containsAll(snapshot.written.keySet())
+                || !snapshot.footprint.containsAll(snapshot.observed.keySet())
+                || !java.util.Collections.disjoint(snapshot.written.keySet(), snapshot.observed.keySet())) {
             throw Wire.invalid("Journal writes outside the recorded footprint");
         }
         return snapshot;

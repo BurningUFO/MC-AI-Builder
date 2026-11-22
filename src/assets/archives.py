@@ -66,6 +66,7 @@ class Archives(ExitStack):
         self.mod_ids = MODS + extra_mods
         self.sources: dict[str, Source] = {}
         self.mod_issues: dict[str, str] = {}
+        self._embedded_sources: dict[tuple[Path, str], Source] = {}
 
     def discover(self) -> None:
         root = self.instance
@@ -131,19 +132,47 @@ class Archives(ExitStack):
             raise AssetError(f"{namespace}: expected one installed JAR with matching modId, found {len(matches)}")
         return matches[0]
 
+    @cached_property
+    def _mod_entries(self) -> dict[Path, set[str]]:
+        entries = {}
+        for path in sorted((self.instance / "mods").glob("*.jar")):
+            try:
+                with ZipFile(path) as archive:
+                    entries[path] = {name for name in archive.namelist() if name.startswith("assets/")}
+            except (OSError, BadZipFile):
+                continue
+        return entries
+
+    def source_for(self, namespace: str, path: str) -> Source | None:
+        source = self.sources.get(namespace)
+        if source is not None and path in source.files:
+            return source
+        if self.vanilla_only:
+            return None
+        # A mod may ship a missing resource in another namespace, including minecraft.
+        candidates = [jar for jar, files in self._mod_entries.items() if path in files]
+        if len(candidates) != 1:
+            return None
+        jar = candidates[0]
+        key = (jar, namespace)
+        if key not in self._embedded_sources:
+            self._embedded_sources[key] = Source(namespace, jar, self.enter_context(ZipFile(jar)), "embedded")
+        return self._embedded_sources[key]
+
     def read(self, reference: str, folder: str, suffix: str) -> bytes:
         namespace, name = location(reference)
-        source = self.sources.get(namespace)
         path = f"assets/{namespace}/{folder}/{name}.{suffix}"
-        if source is None or path not in source.files:
+        source = self.source_for(namespace, path)
+        if source is None:
             raise AssetError(f"Missing {folder} resource: {reference} ({path})")
         return source.archive.read(path)
 
     def block_info(self, block_id: str) -> dict:
         namespace, name = location(block_id)
-        source = self.sources.get(namespace)
+        path = f"assets/{namespace}/blockstates/{name}.json"
+        source = self.source_for(namespace, path)
         if source is None:
-            raise AssetError(f"{block_id}: {self.mod_issues.get(namespace, 'JAR was not indexed')}")
+            raise AssetError(f"{block_id}: no unambiguous installed blockstate")
         return source.block_info(name)
 
     def mod_summary(self) -> dict:

@@ -363,11 +363,12 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         Vec3 current = trackPosition();
         Item item = Warehouse.item(step);
-        int slot = supplySlot(item);
-        if (slot < 0) {
+        boolean hand = item == Items.AIR;
+        int slot = hand ? -1 : supplySlot(item);
+        if (!hand && slot < 0) {
             return failure(step.remove() ? "out_of_tool" : "out_of_material");
         }
-        ItemStack stack = npc.getInventory().getItem(slot);
+        ItemStack stack = hand ? ItemStack.EMPTY : npc.getInventory().getItem(slot);
         npc.setDisplayItem(stack);
         Aim aim = chooseAim(step, stack, current);
         if (aim != null && !new AABB(step.pos()).intersects(npc.getBoundingBox())) {
@@ -388,10 +389,11 @@ final class FakePlayersWorker implements ConstructionWorker {
         obstruction = null;
         stopMining();
 
-        boolean jumpingPlacement = site.worldCopy() && !step.remove();
-        if (jumpingPlacement && npc.onGround() && canAimAfterJump(step, stack, current)) {
+        boolean jumpingAction = site.worldCopy() && (!step.remove() || step.clearance() && item == Items.SHEARS);
+        String unreachable = step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance";
+        if (jumpingAction && npc.onGround() && canAimAfterJump(step, stack, current)) {
             if (placementJumps >= 2) {
-                return failure("no_reachable_placement_stance");
+                return failure(unreachable);
             }
             stopNavigation();
             npc.setNoAi(false);
@@ -400,8 +402,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return null;
         }
         String trouble = navigate(step.pos(), current, feet -> chooseAim(step, stack, feet) != null
-                        || (jumpingPlacement && canAimAfterJump(step, stack, feet)),
-                step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance");
+                        || (jumpingAction && canAimAfterJump(step, stack, feet)), unreachable);
         return trouble == null ? null : failure(trouble);
     }
 
@@ -412,7 +413,8 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public boolean hasSupply(WorkStep step) {
-        return available() && supplySlot(Warehouse.item(step)) >= 0;
+        Item item = Warehouse.item(step);
+        return available() && (item == Items.AIR || supplySlot(item) >= 0);
     }
 
     private int supplySlot(Item item) {
@@ -602,7 +604,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         actor.setOnGround(npc.onGround());
         Vec3 eye = actor.getEyePosition();
         if (step.remove()) {
-            return breakAim(step.pos(), eye);
+            return step.clearance() && step.pos().equals(BlockPos.containing(feet).below())
+                    ? null : breakAim(step.pos(), eye);
         }
         BuildPlan.Target target = step.target();
         for (Direction face : FACES) {
@@ -673,7 +676,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return failure("interaction_forbidden");
         }
         SimpleContainer inventory = npc.getInventory();
-        ItemStack stack = inventory.getItem(slot);
+        ItemStack stack = slot < 0 ? ItemStack.EMPTY : inventory.getItem(slot);
         actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
         try {
             if (site.survival() && step.before().requiresCorrectToolForDrops()
@@ -712,7 +715,9 @@ final class FakePlayersWorker implements ConstructionWorker {
             } finally {
                 performance.span(BuildPerformance.Span.BREAK, breakStarted);
                 RemovalEvidence.end();
-                inventory.setItem(slot, actor.getMainHandItem());
+                if (slot >= 0) {
+                    inventory.setItem(slot, actor.getMainHandItem());
+                }
             }
             ItemStack remaining = actor.getMainHandItem();
             int after = remaining.isEmpty() ? maxDamage : remaining.getDamageValue();
@@ -728,12 +733,17 @@ final class FakePlayersWorker implements ConstructionWorker {
             evidence.addProperty("mining_ticks", now - miningSince + 1);
             evidence.addProperty("face", aim.hit().getDirection().getName());
             evidence.add("drops", attempt.drops);
+            if (step.clearance()) {
+                evidence.addProperty("tool_mode", slot < 0 ? "hand" : "tool");
+                evidence.addProperty("drop_disposition", "observed_in_world");
+                evidence.addProperty("recovered_items", 0);
+            }
             String reason = null;
             if (!destroyed || attempt.rejected) {
                 reason = "break_rejected";
-            } else if (level.getBlockState(pos) != step.after()) {
+            } else if (step.affected().stream().anyMatch(cell -> level.getBlockState(cell) != step.after())) {
                 reason = "unexpected_block_state";
-            } else if (attempt.leftClicks != 1 || attempt.breakEvents != 1 || after - damage != 1) {
+            } else if (attempt.leftClicks != 1 || attempt.breakEvents != 1 || after - damage != (slot < 0 ? 0 : 1)) {
                 reason = "unverified_break_interaction";
             }
             haltAction();

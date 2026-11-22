@@ -182,6 +182,17 @@ def describe_execution(execution):
     version = execution.get("building_version", 0)
     if version:
         status = f"V{version} · {execution['processed']}/{execution['total']} · {status}"
+    if preparation := execution.get("preparation"):
+        cleared = f"{preparation['cleared']}/{preparation['total']}"
+        if preparation.get("phase") == "clear":
+            tool = {"minecraft:air": "徒手", "minecraft:iron_axe": "铁斧",
+                    "minecraft:iron_shovel": "铁铲", "minecraft:iron_pickaxe": "铁镐",
+                    "minecraft:shears": "剪刀"}.get(preparation.get("tool"), "")
+            point = preparation.get("next")
+            position = f" · {', '.join(map(str, point))}" if point else ""
+            status += f" · 清障 {cleared} · {tool}{position}"
+        elif preparation["total"]:
+            status += f" · 已清理 {cleared}"
     if execution.get("awaiting_approval"):
         status += " · 等待玩家审批"
     if execution.get("observation") == "pending":
@@ -652,9 +663,13 @@ def window(app):
                 world.set(state["world_label"] or "可选择隔离练习世界或真实世界副本")
                 site = state.get("site")
                 if site and site.get("approved"):
+                    worksite = site.get("worksite", {})
+                    modes = {"terrain": "清草与削平", "trees": "清草、削平与天然小树"}
+                    autonomy = modes.get(worksite.get("mode"), "常规审批") if worksite.get("active") else "常规审批"
                     authorization.set("施工区已批准 · " + site["dimension"] + " · 供料箱"
                                       + ("已批准" if site["warehouse_approved"] else "待批准")
-                                      + " · 区块" + ("已加载" if site["chunks_loaded"] else "未加载"))
+                                      + " · 区块" + ("已加载" if site["chunks_loaded"] else "未加载")
+                                      + " · " + autonomy)
                 elif site:
                     authorization.set("施工区和供料箱待批准 · 游戏内使用 /architect site")
                 else:

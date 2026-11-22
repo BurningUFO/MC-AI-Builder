@@ -82,9 +82,11 @@ def cache_texture(project_root: Path, library: ModelLibrary, reference: str) -> 
         finally:
             if scratch is not None:
                 scratch.unlink(missing_ok=True)
+    source_texture = f"assets/{namespace}/textures/{name}.png"
+    source = library.archives.source_for(namespace, source_texture)
     return {"file": relative.as_posix(), "sha256": digest,
-            "source_jar": library.archives.sources[namespace].path.name,
-            "source_texture": f"assets/{namespace}/textures/{name}.png"}
+            "source_jar": source.path.name,
+            "source_texture": source_texture}
 
 
 def excluded_examples(library: ModelLibrary) -> dict:
@@ -98,21 +100,34 @@ def excluded_examples(library: ModelLibrary) -> dict:
     return examples
 
 
-def build_index(root: Path, building: Building, library: ModelLibrary, choices: dict) -> dict:
+def build_index(root: Path, building: Building, library: ModelLibrary, choices: dict, *, outline_observations=False) -> dict:
     stats = building.state_counts()
     blocks = {}
     baked = {}
     references = set()
+    unrendered = []
     for state, count in sorted(stats.items(), key=lambda entry: entry[0].key):
-        if state.block_id not in blocks:
-            blocks[state.block_id] = library.archives.block_info(state.block_id) | {"count": 0, "states": []}
-        blocks[state.block_id]["count"] += count
-        blocks[state.block_id]["states"].append(state.key)
-        asset = library.bake(state)
-        references.update(face["texture"] for face in asset["faces"])
+        info = blocks.get(state.block_id)
+        try:
+            if info is None:
+                info = library.archives.block_info(state.block_id) | {"count": 0, "states": []}
+            asset = library.bake(state)
+            textures = {face["texture"] for face in asset["faces"]}
+            if outline_observations:
+                for ref in sorted(textures - references):
+                    library.texture(ref)
+        except AssetError:
+            if not outline_observations:
+                raise
+            unrendered.append(state.key)
+            continue
+        blocks[state.block_id] = info
+        info["count"] += count
+        info["states"].append(state.key)
+        references.update(textures)
         baked[state.key] = {"block_id": state.block_id, "properties": dict(state.properties),
                             "count": count, **asset}
-    return {
+    result = {
         "schema_version": 1,
         "verification_scope": "Installed JAR resources only. No live Forge registry, resource pack overrides, or runtime rendering.",
         "installation": library.archives.installation,
@@ -123,6 +138,9 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
         "textures": {ref: cache_texture(root, library, ref) for ref in sorted(references)},
         "states": baked,
     }
+    if unrendered:
+        result["unrendered_observations"] = unrendered
+    return result
 
 
 def write_materials(path: Path, catalog: dict) -> None:

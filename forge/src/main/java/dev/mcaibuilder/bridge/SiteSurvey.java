@@ -17,6 +17,7 @@ final class SiteSurvey {
     private final UUID request;
     private final UUID owner;
     private final boolean passive;
+    private final boolean autonomous;
     private JsonObject operation;
     private JsonObject status = NpcObservations.state("idle");
     private ConstructionWorker worker;
@@ -27,11 +28,12 @@ final class SiteSurvey {
     private boolean recaptured;
     private ConstructionService.CheckpointView checkpointView;
 
-    SiteSurvey(ConstructionService construction, UUID request, UUID owner, boolean passive) {
+    SiteSurvey(ConstructionService construction, UUID request, UUID owner, boolean passive, boolean autonomous) {
         this.construction = construction;
         this.request = request;
         this.owner = owner;
         this.passive = passive;
+        this.autonomous = autonomous;
     }
 
     boolean matches(UUID requestId, UUID ownerId) {
@@ -155,7 +157,7 @@ final class SiteSurvey {
                 if (!outcome.equals("captured") || !result.has("world")) {
                     String reason = result.has("capture_error") ? result.get("capture_error").getAsString()
                             : result.has("world_error") ? result.get("world_error").getAsString() : "survey_unpaired";
-                    if (passive && !recaptured && reason.equals("tick_skew")) {
+                    if ((passive || autonomous) && !recaptured && reason.equals("tick_skew")) {
                         // A slow first render in a large pack can arrive outside the pairing window.
                         // Re-sample once at the same settled pose instead of using an expired frame.
                         recaptured = true;
@@ -171,8 +173,12 @@ final class SiteSurvey {
                 status.addProperty("observation_id", frame.toString());
                 status.add("to", Wire.position(construction.observationTarget().blockPosition()));
                 if (!passive) {
-                    status.add("pads", construction.surveyPads());
-                    status.add("cottage_pads", construction.cottagePads());
+                    status.add("pads", construction.surveyPads(autonomous));
+                    status.add("cottage_pads", construction.cottagePads(autonomous));
+                    if (autonomous) {
+                        status.add("worksite_findings", construction.worksiteFindings());
+                        status.add("worksite_facts", construction.worksiteFacts());
+                    }
                 } else if (checkpointView != null) {
                     status.add("focus", Wire.position(checkpointView.focus()
                             .subtract(construction.observationTarget().blockPosition())));

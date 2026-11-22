@@ -157,6 +157,16 @@ class CodexProvider:
             raise ValueError("Survey prompt exceeds its input limit")
         return self._vision_decision(message, image, observation_id, allow_upload, self._survey_turn, "survey")
 
+    def survey_text_with_metrics(self, payload):
+        if payload.get("worksite") is not True:
+            raise InvalidOutput("The structured-only survey is for an authorized worksite")
+        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        if len(message.encode("utf-8")) > 7600:
+            raise InvalidOutput("Survey prompt exceeds its input limit")
+        metrics = {"requested_model": self.model, "requested_effort": self.effort,
+                   "status": "reserved", "context_bytes": len(message.encode("utf-8"))}
+        return self._metered(metrics, lambda: self._survey_turn(message, None, metrics), "worksite_survey")
+
     def feedback_with_metrics(self, payload, image, *, observation_id, allow_upload=False):
         message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         if len(message.encode("utf-8")) > 7600:
@@ -234,8 +244,18 @@ class CodexProvider:
         return await self._sdk_turn(scene_input(payload, image), VISION_PROMPT, SCENE_SCHEMA, decode_scene, metrics)
 
     async def _survey_turn(self, payload, image, metrics):
-        return await self._sdk_turn(scene_input(payload, image), survey.PROMPT, survey.schema(DESIGN_FIELDS),
-                                    lambda output: survey.decode(output, DESIGN_FIELDS), metrics)
+        from openai_codex import ExternalMessage
+
+        instructions = survey.PROMPT
+        worksite = json.loads(payload).get("worksite") is True
+        if worksite:
+            instructions += "\n" + survey.WORKSITE_PROMPT
+        inputs = scene_input(payload, image) if image is not None else ExternalMessage(
+            tool_name="worksite_survey", content=payload)
+        if image is None:
+            instructions += "\nUse the bounded Forge facts. No image is provided; avoid visual claims."
+        return await self._sdk_turn(inputs, instructions, survey.schema(DESIGN_FIELDS, worksite=worksite),
+                                    lambda output: survey.decode(output, DESIGN_FIELDS, worksite=worksite), metrics)
 
     async def _feedback_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),
