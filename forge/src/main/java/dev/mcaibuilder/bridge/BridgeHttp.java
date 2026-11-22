@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 final class BridgeHttp implements AutoCloseable {
-    private static final int MAX_BODY = 256 * 1024;
+    private static final int MAX_BODY = 1024 * 1024;
     private final HttpServer listener;
     private final ExecutorService io;
     private final MinecraftServer game;
@@ -167,7 +167,7 @@ final class BridgeHttp implements AutoCloseable {
                 requireMethod(method, "GET");
                 yield onGameThread(this::inbox);
             }
-            case "/architect/stage", "/architect/answer", "/architect/pause", "/architect/survey", "/architect/planning" -> {
+            case "/architect/stage", "/architect/answer", "/architect/preview", "/architect/pause", "/architect/survey", "/architect/planning" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
                 yield onGameThread(() -> switch (path) {
@@ -175,6 +175,7 @@ final class BridgeHttp implements AutoCloseable {
                     case "/architect/survey" -> architect().survey(body, observations);
                     case "/architect/planning" -> architect().planning(body, observations);
                     case "/architect/answer" -> architect().answer(body, observations);
+                    case "/architect/preview" -> architect().preview(body);
                     default -> architect().pauseRequest(body);
                 });
             }
@@ -204,11 +205,7 @@ final class BridgeHttp implements AutoCloseable {
                     if (path.equals("/reject")) {
                         return construction().reject(id);
                     }
-                    String hash = Wire.string(body.get("review_sha256"), "review_sha256");
-                    if (!hash.matches("[0-9a-f]{64}")) {
-                        throw Wire.invalid("The reviewed SHA-256 is required");
-                    }
-                    return construction().approve(id, hash);
+                    return construction().approve(id, null);
                 });
             }
             case "/build" -> {

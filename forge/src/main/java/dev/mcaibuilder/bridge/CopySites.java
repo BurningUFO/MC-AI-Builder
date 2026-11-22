@@ -91,7 +91,7 @@ final class CopySites {
         }
     }
 
-    private record Review(Permit permit, String hash, long expires) {}
+    private record Review(Permit permit, long expires) {}
     private record Active(Permit permit, ConstructionService construction, ArchitectService architect) {}
 
     CopySites(MinecraftServer game, CopyProfile copy) throws IOException {
@@ -152,6 +152,7 @@ final class CopySites {
                 tell(player, "已清空本次标记。用 pos1 和 pos2 重新选择。");
             }
             case "review" -> review(player);
+            case "area", "look" -> selectArea(player, parts);
             case "autonomy" -> autonomy(player, parts);
             case "protect" -> protect(player, parts);
             case "confirm" -> {
@@ -170,6 +171,70 @@ final class CopySites {
             case "pos1", "pos2", "spawn", "origin" -> mark(player, parts, parts[0]);
             default -> throw Wire.invalid("请用 /architect site status 查看施工区操作。");
         }
+    }
+
+    boolean naturalArea(ServerPlayer player, String text) {
+        var size = java.util.regex.Pattern.compile("^(以我为中心|围绕我|以视线为中心)\\s*(\\d+)\\s*[xX×*]\\s*(\\d+)\\s*(?:格)?[。！!]?$")
+                .matcher(text.strip());
+        if (!size.matches()) {
+            return false;
+        }
+        selectArea(player, new String[]{size.group(1).contains("视线") ? "look" : "area", size.group(2) + "x" + size.group(3)});
+        return true;
+    }
+
+    private void selectArea(ServerPlayer player, String[] command) {
+        var size = java.util.regex.Pattern.compile("(\\d+)[xX×](\\d+)").matcher(command.length > 1 ? command[1] : "30x30");
+        if (!size.matches() || command.length > 3) {
+            throw Wire.invalid("使用 /architect site area 30x30 或 /architect site look 30x30，可在最后加上高度。");
+        }
+        ServerLevel level = player.serverLevel();
+        BlockPos playerPos = player.blockPosition();
+        var hit = level.clip(new net.minecraft.world.level.ClipContext(player.getEyePosition(),
+                player.getEyePosition().add(player.getLookAngle().scale(24)),
+                net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+        BlockPos looked = hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK
+                ? hit.getBlockPos().above() : playerPos.relative(player.getDirection(), 4);
+        BlockPos center = command[0].equals("look") ? looked : playerPos;
+        int width, depth, height;
+        try {
+            width = Integer.parseInt(size.group(1));
+            depth = Integer.parseInt(size.group(2));
+            height = command.length == 3 ? Integer.parseInt(command[2]) : 32;
+            if (width < 5 || depth < 5 || height < 4 || width > 60_000_000 || depth > 60_000_000
+                    || height > level.getHeight()) {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException invalid) {
+            throw Wire.invalid("施工区宽深至少 5 格，高度至少 4 格，并需容纳在当前维度。");
+        }
+        int minY = Math.max(level.getMinBuildHeight(), Math.min(center.getY() - Math.min(6, height - 2), level.getMaxBuildHeight() - height));
+        BlockPos first = new BlockPos(center.getX() - width / 2, minY, center.getZ() - depth / 2);
+        BlockPos second = first.offset(width - 1, height - 1, depth - 1);
+        BuildSite.Box area = new BuildSite.Box(first, second);
+        if (!area.contains(playerPos)) {
+            throw Wire.invalid("请走进要标记的施工区，或使用以你为中心的区域。");
+        }
+        Selection draft = editable(player);
+        draft.first = first;
+        draft.second = second;
+        draft.origin = area.contains(looked) ? looked : center;
+        draft.rotation = rotation(player.getDirection());
+        Direction back = player.getDirection().getOpposite();
+        BlockPos nearEdge = center.relative(back, Math.min(8, (back.getAxis() == Direction.Axis.X ? width : depth) / 2 - 1));
+        draft.spawn = null;
+        for (BlockPos option : BlockPos.withinManhattan(nearEdge, 4, 4, 4)) {
+            if (area.contains(option) && area.contains(option.above()) && !option.equals(draft.origin)
+                    && !option.above().equals(draft.origin) && BuildTerrain.canStand(level, option)) {
+                draft.spawn = option.immutable();
+                break;
+            }
+        }
+        if (draft.spawn == null) {
+            throw Wire.invalid("我没找到可站立的出发点。可用 /architect site spawn 标记一个位置。");
+        }
+        review = null;
+        review(player);
     }
 
     private void show(ServerPlayer player) {
@@ -303,16 +368,14 @@ final class CopySites {
         }
         Permit permit = selection.snapshot();
         validateLive(permit, player);
+        tell(player, "批准后，Builder 可在区域内整理普通地形并施工。箱子、红石、床、传送门和标记保护区会保留。");
         if (!permit.worksite().mode().equals("manual")) {
             tell(player, "自主建设许可允许 Builder 在此区域自行清障、挖掘普通木石、取料和建造。"
                     + "箱子、机器和标记保护区需要你决定。时长 " + selection.minutes + " 分钟，保留 " + permit.worksite().protectedAreas().size()
                     + " 处保护区。");
         }
-        JsonObject hashBody = permit.json();
-        hashBody.addProperty("owner", copy.owner().toString());
-        hashBody.addProperty("copy_id", copy.id().toString());
-        review = new Review(permit, Wire.sha256(hashBody), System.currentTimeMillis() + REVIEW_LIFETIME);
-        tell(player, "施工区审阅 " + review.hash().substring(0, 16) + "。 " + summary(permit) + "。");
+        review = new Review(permit, System.currentTimeMillis() + REVIEW_LIFETIME);
+        tell(player, summary(permit) + "。");
         player.sendSystemMessage(Component.literal("[Architect] ").append(Component.literal("[批准施工区 " + permit.id() + "]")
                 .withStyle(style -> style.withColor(ChatFormatting.GREEN).withUnderlined(true)
                         .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
@@ -335,17 +398,17 @@ final class CopySites {
         persist(permit);
         deactivate();
         active = next;
-        ForgeBridge.LOGGER.info("copy_site_approved scope={} review={}", permit.id(), review.hash());
+        ForgeBridge.LOGGER.info("copy_site_approved scope={}", permit.id());
         review = null;
         selection = null;
-        tell(player, "施工区已批准。请到供料箱旁执行 /architect supply，随后可以提出建筑需求。");
+        tell(player, "施工区已批准。可以用 @Builder 提出需求，准备好附近箱子的材料后说「材料齐了」。");
     }
 
     private BuildSite site(Permit permit) {
         if (!permit.area().contains(permit.spawn()) || !permit.area().contains(permit.spawn().above())
                 || !permit.area().contains(permit.origin()) || permit.origin().equals(permit.spawn())
-                || permit.origin().equals(permit.spawn().above()) || permit.area().halo().volume() > 24_000) {
-            throw Wire.invalid("区域需容纳原点、NPC 脚下与头部，包含边缘最多 24,000 格。");
+                || permit.origin().equals(permit.spawn().above())) {
+            throw Wire.invalid("区域需容纳原点、NPC 脚下与头部。");
         }
         if (permit.worksite().protectedAreas().stream().anyMatch(protectedArea ->
                 !permit.area().contains(protectedArea.min()) || !permit.area().contains(protectedArea.max())

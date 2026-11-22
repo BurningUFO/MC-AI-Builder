@@ -49,7 +49,7 @@ final class PlacementEvidence {
         attempt.placeEvents++;
         if (event instanceof BlockEvent.EntityMultiPlaceEvent
                 || !event.getPos().equals(attempt.target.world())
-                || event.getPlacedBlock() != attempt.target.state()) {
+                || !ConstructionService.matches(event.getPlacedBlock(), attempt.target.state())) {
             event.setCanceled(true);
             attempt.rejected = true;
         }

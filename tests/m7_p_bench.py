@@ -19,7 +19,7 @@ from tests.m6_c_smoke import CopyGame, HOME as M6, ROOT, synthetic_copy
 from tests.m6_d_smoke import accept, agent
 from tests.m7_a_smoke import HOME as M7A, freeze_mob_edits, loaded, prepare_plot, review_card, stock, walkable_cells
 from tools.mcai_launcher import local_game, read_object
-from tools.world_copy import PACK_DIRS, WORLD, closed_world, copy_tree, create_copy, file_manifest, inventory
+from tools.world_copy import PACK_DIRS, WORLD, copy_tree, create_copy, file_manifest, inventory
 
 HOME = ROOT / ".cache" / "m7-p"
 PORT = 18810
@@ -62,11 +62,10 @@ def freeze_preparation(game):
     target.mkdir()
     destination = target / "saves" / "m1-construction"
     native_lock = (source_world / "session.lock").read_bytes()
-    with closed_world(source_world):
-        before = file_manifest(source_world, world=True)
-        dirs, files = inventory(source_world, world=True)
-        def minecraft_file(path):
-            return path.parts[:2] != ("data", "mcaibuilder-sites") and path.as_posix() != "data/mcaibuilder-site-authorization.json"
+    before = file_manifest(source_world, world=True)
+    dirs, files = inventory(source_world, world=True)
+    def minecraft_file(path):
+        return path.parts[:2] != ("data", "mcaibuilder-sites") and path.as_posix() != "data/mcaibuilder-site-authorization.json"
 
         for path in dirs:
             if minecraft_file(path):

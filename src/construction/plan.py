@@ -10,9 +10,15 @@ from src.core.building import Building, Position, write_json
 
 
 SCHEMA_VERSION = 1
-MAX_ACTIONS = 512
-M1_BLOCKS = frozenset(f"minecraft:{name}" for name in (
+MAX_ACTIONS = 4096
+VANILLA_BLOCKS = frozenset(f"minecraft:{name}" for name in (
     "stone", "cobblestone", "stone_bricks", "oak_planks", "spruce_planks", "dark_oak_planks",
+    "dirt", "sandstone", "smooth_sandstone", "deepslate_bricks", "bricks", "mossy_cobblestone",
+    "andesite", "polished_andesite", "terracotta", "white_terracotta", "red_terracotta", "mud_bricks",
+    "birch_planks", "jungle_planks", "acacia_planks", "mangrove_planks", "cherry_planks",
+    "oak_log", "spruce_log", "dark_oak_log", "stripped_oak_log", "stripped_spruce_log", "stripped_dark_oak_log",
+    "spruce_stairs", "dark_oak_stairs", "brick_stairs", "spruce_slab", "dark_oak_slab", "brick_slab",
+    "white_stained_glass", "green_stained_glass", "brown_stained_glass",
     "glass", "light_blue_stained_glass", "blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
 ))
 
@@ -48,7 +54,7 @@ def make_plan(
             "local": [x, y, z],
             "id": block_id,
             "properties": dict(block.state.properties),
-            "item_id": block_id if block_id in M1_BLOCKS else None,
+            "item_id": block_id if block_id in VANILLA_BLOCKS else None,
         }
         if block.block_entity is not None:
             action["block_entity"] = block.block_entity

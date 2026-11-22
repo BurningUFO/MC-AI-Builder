@@ -1,4 +1,4 @@
-"""Poll Forge, resolve structured intents and publish local review artifacts."""
+"""Keep the Builder conversation, stage plans, and render optional previews."""
 
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, closing
@@ -7,14 +7,15 @@ from functools import wraps
 import json
 from pathlib import Path
 import re
+from queue import Empty, Full, Queue
 import sqlite3
 import subprocess
-from threading import Lock
+from threading import Lock, Thread
 from time import monotonic, perf_counter_ns, sleep
 from uuid import NAMESPACE_URL, UUID, uuid5
 from zipfile import BadZipFile
 
-from src.architect.design import DESIGNS, DesignError, placement
+from src.architect.design import DESIGNS, DesignError, fitted_origin, placement, voxel_footings
 from src.architect.diagnostics import diagnose
 from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
 from src.construction.client import BridgeClient, BridgeError
@@ -64,15 +65,18 @@ class ArchitectClient(BridgeClient):
             body["plan"] = plan
         return self._call("architect/stage", body)
 
-    def answer(self, request_id, message, *, review=None, control=None, visual=False):
+    def answer(self, request_id, message, *, review=False, control=None, visual=False):
         body = {"request_id": request_id, "message": message}
-        if review is not None:
-            body["review_sha256"] = review
+        if review:
+            body["review"] = True
         if control is not None:
             body["control"] = control
         if visual:
             body["visual_answer"] = True
         return self._call("architect/answer", body)
+
+    def preview_ready(self, plan_id, player_id):
+        return self._call("architect/preview", {"plan_id": plan_id, "player_id": player_id})
 
     def pause(self, request_id):
         return self._call("architect/pause", {"request_id": request_id})
@@ -99,9 +103,11 @@ class SessionStore:
                 );
                 CREATE TABLE IF NOT EXISTS turns (
                     request_id TEXT PRIMARY KEY, player TEXT NOT NULL, message TEXT NOT NULL,
-                    action TEXT NOT NULL
+                    action TEXT NOT NULL, reply TEXT
                 );
             """)
+            if not any(row[1] == "reply" for row in db.execute("PRAGMA table_info(turns)")):
+                db.execute("ALTER TABLE turns ADD COLUMN reply TEXT")
 
     @local_db
     def design(self, db, plan_id):
@@ -132,13 +138,15 @@ class SessionStore:
 
     @local_db
     def dialog(self, db, player_id):
-        rows = db.execute("SELECT message, action FROM turns WHERE player = ? ORDER BY rowid DESC LIMIT 4",
+        rows = db.execute("SELECT message, action, reply FROM turns WHERE player = ? ORDER BY rowid DESC LIMIT 4",
                           (player_id,)).fetchall()
-        return [{"message": message, "action": action} for message, action in reversed(rows)]
+        return [{"message": message, "action": action, **({"reply": reply} if reply else {})}
+                for message, action, reply in reversed(rows)]
 
     @local_db
-    def remember(self, db, request_id, player_id, message, action):
-        db.execute("INSERT OR IGNORE INTO turns VALUES (?, ?, ?, ?)", (request_id, player_id, message, action))
+    def remember(self, db, request_id, player_id, message, action, reply=None):
+        db.execute("INSERT OR IGNORE INTO turns (request_id, player, message, action, reply) VALUES (?, ?, ?, ?, ?)",
+                   (request_id, player_id, message, action, reply))
 
     def directory(self, plan_id):
         return self.root / str(UUID(plan_id))
@@ -159,11 +167,7 @@ def safe_message(text: str, redactions=()) -> str:
 def describe_supply(supply, *, approval=False):
     if not supply or supply.get("mode") != "survival":
         return "当前使用隔离测试材料。"
-    if supply.get("warehouse_approved") is False:
-        return "请先批准一个原版供料箱。"
-    if supply.get("reason"):
-        return "供料箱暂不可用，请核对获准的箱子。"
-    rows = supply["requirements"]
+    rows = supply.get("requirements", {})
 
     def quantities(key):
         return "、".join(f"{item.removeprefix('minecraft:')} ×{row[key]}"
@@ -172,9 +176,15 @@ def describe_supply(supply, *, approval=False):
 
     required = quantities("required") or "无剩余材料需求"
     short = quantities("missing")
+    if not rows and not supply.get("warehouse_approved"):
+        return "准备好后，把材料放进附近箱子或木桶，再叫我来盘点。"
+    if not supply.get("warehouse_approved") and rows:
+        return f"需要 {required}。把材料放进附近箱子或木桶，跟我说「材料齐了」，我就去盘点。"
     if approval:
-        return required + (f"。缺料 {short}，需玩家补给" if short else "。获准库存可满足")
-    return f"剩余需求 {required}。" + (f"缺料 {short}。请补入同一个供料箱。" if short else "当前无材料缺口。")
+        return required + (f"。还差 {short}" if short else "。附近库存够用")
+    if supply.get("reason") == "warehouse_unreachable":
+        return "我暂时走不到存放下一批材料的容器。能把材料挪到附近容易走到的箱子吗？"
+    return f"还差 {short}。补到附近的箱子后告诉我一声。" if short else "附近库存够用。"
 
 
 class Runtime:
@@ -191,7 +201,9 @@ class Runtime:
         self.observation_cache = Path(__file__).resolve().parents[2] / ".cache" / "observations" / store.root.parent.name
         if parallel_planning and not callable(getattr(provider, "plan_with_metrics", None)):
             raise ValueError("Parallel planning requires a structured planning provider.")
-        self.render_lock = Lock()
+        self.preview_queue = Queue(maxsize=8)
+        self.preview_lock = Lock()
+        self.preview_thread = None
         self.trace = Trace(store.root / "performance.jsonl")
         self.redactions = (client.token, getattr(provider, "key", None))
 
@@ -204,12 +216,16 @@ class Runtime:
         context = {key: request[key] for key in ("dimension", "position", "facing", "suggested_origin",
                                                  "approved_area", "ground_near_anchor")}
         context["message"] = message
+        for key in ("phase", "event", "sites"):
+            if key in request:
+                context[key] = request[key]
         context["recent"] = self.store.dialog(self.conversation_key(request))
         if "available_mod_blocks" in request:
             context["available_mod_blocks"] = sorted(request["available_mod_blocks"])
         if "supply" in request:
             supply = request["supply"]
-            context["supply"] = {key: supply[key] for key in ("mode", "warehouse_approved")}
+            context["supply"] = {key: supply[key] for key in ("mode", "warehouse_approved", "containers",
+                                                              "requirements", "reason") if key in supply}
         job = request.get("job")
         visible = request.get("draft") or job
         if job is not None:
@@ -231,6 +247,8 @@ class Runtime:
             context["position"] = relative(context["position"])
             context["suggested_origin"] = [0, 0, 0]
             context["approved_area"] = {key: relative(position) for key, position in context["approved_area"].items()}
+            if "sites" in context:
+                context["sites"] = [{**option, "origin": relative(option["origin"])} for option in context["sites"]]
             if "design" in context:
                 context["design"]["origin"] = relative(context["design"]["origin"])
         return context
@@ -249,10 +267,14 @@ class Runtime:
         request_id = request["request_id"]
         message = scrub(request["message"], self.redactions)
         action = "error"
+        reply = None
         try:
             prepared = self.store.design(self.proposal_id(request_id))
-            if request.get("retry_worksite"):
-                self.review(request_id, "review")
+            if request.get("event") == "supply_update":
+                reply = self.material_reply(request, message)
+                action = "get_material_status"
+            elif request.get("retry_worksite"):
+                self.review(request_id, "review", player_id=request["player_id"])
                 action = "preview_design"
             elif request.get("feedback"):
                 action = feedback.check(self, request, message, prepared=prepared,
@@ -269,10 +291,10 @@ class Runtime:
                         action = "worksite_question" if request.get("worksite") else "unsuitable"
                     else:
                         spec = self.design(request, intent)
-                        self.review(request_id, "new", spec["plan"], observation_reason=reason)
+                        self.review(request_id, "new", spec["plan"], observation_reason=reason, player_id=request["player_id"])
                         action = intent["action"]
                 else:
-                    self.review(request_id, "new", prepared["plan"])
+                    self.review(request_id, "new", prepared["plan"], player_id=request["player_id"])
                     action = prepared["action"]
             elif prepared is None:
                 context = self.language_context(request, message)
@@ -282,8 +304,8 @@ class Runtime:
             else:
                 action = prepared["action"]
                 intent = {"action": action}
-            if not any(request.get(flag) for flag in ("survey", "feedback", "retry_worksite")):
-                self.dispatch(request, intent, prepared)
+            if not any(request.get(flag) for flag in ("survey", "feedback", "retry_worksite", "event")):
+                reply = self.dispatch(request, intent, prepared)
         except BridgeError as error:
             code = error.body.get("error") or "bridge_error"
             diagnostic = self.record_diagnostic(code)
@@ -300,12 +322,23 @@ class Runtime:
                       ModelBudgetExhausted: "model_budget_exhausted"}.get(type(error), "model_unavailable")
             self.client.answer(request_id, self.record_diagnostic(action).recovery)
         except (subprocess.SubprocessError, BadZipFile, FileNotFoundError, ValueError):
-            action = "preview_error"
-            recovery = self.record_diagnostic(action).recovery
-            if request.get("worksite"):
-                recovery += "修复预览后可用 /architect work retry 复核同一方案。"
-            self.client.answer(request_id, recovery)
-        self.store.remember(request_id, self.conversation_key(request), message, action)
+            action = "design_error"
+            reply = "这次没能整理出可施工的方案。可以再说一下你想保留的尺寸、材料或位置。"
+            self.client.answer(request_id, reply)
+        self.store.remember(request_id, self.conversation_key(request), message, action, reply)
+
+    def material_reply(self, request, message):
+        supply = request.get("supply", {})
+        opening = ""
+        try:
+            intent = parse_intent(self.provider.decide(self.language_context(request, message)))
+            if intent["action"] == "get_material_status":
+                opening = safe_message(intent.get("message", ""), self.redactions)
+        except ModelError:
+            pass
+        reply = safe_message(" ".join(filter(None, (opening, describe_supply(supply)))), self.redactions)
+        self.client.answer(request["request_id"], reply)
+        return reply
 
     def record_diagnostic(self, code):
         info = diagnose(code)
@@ -331,7 +364,7 @@ class Runtime:
         if action == "revise_design":
             visible = request.get("draft") or request.get("job")
             if visible is None:
-                raise DesignError("请先设计一面窗墙或一栋住宅。")
+                raise DesignError("请先告诉我你想从哪一份建筑方案开始。")
             prior = self.store.design(visible.get("plan_id") or visible["job_id"])
             if prior is None:
                 raise DesignError("找不到本地设计参数，请重新发起设计。")
@@ -362,6 +395,16 @@ class Runtime:
         if request.get("survey"):
             origin = tuple(base + offset for base, offset in zip(request["suggested_origin"], intent["origin"], strict=True))
             rotation = intent["rotation"]
+        elif kind == "voxel" and prior is None:
+            site_context = request
+            if "site_authorization" in request and isinstance(intent.get("origin"), list):
+                intent = {**intent, "origin": [a + b for a, b in zip(request["suggested_origin"], intent["origin"], strict=True)]}
+            origin, rotation = placement(intent, site_context, None, False)
+            if "origin" not in intent:
+                origin = fitted_origin(building, request, rotation)
+        elif kind == "voxel":
+            origin, rotation = placement({"origin": prior["plan"]["origin"], "rotation": prior["plan"]["rotation"]},
+                                         request, prior["plan"], True)
         elif "site_authorization" in request:
             rotation = request["site_rotation"]
             if intent.get("origin") not in (None, "here", [0, 0, 0]) or intent.get("rotation") not in (None, "here", rotation):
@@ -372,32 +415,21 @@ class Runtime:
         else:
             origin, rotation = placement(intent, request, prior["plan"] if prior else None,
                                          action == "revise_design" and locked)
+        if kind == "voxel":
+            footing = voxel_footings(building, request.get("sites", ()), origin, rotation,
+                                     prior=prior.get("footing", []) if prior else None)
         worksite_order = intent.get("_worksite_order") if request.get("worksite") else None
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
                                   building, origin, rotation, parameters, action, kind=kind, footing=footing,
                                   worksite_order=worksite_order)
         return spec
 
-    def review(self, request_id, mode, plan=None, *, observation_reason=""):
+    def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message=""):
         with timed("bridge_review"):
             report = self.client.stage(request_id, mode, plan)
         version = report["new_version"]
         plan_id = version["plan_id"]
         self.trace.emit("proposal", request_id=request_id, plan_id=plan_id, building_version=version["building_version"])
-        digest = report["review_sha256"]
-        if not re.fullmatch(r"[a-f0-9]{64}", digest):
-            raise ValueError("Bridge returned an invalid review hash")
-        folder = self.store.directory(plan_id) / digest[:16]
-        folder.mkdir(parents=True, exist_ok=True)
-        report_file = folder / "review.json"
-        previews = ("revision-review.blend", "proposed.png", "proposed-rear.png")
-        if version["building_id"].startswith("cottage_"):
-            previews += ("proposed-interior.png",)
-        with self.render_lock:
-            if not all((folder / name).is_file() for name in previews):
-                write_json(report_file, report)
-                with timed("blender_review", plan_id=plan_id):
-                    self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
         counts = report["counts"]
         materials = {}
         for row in report["changes"]:
@@ -405,11 +437,10 @@ class Runtime:
                 material = row["desired"]["id"].removeprefix("minecraft:")
                 materials[material] = materials.get(material, 0) + 1
         details = "、".join(f"{kind} ×{count}" for kind, count in sorted(materials.items())) or "无需新增材料"
-        reasons = {"occupied_target": "已有方块", "missing_terrain_support": "缺少支撑",
-                   "unsafe_site_boundary": "边缘有敏感方块", "terrain_effect_outside_scope": "会覆盖区域外的草方块",
-                   "protected_facility": "保护设施", "protected_area": "玩家保护区", "player_structure": "玩家改动",
-                   "outside_effect": "可能影响范围外或保护对象", "unsafe_interaction": "原生挖掘不可用",
-                   "hazardous_terrain": "液体或危险地形", "worksite_preparation_changed": "清理现场已变化"}
+        reasons = {"protected_facility": "保护设施", "protected_area": "玩家保护区",
+                   "outside_effect": "可能影响范围外方块", "outside_worksite": "超出施工区",
+                   "hazardous_terrain": "液体或危险地形", "site_not_loaded": "区块尚未加载",
+                   "terrain_effect_outside_scope": "会覆盖区域外的草方块"}
         conflicts = [str(tuple(row["world"])) + reasons.get(row.get("reason"), "")
                      for row in report["changes"] if row["category"] == "conflict"][:3]
         if "supply" in report:
@@ -424,44 +455,83 @@ class Runtime:
             groups = "、".join(f"{labels[kind]} {count}" for kind, count in summary.items())
             reason += "。现场准备 " + (groups or "无需清理")
         observed = safe_message(observation_reason, self.redactions)[:160].rstrip("。.!！")
-        prefix = f"现场判断 {observed}。 " if observed else ""
-        self.client.answer(request_id, prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
-                           f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
-                           f"冲突 {counts['conflict']}。材料 {details}{reason}。",
-                           review=digest)
+        opening = safe_message(proposal_message, self.redactions)
+        prefix = f"{opening} " if opening else ""
+        if observed:
+            prefix += f"现场判断 {observed}。 "
+        reply = safe_message(prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
+                             f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
+                             f"保护对象 {counts['conflict']}。材料 {details.rstrip('。')}{reason}。", self.redactions)
+        self.client.answer(request_id, reply, review=True)
+        self.queue_preview(report, player_id)
+        return reply
+
+    def queue_preview(self, report, player_id):
+        with self.preview_lock:
+            try:
+                self.preview_queue.put_nowait((report, player_id))
+            except Full:
+                return
+            if self.preview_thread is None:
+                self.preview_thread = Thread(target=self.render_previews, name="architect-preview", daemon=True)
+                self.preview_thread.start()
+
+    def render_previews(self):
+        while True:
+            with self.preview_lock:
+                try:
+                    report, player_id = self.preview_queue.get_nowait()
+                except Empty:
+                    self.preview_thread = None
+                    return
+            plan_id = report["new_version"]["plan_id"]
+            try:
+                folder = self.store.directory(plan_id)
+                report_file = folder / "review.json"
+                write_json(report_file, report)
+                if self.blender is not None:
+                    with self.trace.bind(plan_id=plan_id), timed("blender_review"):
+                        if not (folder / "proposed.png").is_file():
+                            self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
+                    if player_id is not None and (folder / "proposed.png").is_file():
+                        self.client.preview_ready(plan_id, player_id)
+            except Exception as error:
+                self.trace.emit("preview_background_failure", plan_id=plan_id, error_type=type(error).__name__)
 
     def dispatch(self, request, intent, prepared):
         request_id = request["request_id"]
         action = intent["action"]
         if action in DESIGN:
             spec = prepared or self.design(request, intent)
-            self.review(request_id, "new" if action == "create_design" else "revise", spec["plan"])
+            return self.review(request_id, "new" if action == "create_design" else "revise", spec["plan"],
+                               player_id=request["player_id"], proposal_message=intent.get("message", ""))
         elif action in PREVIEW_ACTIONS:
-            self.review(request_id, "review")
-        elif action in STATUS_ACTIONS:
+            return self.review(request_id, "review", player_id=request["player_id"])
+        if action in STATUS_ACTIONS:
             job = request.get("job")
-            text = (f"V{job['building_version']} {job['state']}，已处理 {job['processed']}/{job['total']} 步。"
-                    if job else "当前没有属于你的施工任务。")
-            if job and job.get("reason"):
-                reason = job["reason"]
-                text += f" [{reason}] " + diagnose(reason).recovery
-            self.client.answer(request_id, text)
+            phases = {"running": "施工中", "paused": "已暂停", "completed": "已完工", "cancelled": "已取消", "failed": "需要检查"}
+            text = (f"V{job['building_version']} {phases.get(job['state'], '准备中')}，"
+                    f"已完成 {job['processed']}/{job['total']} 步。" if job else "我还没有在建的项目。")
+            if job and job.get("reason") and job["reason"] != "awaiting_materials":
+                text += " " + diagnose(job["reason"]).recovery
         elif action == "get_capabilities":
-            self.client.answer(request_id, "我是 MC Builder。我能设计窗墙和单层住宅、生成 Blender 预览、"
-                               "检查材料和施工进度。你批准具体方案后，我会施工，也能暂停并按新方案改建。")
+            text = "我能和你选址、设计建筑、盘点附近的材料，等你批准后动手施工。也可以边聊边改图。"
         elif action == "get_material_status":
-            self.client.answer(request_id, describe_supply(request.get("supply", {})))
+            text = describe_supply(request.get("supply", {}))
         elif action == "get_world_context":
-            self.client.answer(request_id, f"维度 {request['dimension']}，当前位置 {tuple(request['position'])}，"
-                               f"建议原点 {tuple(request['suggested_origin'])}，朝向 {request['facing']}。")
+            text = f"我建议从 {tuple(request['suggested_origin'])} 开始勘察。"
         elif action == "pause_construction":
             self.client.pause(request_id)
-            self.client.answer(request_id, "施工已暂停。")
+            text = "我先停下来，等你下一步安排。"
         elif action in ("request_resume", "request_cancel"):
             verb = action.removeprefix("request_")
-            self.client.answer(request_id, "请点击操作以确认。", control=verb)
+            self.client.answer(request_id, "请点击按钮确认。", control=verb)
+            return "请点击按钮确认。"
         else:
-            self.client.answer(request_id, safe_message(intent["message"], self.redactions))
+            text = ""
+        reply = safe_message(" ".join(filter(None, (intent.get("message"), text))), self.redactions)
+        self.client.answer(request_id, reply)
+        return reply
 
     def run(self, should_stop=lambda: False):
         self.trace.start()

@@ -45,8 +45,9 @@ def main():
         else:
             provider = FixtureProvider()
         storage = SessionStore(config.parent.parent / "architect-previews")
+        blender = options.blender.resolve() if options.blender.is_file() else None
         runtime = Runtime(client, provider, storage, options.instance.resolve(strict=True),
-                          options.blender.resolve(strict=True), share_observations=options.share_observations,
+                          blender, share_observations=options.share_observations,
                           parallel_planning=options.planning)
         print(f"Architect runtime ready ({options.provider})", flush=True)
         runtime.run(options.stop_file.is_file if options.stop_file else lambda: False)

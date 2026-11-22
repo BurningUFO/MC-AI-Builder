@@ -31,11 +31,12 @@ from src.architect import feedback, survey
 DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "medium"
 REASONING_EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
-MAX_CONTEXT_BYTES = 4096
-MAX_RESPONSE_BYTES = 8192
+MAX_CONTEXT_BYTES = 20000
+MAX_RESPONSE_BYTES = 32768
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
     "ground_near_anchor", "fixed_site", "construction", "design", "supply", "available_mod_blocks",
+    "phase", "event", "sites",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 
@@ -52,12 +53,32 @@ DESIGN_FIELDS = {
        for key, values in (("entry", ENTRIES), ("windows", WINDOW_LAYOUTS), ("roof_form", ROOF_FORMS),
                            ("interior", INTERIORS), ("roof", tuple(dict.fromkeys((*ROOFS, *COTTAGE_ROOFS)))))},
 }
+POINT = {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3}
+MODULE_FIELDS = {
+    "mode": {"type": "string", "enum": ["fill", "shell", "erase"]},
+    "from": POINT, "to": POINT,
+    "block": {"type": ["string", "null"]},
+    "properties": {
+        "type": ["object", "null"],
+        "properties": {key: {"type": ["string", "null"]} for key in ("axis", "facing", "half", "type")},
+        "required": ["axis", "facing", "half", "type"], "additionalProperties": False,
+    },
+}
+INTENT_DESIGN_FIELDS = {
+    **DESIGN_FIELDS,
+    "name": {"type": ["string", "null"]},
+    "overlay": {"type": ["boolean", "null"]},
+    "modules": {"type": ["array", "null"], "items": {
+        "type": "object", "properties": MODULE_FIELDS,
+        "required": list(MODULE_FIELDS), "additionalProperties": False,
+    }},
+}
 FIELDS = {
     "action": {"type": "string", "enum": sorted(ACTIONS)},
     "kind": {"type": ["string", "null"], "enum": [*DESIGNS, None]},
     "changes": {
-        "type": ["object", "null"], "properties": DESIGN_FIELDS,
-        "required": list(DESIGN_FIELDS), "additionalProperties": False,
+        "type": ["object", "null"], "properties": INTENT_DESIGN_FIELDS,
+        "required": list(INTENT_DESIGN_FIELDS), "additionalProperties": False,
     },
     "base_version": {"type": ["integer", "null"]},
     "origin": {"anyOf": [
@@ -79,7 +100,8 @@ INTENT_SCHEMA = {
 def context_message(context: dict) -> str:
     payload = {key: context[key] for key in CONTEXT_KEYS if key in context}
     recent = context.get("recent", [])[-4:]
-    payload["recent"] = [{"message": row["message"], "action": row["action"]} for row in recent]
+    payload["recent"] = [{key: row[key] for key in ("message", "action", "reply") if key in row}
+                         for row in recent if len(row.get("message", "")) <= 240]
     while True:
         encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         if len(encoded.encode("utf-8")) <= MAX_CONTEXT_BYTES:
@@ -98,11 +120,14 @@ def decode_intent(output: str) -> dict:
             raise ValueError("Unexpected intent fields")
         normalized = {key: value for key, value in raw.items() if value is not None}
         if isinstance(normalized.get("changes"), dict):
-            if set(normalized["changes"]) - DESIGN_FIELDS.keys():
+            if set(normalized["changes"]) - INTENT_DESIGN_FIELDS.keys():
                 raise ValueError("Unexpected building fields")
             normalized["changes"] = {key: value for key, value in normalized["changes"].items() if value is not None}
+            for module in normalized["changes"].get("modules", ()):
+                if isinstance(module.get("properties"), dict):
+                    module["properties"] = {key: value for key, value in module["properties"].items() if value is not None}
         return parse_intent(normalized)
-    except (TypeError, ValueError, RecursionError):
+    except (AttributeError, TypeError, ValueError, RecursionError):
         raise InvalidOutput("Invalid structured Codex intent") from None
 
 
@@ -254,8 +279,8 @@ class CodexProvider:
             tool_name="worksite_survey", content=payload)
         if image is None:
             instructions += "\nUse the bounded Forge facts. No image is provided; avoid visual claims."
-        return await self._sdk_turn(inputs, instructions, survey.schema(DESIGN_FIELDS, worksite=worksite),
-                                    lambda output: survey.decode(output, DESIGN_FIELDS, worksite=worksite), metrics)
+        return await self._sdk_turn(inputs, instructions, survey.schema(INTENT_DESIGN_FIELDS, worksite=worksite),
+                                    lambda output: survey.decode(output, INTENT_DESIGN_FIELDS, worksite=worksite), metrics)
 
     async def _feedback_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),

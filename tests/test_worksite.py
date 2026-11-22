@@ -30,7 +30,7 @@ class WorksiteTest(unittest.TestCase):
         ):
             with self.subTest(item=item), self.assertRaises(ValueError):
                 worksite_findings([{**item, "count": 2}])
-        for bad in ({"soil": 513}, {"protected_facility": 1}, {"leaves": True}):
+        for bad in ({"soil": 16_385}, {"protected_facility": 1}, {"leaves": True}):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 clearance_counts(bad)
         self.assertEqual(clearance_counts({"vegetation": 16, "soil": 2}), {"vegetation": 16, "soil": 2})

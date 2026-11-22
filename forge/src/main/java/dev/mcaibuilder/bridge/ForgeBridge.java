@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -22,6 +23,8 @@ import java.io.IOException;
 public final class ForgeBridge {
     public static final String MOD_ID = "mcaibuilder";
     static final Logger LOGGER = LogUtils.getLogger();
+    private static final java.util.regex.Pattern BUILDER_MENTION =
+            java.util.regex.Pattern.compile("(?i)^@builder(?:\\s+|$)");
 
     private MinecraftServer server;
     private BridgeHttp http;
@@ -34,6 +37,7 @@ public final class ForgeBridge {
     public ForgeBridge() {
         MinecraftForge.EVENT_BUS.addListener(this::started);
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
+        MinecraftForge.EVENT_BUS.addListener(this::chat);
         MinecraftForge.EVENT_BUS.addListener(this::tick);
         MinecraftForge.EVENT_BUS.addListener(this::stopping);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerPlace);
@@ -52,12 +56,52 @@ public final class ForgeBridge {
         return copy == null ? architect : copy.architect();
     }
 
+    private void chat(ServerChatEvent event) {
+        String input = event.getRawText().strip();
+        var mention = BUILDER_MENTION.matcher(input);
+        boolean addressed = mention.find();
+        ServerPlayer player = event.getPlayer();
+        MinecraftServer game = player.serverLevel().getServer();
+        if (addressed) {
+            event.setCanceled(true);
+            String message = input.substring(mention.end());
+            game.execute(() -> deliverChat(player, message));
+        } else if (ArchitectService.isPublicReply(input)) {
+            // Forge can emit chat off-thread. Check the active session on the world thread.
+            boolean handled = game.isSameThread() ? publicReply(player, input)
+                    : game.submit(() -> publicReply(player, input)).join();
+            if (handled) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    private boolean publicReply(ServerPlayer player, String input) {
+        ArchitectService service = architect();
+        if (service == null || !service.handlesPublicChat(player, input)) {
+            return false;
+        }
+        deliverChat(player, input);
+        return true;
+    }
+
+    private void deliverChat(ServerPlayer player, String message) {
+        try {
+            architectCommand(player, message, true);
+        } catch (Wire.Problem problem) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[Architect] " + problem.getMessage()));
+        }
+    }
+
     private void architectCommand(ServerPlayer player, String message, boolean natural) {
         if (copy != null) {
             if (!copy.owns(player)) {
                 throw new Wire.Problem(403, "site_forbidden", "需要由副本中的原存档玩家操作。");
             }
             String[] input = message.strip().split("\\s+", 2);
+            if (natural && copy.naturalArea(player, message)) {
+                return;
+            }
             if (!natural && input[0].equals("site")) {
                 copy.command(player, input.length == 2 ? input[1] : "");
                 return;

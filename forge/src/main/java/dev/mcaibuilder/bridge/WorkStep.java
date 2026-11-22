@@ -21,7 +21,7 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove, bool
     }
 
     BlockPos secondary() {
-        return clearance && Clearance.pairedPlant(before) ? pos().above() : null;
+        return clearance && Clearance.pairedPlant(before) && !Clearance.upperHalf(before) ? pos().above() : null;
     }
 
     List<BlockPos> affected() {
@@ -68,10 +68,9 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove, bool
         BlockState after = Wire.readState(Wire.object(data.get("expected"), "expected"));
         return switch (operation) {
             case "clear" -> {
-                if (!site.worldCopy() || site.worksite().mode().equals("manual") || before.isAir()
-                        || before.hasBlockEntity() || !before.getFluidState().isEmpty()
-                        || Clearance.kind(before).equals("unknown") || Clearance.upperHalf(before)
-                        || Clearance.pairedPlant(before) && !site.canBuildAt(pos.above())
+                if (before.isAir() || Clearance.managed(before) || !before.getFluidState().isEmpty()
+                        || Clearance.kind(before).equals("unknown")
+                        || Clearance.pairedPlant(before) && !Clearance.upperHalf(before) && !site.canBuildAt(pos.above())
                         || after != Blocks.AIR.defaultBlockState()) {
                     throw Wire.invalid("Unsafe clearance in the journal");
                 }

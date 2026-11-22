@@ -45,9 +45,8 @@ def main() -> int:
     propose.add_argument("plan", type=Path)
     propose.add_argument("--output", type=Path)
     commands.add_parser("change", help="read the current world-backed change report").add_argument("--output", type=Path)
-    approve = commands.add_parser("approve", help="approve the exact reviewed report")
+    approve = commands.add_parser("approve", help="approve the current proposed version")
     approve.add_argument("change_id")
-    approve.add_argument("--review-hash", required=True)
     commands.add_parser("reject").add_argument("change_id")
     commands.add_parser("versions", help="list registered versions and archived jobs").add_argument("--output", type=Path)
     preview = commands.add_parser("preview-change", help="open the observed and proposed states in Blender")
@@ -90,7 +89,7 @@ def main() -> int:
         elif args.command == "change":
             result = client.change()
         elif args.command == "approve":
-            result = client.approve(args.change_id, args.review_hash)
+            result = client.approve(args.change_id)
         elif args.command == "reject":
             result = client.reject(args.change_id)
         elif args.command == "versions":

@@ -71,7 +71,7 @@ def check(runtime, request, message, *, safe, prepared=None):
             or not hasattr(runtime.provider, "feedback_with_metrics")):
         raise DesignError("视觉复查不可用。请检查施工状态和图像共享设置，再由玩家确认下一步。")
     if prepared is not None:
-        runtime.review(request_id, "revise", prepared["plan"])
+        runtime.review(request_id, "revise", prepared["plan"], player_id=request["player_id"])
         return "revise_design"
 
     spec = runtime.store.design(current["job_id"])
@@ -144,7 +144,7 @@ def check(runtime, request, message, *, safe, prepared=None):
                                        "base_version": current["building_version"], "changes": result["changes"]})
                 draft = runtime.design(request, intent)
                 trace["phase"] = "REVIEW"
-                runtime.review(request_id, "revise", draft["plan"], observation_reason=reason)
+                runtime.review(request_id, "revise", draft["plan"], observation_reason=reason, player_id=request["player_id"])
                 return "revise_design"
             if event == "final":
                 trace["phase"] = "VERIFY"

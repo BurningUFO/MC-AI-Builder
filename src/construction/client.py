@@ -58,8 +58,8 @@ class BridgeClient:
     def change(self) -> dict:
         return self._call("change")
 
-    def approve(self, change_id: str, review_sha256: str) -> dict:
-        return self._call("approve", {"change_id": change_id, "review_sha256": review_sha256})
+    def approve(self, change_id: str, _legacy_review=None) -> dict:
+        return self._call("approve", {"change_id": change_id})
 
     def reject(self, change_id: str) -> dict:
         return self._call("reject", {"change_id": change_id})

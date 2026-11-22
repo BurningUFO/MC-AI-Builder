@@ -1,16 +1,19 @@
 # Minecraft AI Builder
 
-用 Minecraft 方块坐标、注册 ID 和状态描述建筑，支持在 Blender 里审阅模型，并通过 Forge Bridge 让 Fake Players NPC 在游戏里施工。
+MC Builder 是 Minecraft Java 1.20.1 Forge 的建筑伙伴。它能根据附近地形提出体素方案，跟玩家商量改图和材料，并由 Fake Players NPC 在游戏里施工。Blender 预览可选，完成时会把图片链接发到游戏聊天。
 
-M1 在 Minecraft Java 1.20.1 和 Forge 47.4.20 中实测完成了 30 块窗墙。Python 提交施工计划，NPC 寻路并使用库存中的物品逐块放置。Bridge 提供进度查询、暂停、恢复、取消和完工回读。
+## 在游戏里使用
 
-M2 支持同一个 NPC 在施工中暂停并审阅新版本。批准后执行真实拆换与补建，保存重开后检查世界和库存再恢复。
+1. 在真实世界副本里用 `/architect site area 30x30` 或 `@Builder 以我为中心 30x30` 标记工作区，再点聊天里的「批准施工区」。`/architect site look 30x30` 以视线为中心。两个命令都支持在尺寸后指定高度。
+2. 说 `@Builder 帮我在眼前这块地盖一个带烟囱的小木屋，用深色橡木风格`。Builder 会给出方案和耗材。可以继续讨论改图，也可以回复「建吧」「可以」「批准」或点击批准。
+3. 把材料放进附近的箱子、大箱子或木桶，再说「材料齐了」，也可使用 `/architect supply`。Builder 会盘点施工区及共享位置周围 16 格，按需搬运。缺料时会列出缺口，补齐后告诉它即可继续。
+4. Builder 可以在批准区域内清理普通地形、回收掉落物和拆除自己的临时垫脚块。容器、红石、床、传送门和用 `/architect site protect` 标记的位置受保护。施工中可用 `/architect pause`、`/architect resume` 或 `/architect cancel`。
 
 ## Windows 双击启动
 
 双击 **Start MC AI Builder.cmd**，等隔离 Minecraft 练习世界与 Agent 显示已连接。用 `@Builder` 发送需求，或按 **Alt+B** 开启对话模式。建筑预览和审批会在游戏聊天中显示。 [三步体验指南](docs/m5-a-guide.md) · [验收记录](docs/m5-a-validation.md)
 
-在启动器点 **选择世界** 可复制现有 BMC4 单人存档。进入 D 盘副本后，用游戏命令批准施工区、NPC 出生点、建筑原点和供料箱。 [真实世界副本指南](docs/m5-b-guide.md) · [真实地形验收记录](docs/m5-b-validation.md)
+在启动器点 **选择世界** 可复制现有 BMC4 单人存档。进入 D 盘副本后，可以在游戏里用区域命令同时选出施工范围、出发点和建筑原点。 [真实世界副本指南](docs/m5-b-guide.md) · [真实地形验收记录](docs/m5-b-validation.md)
 
 M6 支持 NPC 第一人称主动观察及施工复查。使用 `/architect survey` 根据地形设计，或用 `/architect supervise` 在半程、异常和完工时复查。模型发出的修改候选仍需在游戏中批准。 [M6 游戏内体验指南](docs/m6-guide.md) · [施工闭环验收](docs/m6-d-validation.md)
 
@@ -31,25 +34,20 @@ M7-Q 可在已签署自主许可的 BMC4 副本工作区中批量清除普通植
 ~~~powershell
 py -3.13 -m venv .venv
 $instance = '<PCL 的 BMC4 版本目录>'
-& .\tools\m1.ps1 Build
-& .\tools\m1.ps1 Smoke -SourceInstance $instance
-& .\tools\m1.ps1 M2Smoke -SourceInstance $instance
+$java = '<Java 17 JDK 目录>'
+& .\tools\m1.ps1 Build -JavaHome $java
+& .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
+& .\.venv\Scripts\python.exe -m tests.companion_smoke --java-home $java --source-instance $instance
 ~~~
 
-首次构建会下载 Gradle、Forge 开发依赖和 Fake Players 3.0.0。脚本用本机的 Minecraft 运行库在 `mc-test` 下创建独立测试世界，保存截图、逐块结果和游戏日志。
+Forge 实测会创建隔离的生存测试世界，覆盖公屏审批、多容器取料、缺料后继续、保护资产、临时脚手架和完工验收。首次构建需要 Gradle、Forge 开发依赖和 Fake Players 3.0.0。
 
-- [详细运行说明、手动演示和 Blender 流程](docs/README.md)
-- [执行机制、游戏内验收和 BMC4 隔离复测](docs/m1-validation.md)
-- [样例建筑数据](projects/m1_wall/building.json) · [施工计划](projects/m1_wall/construction-plan.json)
-- [M2 动态修改与施工协调计划](docs/m2-plan.md)
+早期里程碑的 [运行说明和历史验证记录](docs/README.md) 保留了各版本当时使用的命令和验收方式。
 
-- [M2 游戏内验收](docs/m2-validation.md) · [窗墙 V1/V2 样例](projects/m2_wall) · [施工差异报告](projects/m2_wall/change-example.json)
-- [M3 任务规划](docs/m3-plan.md)
-
-## 游戏内建筑师
+## 游戏内建筑师的早期版本
 
 M3 增加 `/architect`、独立 Python Runtime、参数化窗墙与游戏内审批。确定性后端可复现从设计到增量施工的流程。真实模型可用标准 HTTP 接口，或由官方 Codex SDK 复用本机 ChatGPT 登录。 [启动与体验](docs/m3-guide.md) · [验收与证据](docs/m3-validation.md) · [M4 规划](docs/m4-plan.md)
 
-## 生存施工
+## 生存施工的早期版本
 
 M4 允许玩家批准实际供料箱，NPC 分批搬运并使用箱内物品施工。缺料、工具损坏和检查点冲突会暂停任务。BMC4 支持经过实测的 Chipped 与 Quark 建筑方块。 [启动与演示](docs/m4-guide.md) · [验收记录](docs/m4-validation.md)

@@ -1,10 +1,7 @@
 package dev.mcaibuilder.bridge;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.FakePlayer;
@@ -14,7 +11,9 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Mod.EventBusSubscriber(modid = ForgeBridge.MOD_ID)
 final class RemovalEvidence {
@@ -23,8 +22,7 @@ final class RemovalEvidence {
     private final FakePlayer actor;
     private final BlockPos position;
     private final BlockState before;
-    private final boolean clearance;
-    final JsonArray drops = new JsonArray();
+    final List<ItemEntity> drops = new ArrayList<>();
     int leftClicks;
     int breakEvents;
     boolean rejected;
@@ -33,7 +31,6 @@ final class RemovalEvidence {
         this.actor = actor;
         position = step.pos();
         before = step.before();
-        clearance = step.clearance();
     }
 
     static RemovalEvidence begin(FakePlayer actor, WorkStep step) {
@@ -72,14 +69,7 @@ final class RemovalEvidence {
         RemovalEvidence attempt = ACTIVE.get();
         if (attempt != null && event.getLevel() == attempt.actor.level() && event.getEntity() instanceof ItemEntity drop
                 && drop.position().distanceToSqr(Vec3.atCenterOf(attempt.position)) <= 2.25) {
-            ItemStack stack = drop.getItem();
-            JsonObject data = new JsonObject();
-            data.addProperty("id", ForgeRegistries.ITEMS.getKey(stack.getItem()).toString());
-            data.addProperty("count", stack.getCount());
-            if (attempt.clearance) {
-                data.addProperty("entity_id", drop.getUUID().toString());
-            }
-            attempt.drops.add(data);
+            attempt.drops.add(drop);
         }
     }
 }

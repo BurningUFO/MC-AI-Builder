@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Set;
 import java.util.function.Function;
@@ -51,8 +52,17 @@ final class BuildTerrain {
         BlockState ground = level.getBlockState(floor);
         BlockState lower = level.getBlockState(feet);
         BlockState upper = level.getBlockState(head);
-        return ground.getFluidState().isEmpty() && ground.isFaceSturdy(level, floor, Direction.UP)
+        var floorShape = ground.getCollisionShape(level, floor);
+        return ground.getFluidState().isEmpty() && !WorldObservation.hazard(ground)
+                && (ground.isFaceSturdy(level, floor, Direction.UP) || !floorShape.isEmpty()
+                && floorShape.max(Direction.Axis.Y) == 0.5)
                 && lower.getFluidState().isEmpty() && lower.getCollisionShape(level, feet).isEmpty()
                 && upper.getFluidState().isEmpty() && upper.getCollisionShape(level, head).isEmpty();
+    }
+
+    static Vec3 standPoint(ServerLevel level, BlockPos feet) {
+        BlockPos floor = feet.below();
+        var shape = level.getBlockState(floor).getCollisionShape(level, floor);
+        return Vec3.atBottomCenterOf(feet).add(0, shape.isEmpty() ? 0 : shape.max(Direction.Axis.Y) - 1, 0);
     }
 }

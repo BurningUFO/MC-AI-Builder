@@ -32,7 +32,7 @@ class PerformanceTest(unittest.TestCase):
         self.assertEqual(diagnose("stale_planning").kind, "rejected")
         self.assertEqual(diagnose("model_timeout").kind, "fault")
         self.assertEqual(diagnose("out_of_material").kind, "condition")
-        for code in ("warehouse_changed", "navigation_timeout", "site_not_loaded", "world_observation_stale"):
+        for code in ("awaiting_materials", "navigation_timeout", "site_not_loaded", "world_observation_stale"):
             self.assertIn("请", diagnose(code).recovery)
 
 

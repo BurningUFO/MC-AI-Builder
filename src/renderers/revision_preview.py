@@ -99,7 +99,7 @@ def main():
     )):
         scene = bpy.context.scene if slot == 0 else bpy.data.scenes.new(name)
         scene.name = name
-        scene["review_sha256"] = report["review_sha256"]
+        scene["plan_id"] = report["new_version"]["plan_id"]
         scene["minecraft_blocks"] = len(model.blocks)
         configure_scene(scene, "draft", device)
         block_mesh(scene, name, model, index, root)
@@ -119,7 +119,7 @@ def main():
         cutaway = interior_cutaway(models[1]) if cottage else None
         if cutaway is not None:
             interior = bpy.data.scenes.new("Interior cutaway")
-            interior["review_sha256"] = report["review_sha256"]
+            interior["plan_id"] = report["new_version"]["plan_id"]
             interior["minecraft_blocks"] = len(cutaway.blocks)
             interior["source_minecraft_blocks"] = len(models[1].blocks)
             configure_scene(interior, "draft", device)

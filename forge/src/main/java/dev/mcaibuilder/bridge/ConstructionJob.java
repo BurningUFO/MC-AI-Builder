@@ -5,17 +5,19 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
 final class ConstructionJob {
-    static final int MAX_CLEARANCE_REPLANS = 8;
-
     enum State {
         RUNNING, PAUSED, CANCELLED, COMPLETED, FAILED;
 
@@ -42,32 +44,29 @@ final class ConstructionJob {
     int cursor;
     int placed;
     int removed;
-    int retries;
-    int intent = -1;
+    int deferred;
+    boolean cancelling;
+    boolean needsScaffoldDirt;
+    final Map<BlockPos, BlockState> scaffolds = new LinkedHashMap<>();
     String reason;
     JsonObject verification;
     JsonArray conflicts = new JsonArray();
-    JsonObject cargo;
     boolean reopened;
     boolean autonomous;
     long clearanceStarted;
-    boolean groundVerified;
     final Set<BlockPos> clearancePositions = new HashSet<>();
-    final int initialClearanceSteps;
     int clearanceReplans;
     SupplyCheckpoint supply;
 
     ConstructionJob(BuildPlan plan, UUID npc, UUID predecessor, JsonObject approvedReview,
-                    SiteSnapshot snapshot, List<WorkStep> steps, JsonObject cargo) {
+                    SiteSnapshot snapshot, List<WorkStep> steps) {
         this.plan = plan;
         this.npc = npc;
         this.predecessor = predecessor;
         this.approvedReview = approvedReview;
         this.snapshot = snapshot;
         this.steps = List.copyOf(steps);
-        this.initialClearanceSteps = (int) steps.stream().takeWhile(WorkStep::clearance).count();
         steps.stream().filter(WorkStep::clearance).forEach(step -> clearancePositions.addAll(step.affected()));
-        this.cargo = cargo;
     }
 
     boolean preparing() {
@@ -103,9 +102,11 @@ final class ConstructionJob {
         job.addProperty("removed", removed);
         job.addProperty("skipped", cursor - placed - removed);
         job.addProperty("reopened", reopened);
-        job.addProperty("in_flight", intent >= 0);
+        job.addProperty("temporary_blocks", scaffolds.size());
         if (autonomous) {
             job.addProperty("autonomous", true);
+        }
+        if (!clearancePositions.isEmpty()) {
             job.add("preparation", preparationStatus());
         }
         if (planning.hasRecord()) {
@@ -148,11 +149,21 @@ final class ConstructionJob {
     JsonObject checkpoint() {
         JsonObject data = status(false);
         data.add("snapshot", snapshot.json());
-        data.add("cargo", cargo);
         data.add("records", records);
         data.add("conflicts", conflicts);
-        data.addProperty("intent", intent);
-        data.addProperty("retries", retries);
+        if (cancelling) {
+            data.addProperty("cancelling", true);
+        }
+        if (needsScaffoldDirt) {
+            data.addProperty("needs_scaffold_dirt", true);
+        }
+        JsonArray temporary = new JsonArray();
+        scaffolds.forEach((pos, state) -> {
+            JsonObject row = Wire.state(state);
+            row.add("pos", Wire.position(pos));
+            temporary.add(row);
+        });
+        data.add("scaffolds", temporary);
         if (clearanceReplans > 0) {
             data.addProperty("clearance_replans", clearanceReplans);
         }
@@ -180,15 +191,24 @@ final class ConstructionJob {
         UUID predecessor = data.has("previous_job_id") ? BuildPlan.id(data, "previous_job_id") : null;
         JsonObject approval = optionalObject(data, "approved_change");
         ConstructionJob job = new ConstructionJob(plan, BuildPlan.id(data, "checkpoint_npc"), predecessor,
-                approval, snapshot, queue, Wire.object(data.get("cargo"), "checkpoint cargo"));
+                approval, snapshot, queue);
         job.cursor = Wire.integer(data.get("processed"), "processed");
         job.placed = Wire.integer(data.get("placed"), "placed");
         job.removed = Wire.integer(data.get("removed"), "removed");
-        job.intent = Wire.integer(data.get("intent"), "intent");
-        job.retries = Wire.integer(data.get("retries"), "retries");
-        if (job.cursor < 0 || job.cursor > queue.size() || job.intent < -1
-                || job.intent >= queue.size() || (job.intent != -1 && job.intent != job.cursor)) {
-            throw Wire.invalid("Invalid construction cursor or intent");
+        if (job.cursor < 0 || job.cursor > queue.size()) {
+            throw Wire.invalid("Invalid construction cursor");
+        }
+        job.cancelling = data.has("cancelling") && data.get("cancelling").getAsBoolean();
+        job.needsScaffoldDirt = data.has("needs_scaffold_dirt") && data.get("needs_scaffold_dirt").getAsBoolean();
+        if (data.has("scaffolds")) {
+            for (JsonElement element : data.getAsJsonArray("scaffolds")) {
+                JsonObject row = Wire.object(element, "temporary block");
+                BlockPos pos = Wire.position(row.get("pos"), "temporary block position");
+                var state = Wire.readState(row);
+                if (site.canBuildAt(pos) && state.is(Blocks.DIRT)) {
+                    job.scaffolds.put(pos, state);
+                }
+            }
         }
         job.records.addAll(Wire.array(data.get("records"), "records"));
         job.state = State.valueOf(Wire.string(data.get("state"), "state").toUpperCase(Locale.ROOT));
@@ -198,13 +218,6 @@ final class ConstructionJob {
         job.reopened = true;
         job.autonomous = data.has("autonomous") && data.get("autonomous").getAsBoolean();
         job.clearanceReplans = data.has("clearance_replans") ? Wire.integer(data.get("clearance_replans"), "clearance_replans") : 0;
-        if (job.clearanceReplans < 0 || job.clearanceReplans > MAX_CLEARANCE_REPLANS
-                || job.clearanceReplans > 0 && !job.autonomous
-                || job.autonomous && (!site.worldCopy() || site.worksite().mode().equals("manual"))
-                || !job.clearancePositions.isEmpty() && !job.autonomous
-                || job.clearancePositions.size() > Clearance.MAX_CELLS) {
-            throw Wire.invalid("Saved clearance is outside its worksite authorization or phase");
-        }
         JsonObject planning = optionalObject(data, "planning");
         if (planning != null) {
             job.planning.restore(planning);

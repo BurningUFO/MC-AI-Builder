@@ -4,7 +4,12 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BasePressurePlateBlock;
+import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
@@ -25,12 +30,20 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
-/** Map native mining and immediate block dependencies to work inside the signed site. */
+/** Protect Minecraft assets and gather terrain that can be cleared inside the worksite. */
 final class Clearance {
-    static final int MAX_CELLS = 512;
+    static final int MAX_CELLS = 16_384;
+    static final Set<TagKey<Block>> PROTECTED_TAGS = Set.of(BlockTags.BEDS, BlockTags.CROPS, BlockTags.RAILS,
+            BlockTags.create(ResourceLocation.tryParse("forge:chests")),
+            BlockTags.create(ResourceLocation.tryParse("forge:barrels")),
+            BlockTags.create(ResourceLocation.tryParse("forge:storage_blocks/redstone")));
+    private static final Set<Block> PROTECTED_BLOCKS = Set.of(Blocks.NETHER_PORTAL, Blocks.END_PORTAL,
+            Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY, Blocks.REDSTONE_WIRE, Blocks.REDSTONE_BLOCK,
+            Blocks.REDSTONE_TORCH, Blocks.REDSTONE_WALL_TORCH, Blocks.REPEATER, Blocks.COMPARATOR,
+            Blocks.REDSTONE_LAMP, Blocks.OBSERVER, Blocks.PISTON, Blocks.STICKY_PISTON, Blocks.PISTON_HEAD,
+            Blocks.DAYLIGHT_DETECTOR, Blocks.TARGET, Blocks.LEVER, Blocks.TRIPWIRE, Blocks.TRIPWIRE_HOOK,
+            Blocks.SCULK_SENSOR, Blocks.FARMLAND, Blocks.BEDROCK);
 
     record Finding(String risk, Set<BlockPos> cells) {
         static Finding blocked(String reason) {
@@ -40,22 +53,17 @@ final class Clearance {
 
     private final ServerLevel level;
     private final BuildSite site;
-    private final Predicate<BlockPos> edited;
     private final Map<BlockPos, Finding> cache = new HashMap<>();
 
     Clearance(ServerLevel level, BuildSite site) {
-        this(level, site, pos -> false);
-    }
-
-    Clearance(ServerLevel level, BuildSite site, Predicate<BlockPos> edited) {
         this.level = level;
         this.site = site;
-        this.edited = edited;
     }
 
     static boolean managed(BlockState state) {
-        return state.hasBlockEntity() || state.isSignalSource() || state.is(BlockTags.CROPS)
-                || state.getLightEmission() > 0;
+        return state.hasBlockEntity() || state.isSignalSource() || PROTECTED_BLOCKS.contains(state.getBlock())
+                || state.getBlock() instanceof BasePressurePlateBlock || state.getBlock() instanceof ButtonBlock
+                || PROTECTED_TAGS.stream().anyMatch(state::is);
     }
 
     private static TerrainTraits physical(BlockState state, BlockGetter world, BlockPos pos) {
@@ -138,45 +146,69 @@ final class Clearance {
 
     private Finding inspectColumn(BlockPos pos) {
         Set<BlockPos> group = new HashSet<>();
-        for (BlockPos cell = pos; ; cell = cell.above()) {
-            BlockState state = level.getBlockState(cell);
-            if (state.isAir()) {
-                break;
-            }
-            String risk = protectedReason(cell, state);
-            if (risk != null || kind(state).equals("unknown") || group.size() >= MAX_CELLS) {
-                return Finding.blocked(risk == null ? "unsafe_interaction" : risk);
-            }
-            group.add(cell);
-            if (pairedPlant(state)) {
-                BlockPos lower = upperHalf(state) ? cell.below() : cell;
-                BlockState base = level.getBlockState(lower);
-                if (!pairedPlant(base) || upperHalf(base) || base.setValue(BlockStateProperties.DOUBLE_BLOCK_HALF,
-                        DoubleBlockHalf.UPPER) != level.getBlockState(lower.above())) {
-                    return Finding.blocked("structure_support");
-                }
+        BlockState first = level.getBlockState(pos);
+        if (first.isAir()) {
+            return new Finding(null, Set.of());
+        }
+        if (pairedPlant(first)) {
+            BlockPos lower = upperHalf(first) ? pos.below() : pos;
+            BlockState base = level.getBlockState(lower);
+            if (pairedPlant(base) && !upperHalf(base)) {
                 group.add(lower);
-                group.add(lower.above());
-                break;
+                if (level.getBlockState(lower.above()).is(base.getBlock())) {
+                    group.add(lower.above());
+                }
+            } else {
+                group.add(pos);
             }
-            if (!canSupport(state, cell)) {
-                break;
+        } else {
+            group.add(pos);
+            if (first.is(BlockTags.LOGS) && !collectTrunk(pos, group)) {
+                return Finding.blocked("outside_effect");
+            }
+            for (BlockPos cell = pos.above(); level.getBlockState(cell).getBlock() instanceof FallingBlock;
+                 cell = cell.above()) {
+                if (!site.canWorkAt(level, cell)) {
+                    return Finding.blocked("outside_effect");
+                }
+                group.add(cell);
+            }
+        }
+        for (BlockPos cell : group) {
+            String risk = mutationRisk(cell, level.getBlockState(cell), true, group);
+            if (risk != null) {
+                return Finding.blocked(risk);
             }
         }
         if (!collectDependentLeaves(group)) {
             return Finding.blocked("outside_effect");
         }
-        for (BlockPos cell : group) {
-            String risk = impact(cell, level.getBlockState(cell), group, false);
-            if (risk != null) {
-                return Finding.blocked(risk);
-            }
-        }
         return new Finding(null, Set.copyOf(group));
     }
 
-    private boolean canSupport(BlockState state, BlockPos cell) {
-        return !state.is(BlockTags.LEAVES) && !state.getBlockSupportShape(level, cell).isEmpty();
+    private boolean collectTrunk(BlockPos origin, Set<BlockPos> group) {
+        var pending = new ArrayDeque<BlockPos>();
+        pending.add(origin);
+        while (!pending.isEmpty()) {
+            BlockPos log = pending.removeFirst();
+            for (Direction side : Direction.values()) {
+                BlockPos next = log.relative(side);
+                if (!level.hasChunkAt(next) || !level.getBlockState(next).is(BlockTags.LOGS) || group.contains(next)) {
+                    continue;
+                }
+                // Grounded adjoining timber is a separate column. Branches stay within the authorized site.
+                if (side.getAxis().isHorizontal() && level.getBlockState(next.below()).isFaceSturdy(level, next.below(), Direction.UP)
+                        && !level.getBlockState(next.below()).is(BlockTags.LOGS)) {
+                    continue;
+                }
+                if (group.size() >= MAX_CELLS || protectedReason(next, level.getBlockState(next)) != null) {
+                    return false;
+                }
+                group.add(next);
+                pending.add(next);
+            }
+        }
+        return true;
     }
 
     private boolean collectDependentLeaves(Set<BlockPos> group) {
@@ -229,7 +261,7 @@ final class Clearance {
         if (site.worksite().protectedAt(pos)) {
             return "protected_area";
         }
-        if (!site.canBuildAt(pos) || !level.hasChunkAt(pos)) {
+        if (!site.canWorkAt(level, pos)) {
             return "outside_worksite";
         }
         if (managed(state) || level.getBlockEntity(pos) != null) {
@@ -238,63 +270,39 @@ final class Clearance {
         if (!state.getFluidState().isEmpty() || WorldObservation.hazard(state)) {
             return "hazardous_terrain";
         }
-        return edited.test(pos) ? "player_structure" : null;
+        return state.getDestroySpeed(level, pos) < 0 ? "protected_facility" : null;
     }
 
-    private String impact(BlockPos pos, BlockState state, Set<BlockPos> prepared, boolean execution) {
-        String target = protectedReason(pos, state);
-        if (target != null) {
-            return target;
+    String mutationRisk(BlockPos pos, BlockState state, boolean breaking, Set<BlockPos> removedTogether) {
+        String risk = protectedReason(pos, state);
+        if (risk != null || !breaking) {
+            return risk;
         }
-        boolean support = canSupport(state, pos);
         for (Direction direction : Direction.values()) {
             BlockPos neighbor = pos.relative(direction);
             if (!level.hasChunkAt(neighbor)) {
                 return "site_not_loaded";
             }
-            BlockState nearby = level.getBlockState(neighbor);
-            if (nearby.isAir()) {
+            BlockState adjacent = level.getBlockState(neighbor);
+            if (adjacent.isAir() || removedTogether.contains(neighbor)) {
                 continue;
             }
-            if (!nearby.getFluidState().isEmpty() || WorldObservation.hazard(nearby)) {
+            if (!adjacent.getFluidState().isEmpty() || WorldObservation.hazard(adjacent)) {
                 return "hazardous_terrain";
             }
-            boolean inPlan = prepared.contains(neighbor);
-            if (direction == Direction.UP && nearby.getBlock() instanceof FallingBlock && (!inPlan || execution)) {
-                return "structure_support";
+            boolean attached = !Block.isShapeFullBlock(adjacent.getCollisionShape(level, neighbor));
+            boolean supported = direction == Direction.UP || attached && direction.getAxis().isHorizontal();
+            if (adjacent.is(Blocks.NETHER_PORTAL) || adjacent.is(Blocks.END_PORTAL)
+                    || supported && (managed(adjacent) || level.getBlockEntity(neighbor) != null
+                    || site.worksite().protectedAt(neighbor))) {
+                return "protected_facility";
             }
-            if (support && direction == Direction.UP && (!inPlan || execution)) {
-                return "structure_support";
-            }
-            if (support && direction.getAxis().isHorizontal() && !inPlan
-                    && (managed(nearby) || edited.test(neighbor) || !site.canBuildAt(neighbor))
-                    && !Block.isShapeFullBlock(nearby.getCollisionShape(level, neighbor))) {
+            if (direction == Direction.UP && adjacent.getBlock() instanceof FallingBlock
+                    || supported && !site.area().contains(neighbor) && attached) {
                 return "outside_effect";
             }
         }
         return null;
-    }
-
-    void requireLive(WorkStep step, Set<BlockPos> prepared, Function<BlockPos, BlockState> expected) {
-        for (Direction direction : Direction.values()) {
-            BlockPos neighbor = step.pos().relative(direction);
-            if (prepared.contains(neighbor) && level.getBlockState(neighbor) != expected.apply(neighbor)) {
-                throw Wire.conflict("worksite_preparation_changed", "相邻的待清理位置已变化，请核对现场。");
-            }
-            BlockState adjacent = level.getBlockState(neighbor);
-            if ((step.before().is(BlockTags.LOGS) || step.before().hasProperty(LeavesBlock.DISTANCE))
-                    && dependentLeaf(adjacent)
-                    && !retainsLeafSupport(neighbor, adjacent.getValue(LeavesBlock.DISTANCE), Set.of(step.pos()))) {
-                throw Wire.conflict("worksite_preparation_changed", "当前挖掘会影响新的附属树叶，请重新观察。");
-            }
-        }
-        String risk = impact(step.pos(), step.before(), prepared, true);
-        if (risk == null && step.secondary() != null) {
-            risk = impact(step.secondary(), level.getBlockState(step.secondary()), prepared, true);
-        }
-        if (risk != null) {
-            throw Wire.conflict(risk, "清障会影响保护对象或未经授权的位置，请核对现场。");
-        }
     }
 
     static boolean limited(Map<BlockPos, BlockState> cells) {

@@ -1,7 +1,5 @@
 """Create complete, separately managed copies of closed BMC4 singleplayer saves."""
 
-from contextlib import contextmanager
-import ctypes
 from hashlib import file_digest
 import json
 import os
@@ -54,29 +52,6 @@ def discover_player(instance: Path, source: Path):
     if not isinstance(name, str) or not _NAME.fullmatch(name):
         raise ValueError("无法从游戏记录匹配存档玩家名称。请选择能确认原玩家的单人存档。")
     return identity, name, player
-
-
-@contextmanager
-def closed_world(source: Path):
-    """Hold a read-only exclusive Windows handle to the existing session lock."""
-    lock = source / "session.lock"
-    if not lock.is_file() or linked(lock):
-        raise ValueError("缺少该存档正常退出后留下的会话锁文件。")
-    if os.name != "nt":
-        raise ValueError("真实世界副本启动器需要 Windows。")
-    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-    open_file = kernel.CreateFileW
-    open_file.argtypes = (ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p,
-                          ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
-    open_file.restype = ctypes.c_void_p
-    kernel.CloseHandle.argtypes = (ctypes.c_void_p,)
-    handle = open_file(str(lock), 0x80000000, 0, None, 3, 0x80, None)
-    if handle == ctypes.c_void_p(-1).value:
-        raise ValueError("原存档正在使用或无法只读锁定。请从该世界保存退出后重试。")
-    try:
-        yield
-    finally:
-        kernel.CloseHandle(handle)
 
 
 def inventory(root: Path, *, world=False):
@@ -187,7 +162,7 @@ def create_copy(instance: Path, source: Path, *, terrain_fixture=False):
     root = copy_root()
     identity = uuid4()
     game = root / identity.hex
-    with closed_world(source), TemporaryDirectory(prefix=".pending-", dir=root) as temporary:
+    with TemporaryDirectory(prefix=".pending-", dir=root) as temporary:
         staged = Path(temporary) / "instance"
         if terrain_fixture:
             player_id, _ = saved_player(source / "level.dat")

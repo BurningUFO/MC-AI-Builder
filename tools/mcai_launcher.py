@@ -29,7 +29,7 @@ PYTHON = Path(sys.executable).with_name("python.exe")
 MAX_TURNS, MAX_TOKENS = 10, 150_000
 SETUP = HOME / "settings.json"
 DEFAULT_BLENDER = ROOT / "tools" / "blender" / "blender.exe"
-INPUT_LABELS = {"java": "Java 17 JDK 文件夹", "instance": "Minecraft Forge 版本文件夹", "blender": "blender.exe"}
+INPUT_LABELS = {"java": "Java 17 JDK 文件夹", "instance": "Minecraft Forge 版本文件夹", "blender": "blender.exe（可选）"}
 ACTIONS = {"start", "stop_agent", "exit_game", "login", "close"}
 
 
@@ -91,7 +91,7 @@ def find_setup(settings):
     blender = next((Path(path) for path in (settings.get("blender"), DEFAULT_BLENDER) if path and Path(path).is_file()),
                    None)
     required = {"java": java, "instance": instance, "blender": blender}
-    missing = [INPUT_LABELS[key] for key, value in required.items() if value is None]
+    missing = [INPUT_LABELS[key] for key, value in required.items() if value is None and key != "blender"]
     if missing:
         raise ValueError("打开「设置」选择：" + "、".join(missing))
     return required
@@ -167,7 +167,7 @@ def describe_execution(execution):
         "scheduled_wait": "施工批次间等待", "navigating": "正在寻路",
         "to_warehouse": "前往仓库取料", "warehouse_return": "运料返回工地",
         "mining": "正在拆除方块", "jumping": "移动到放置位置",
-        "placement_obstructed": "等待实体让出作业位置", "completed": "完工",
+        "waiting_for_space": "等待让出作业位置", "scaffolding": "搭临时脚手架", "cleaning_scaffolds": "拆临时脚手架", "completed": "完工",
         "cancelled": "施工已取消", "failed": "施工已停止",
     }
     if not execution:
@@ -175,8 +175,8 @@ def describe_execution(execution):
     activity = execution.get("activity", "idle")
     reason = execution.get("reason")
     if execution.get("state") == "paused":
-        status = ("等待材料 · 安全暂停" if reason in {"missing_material", "out_of_material", "out_of_tool"}
-                  else "现场冲突 · 安全暂停" if reason == "world_conflict" else "施工已安全暂停")
+        status = ("等待材料 · 安全暂停" if reason in {"awaiting_materials", "warehouse_unreachable", "scaffold_material", "out_of_material", "out_of_tool"}
+                  else "现场冲突 · 安全暂停" if reason in {"protected_facility", "protected_area", "outside_effect"} else "施工已安全暂停")
     else:
         status = labels.get(activity, labels.get(execution.get("state"), "待命"))
     version = execution.get("building_version", 0)
@@ -313,7 +313,7 @@ class Launcher:
             if not self.login_ok:
                 self.check_login()
             return
-        self.publish("checking", "正在检查本地端口、Java 17、Blender 和 Forge 配置。")
+        self.publish("checking", "正在检查本地端口、Java 17 和 Forge 配置。")
         require_free_port(self.port)
         self.environ = find_setup(self.settings)
         self.prepare_bridge()
@@ -391,7 +391,8 @@ class Launcher:
         self.stop_agent.unlink(missing_ok=True)
         self.agent = self.spawn([
             "src.architect", "--config", str(self.game_dir / "config" / "mcaibuilder-architect.json"),
-            "--instance", str(self.environ["instance"]), "--blender", str(self.environ["blender"]),
+            "--instance", str(self.environ["instance"]),
+            *(["--blender", str(self.environ["blender"])] if self.environ.get("blender") else []),
             "--provider", "codex", "--timeout", "50", "--codex-model", DEFAULT_MODEL,
             "--codex-effort", DEFAULT_EFFORT, "--codex-max-turns", str(MAX_TURNS),
             "--codex-max-tokens", str(MAX_TOKENS), "--codex-budget-log", str(self.budget),
@@ -569,7 +570,7 @@ def window(app):
     def previews():
         game = app.state.get("game_dir")
         folder = Path(game) / "architect-previews" if game else None
-        images = list(folder.glob("*/*/proposed.png")) if folder else []
+        images = [*folder.glob("*/proposed.png"), *folder.glob("*/*/proposed.png")] if folder else []
         if images:
             open_local(max(images, key=lambda path: path.stat().st_mtime_ns).parent)
         else:
@@ -666,12 +667,12 @@ def window(app):
                     worksite = site.get("worksite", {})
                     modes = {"terrain": "清草与削平", "trees": "清草、削平与天然小树"}
                     autonomy = modes.get(worksite.get("mode"), "常规审批") if worksite.get("active") else "常规审批"
-                    authorization.set("施工区已批准 · " + site["dimension"] + " · 供料箱"
-                                      + ("已批准" if site["warehouse_approved"] else "待批准")
+                    authorization.set("施工区已批准 · " + site["dimension"] + " · 附近材料"
+                                      + ("已共享" if site["warehouse_approved"] else "待共享")
                                       + " · 区块" + ("已加载" if site["chunks_loaded"] else "未加载")
                                       + " · " + autonomy)
                 elif site:
-                    authorization.set("施工区和供料箱待批准 · 游戏内使用 /architect site")
+                    authorization.set("在游戏里用 /architect site area 30x30 设置施工区")
                 else:
                     authorization.set("")
                 status.set(state["message"])

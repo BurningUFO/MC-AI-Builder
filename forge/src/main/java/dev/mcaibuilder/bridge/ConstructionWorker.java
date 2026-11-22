@@ -5,10 +5,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 interface ConstructionWorker {
     record Result(String status, String reason, JsonObject evidence) {}
@@ -21,15 +23,22 @@ interface ConstructionWorker {
 
     boolean isActor(Entity entity);
 
-    // Returns null while the worker walks or mines. The callback durably records the next mutation.
-    Result act(WorkStep step, Runnable beforeInteraction);
+    // Null means the NPC is still moving, mining or adjusting its stance.
+    Result act(WorkStep step);
+
+    void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets);
+
+    boolean cleanScaffolds();
+
+    void useSupplyArea(BlockPos center);
+
+    boolean inspectStock(BlockPos pos);
 
     SimpleContainer inventory();
 
     boolean hasSupply(WorkStep step);
 
-    JsonObject resupply(Warehouse.Source source, String stockHash, List<WorkStep> steps, int cursor,
-                        boolean batchNearbyWork, Consumer<JsonObject> beforeTransfer);
+    JsonObject resupply(List<Warehouse.Stock> stocks, List<WorkStep> steps, int cursor);
 
     JsonObject status();
 

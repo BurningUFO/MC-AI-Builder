@@ -22,7 +22,7 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
     static ChangeReview inspect(ServerLevel level, BuildSite site, BuildPlan old, BuildPlan next,
                                 SiteSnapshot snapshot, Consumer<WorkStep> checkSafety) {
         Set<BlockPos> positions = new TreeSet<>(BuildPlan.BUILD_ORDER);
-        positions.addAll(snapshot.footprint());
+        positions.addAll(old.byPosition().keySet());
         positions.addAll(next.byPosition().keySet());
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (String key : List.of("keep", "add", "remove", "replace", "conflict")) {
@@ -35,25 +35,19 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             BuildPlan.Target wanted = next.at(pos);
             BlockState actual = level.getBlockState(pos);
             BlockState desired = goal(wanted);
-            BlockState expected = snapshot.expected(pos);
+            boolean unchanged = ConstructionService.matches(actual, desired);
+            if (wanted == null && !snapshot.owns(pos)) {
+                continue;
+            }
             String reason = null;
             String category;
-            if (snapshot.modifiedByPlayer(pos)) {
-                reason = "player_modified";
-            } else if (actual != expected) {
-                reason = "checkpoint_state_mismatch";
-            } else if (!actual.isAir() && actual != desired && !snapshot.owns(pos)) {
-                reason = "preexisting_block";
-            } else if (site.worldCopy() && actual != desired && !site.area().contains(pos.below())
-                    && BuildTerrain.coversGrass(level, pos, desired, level.getBlockState(pos.below()))) {
-                reason = "terrain_effect_outside_scope";
-            }
             WorkStep removal = null;
             WorkStep placement = null;
-            if (reason == null && actual != desired) {
+            if (reason == null && !unchanged) {
                 if (!actual.isAir()) {
                     var previous = new BuildPlan.Target(next.localPosition(pos), pos, actual, actual.getBlock().asItem());
-                    removal = new WorkStep(previous, actual, true);
+                    removal = snapshot.owns(pos) && actual.getBlock() == goal(old.at(pos)).getBlock()
+                            ? new WorkStep(previous, actual, true) : WorkStep.clear(next, pos, actual);
                 }
                 if (wanted != null) {
                     placement = new WorkStep(wanted, AIR, false);
@@ -71,7 +65,7 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             }
             if (reason != null) {
                 category = "conflict";
-            } else if (actual == desired || (wanted == null && actual.isAir())) {
+            } else if (unchanged) {
                 category = "keep";
             } else if (actual.isAir()) {
                 category = "add";
@@ -91,7 +85,6 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             row.add("old", Wire.state(goal(old.at(pos))));
             row.add("actual", Wire.state(actual));
             row.add("desired", Wire.state(desired));
-            row.add("checkpoint", Wire.state(expected));
             row.addProperty("npc_owned", snapshot.owns(pos));
             if (reason != null) {
                 row.addProperty("reason", reason);
@@ -113,11 +106,10 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
         if (site.worldCopy()) {
             report.addProperty("authorization", site.scope().toString());
             report.addProperty("dimension", level.dimension().location().toString());
-            report.add("covered_grass", BuildTerrain.coveredGrass(level, site, next, snapshot::initial));
+            report.add("covered_grass", BuildTerrain.coveredGrass(level, site, next, level::getBlockState));
         }
         report.add("counts", totals);
         report.add("changes", changes);
-        report.addProperty("review_sha256", Wire.sha256(report));
         return new ChangeReview(report, List.copyOf(removals), counts.get("conflict"));
     }
 

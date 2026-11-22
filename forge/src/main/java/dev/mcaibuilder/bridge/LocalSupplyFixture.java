@@ -63,6 +63,12 @@ final class LocalSupplyFixture {
         ItemStack hand = null;
         ItemStack transfer = null;
         try {
+            if (!copy && request.has("companion")) {
+                companionFixture(root, player, request, result);
+                result.addProperty("success", true);
+                Files.writeString(root.resolve(".mcaibuilder-stock-result"), result.toString());
+                return;
+            }
             BlockPos pos = Wire.position(request.get("position"), "warehouse position");
             if (player == null || player.gameMode.getGameModeForPlayer() != GameType.SURVIVAL) {
                 throw new IllegalStateException("The fixture requires a survival test player");
@@ -166,6 +172,90 @@ final class LocalSupplyFixture {
         } catch (IOException error) {
             ForgeBridge.LOGGER.warn("Could not record player stock transfer", error);
         }
+    }
+
+    private static void companionFixture(Path root, ServerPlayer player, JsonObject request, JsonObject result) throws IOException {
+        BuildSite site = BuildSite.read(root.resolve("config").resolve("mcaibuilder.json"));
+        if (site == null || player == null || site.architect() == null || !site.architect().players().contains(player.getUUID())
+                || !site.world().equals(player.getServer().getWorldData().getLevelName())) {
+            throw new IllegalStateException("The companion fixture needs the isolated owner and worksite");
+        }
+        var level = player.serverLevel();
+        BlockPos pos = Wire.position(request.get("position"), "fixture.position");
+        if (!site.canWorkAt(level, pos)) {
+            throw new IllegalStateException("Fixture position outside the test site");
+        }
+        String action = Wire.string(request.get("companion"), "companion");
+        switch (action) {
+            case "camera" -> player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 180, 20);
+            case "double_chest" -> {
+                if (!site.canWorkAt(level, pos.east())) {
+                    throw new IllegalStateException("Double chest outside the test site");
+                }
+                var state = Blocks.CHEST.defaultBlockState().setValue(
+                        net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, net.minecraft.core.Direction.NORTH);
+                level.setBlock(pos, state.setValue(net.minecraft.world.level.block.ChestBlock.TYPE,
+                        net.minecraft.world.level.block.state.properties.ChestType.LEFT), 3);
+                level.setBlock(pos.east(), state.setValue(net.minecraft.world.level.block.ChestBlock.TYPE,
+                        net.minecraft.world.level.block.state.properties.ChestType.RIGHT), 3);
+            }
+            case "barrel" -> level.setBlockAndUpdate(pos, Blocks.BARREL.defaultBlockState());
+            case "chest" -> level.setBlockAndUpdate(pos, Blocks.CHEST.defaultBlockState());
+            case "air" -> level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+            case "grass" -> level.setBlockAndUpdate(pos, Blocks.GRASS.defaultBlockState());
+            case "tree" -> {
+                if (!site.canWorkAt(level, pos.above(2))) {
+                    throw new IllegalStateException("Tree outside the test site");
+                }
+                level.setBlockAndUpdate(pos, Blocks.OAK_LOG.defaultBlockState());
+                level.setBlockAndUpdate(pos.above(), Blocks.OAK_LOG.defaultBlockState());
+                level.setBlockAndUpdate(pos.above(2), Blocks.OAK_LEAVES.defaultBlockState());
+            }
+            case "cow" -> {
+                var cow = net.minecraft.world.entity.EntityType.COW.create(level);
+                if (cow == null) {
+                    throw new IllegalStateException("Could not create test cow");
+                }
+                cow.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
+                cow.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(0);
+                cow.setPersistenceRequired();
+                level.addFreshEntity(cow);
+                result.addProperty("cow", cow.getUUID().toString());
+            }
+            case "release" -> {
+                var cow = level.getEntity(BuildPlan.id(request, "cow"));
+                if (cow instanceof net.minecraft.world.entity.animal.Cow animal && cow.isAlive()) {
+                    animal.teleportTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+                    result.addProperty("cow_alive", true);
+                }
+            }
+            case "read", "stock" -> { }
+            default -> throw new IllegalStateException("Unknown companion fixture action");
+        }
+        if (request.has("items") && level.getBlockEntity(pos) instanceof net.minecraft.world.Container contents) {
+            for (JsonElement element : request.getAsJsonArray("items")) {
+                var row = element.getAsJsonObject();
+                Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(row.get("id").getAsString()));
+                int remaining = row.get("count").getAsInt();
+                while (remaining > 0) {
+                    int slot = 0;
+                    while (slot < contents.getContainerSize() && !contents.getItem(slot).isEmpty()) {
+                        slot++;
+                    }
+                    if (slot == contents.getContainerSize()) {
+                        throw new IllegalStateException("Fixture stock exceeds container contents");
+                    }
+                    int quantity = Math.min(remaining, item.getDefaultInstance().getMaxStackSize());
+                    contents.setItem(slot, new ItemStack(item, quantity));
+                    remaining -= quantity;
+                }
+            }
+            contents.setChanged();
+        }
+        if (level.getBlockEntity(pos) instanceof net.minecraft.world.Container contents) {
+            result.add("stock", Warehouse.items(contents));
+        }
+        result.add("block", Wire.state(level.getBlockState(pos)));
     }
 
     private static BlockHitResult aim(ServerPlayer player, Vec3 point) {

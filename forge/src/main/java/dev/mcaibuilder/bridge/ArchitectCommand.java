@@ -22,7 +22,7 @@ final class ArchitectCommand {
         event.getDispatcher().register(Commands.literal("architect")
                 .executes(ctx -> {
                     ctx.getSource().sendSystemMessage(Component.literal(
-                            "[Architect] @Builder <需求>  |  /architect link  |  /architect observe  |  /architect survey <需求>  |  /architect supervise <需求>  |  /architect approve <确认码>"));
+                            "[Architect] @Builder <需求>  |  /architect link  |  /architect observe  |  /architect survey <需求>  |  /architect supervise <需求>  |  /architect supply  |  /architect approve"));
                     return 1;
                 })
                 .then(Commands.literal("ask")
@@ -40,7 +40,7 @@ final class ArchitectCommand {
             return 1;
         } catch (Wire.Problem failure) {
             ctx.getSource().sendFailure(Component.literal(
-                    "[Architect] " + failure.getMessage() + " [" + failure.code + "]"));
+                    "[Architect] " + failure.getMessage()));
             return 0;
         }
     }

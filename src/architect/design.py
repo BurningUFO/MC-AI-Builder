@@ -1,8 +1,11 @@
 """Generate supported Minecraft buildings from validated architectural components."""
 
 from dataclasses import asdict, dataclass
+from itertools import product
+from math import prod
 
 from src.core.building import Building
+from src.construction.plan import MAX_ACTIONS, VANILLA_BLOCKS
 
 CHIPPED_WOOD = "chipped:stacked_spruce_planks"
 QUARK_ROOF = "quark:red_shingles"
@@ -174,7 +177,125 @@ class Cottage:
         return model
 
 
-DESIGNS = {"window_wall": Wall, "cottage": Cottage}
+MAX_MODULES = 96
+MODULE_MODES = ("fill", "shell", "erase")
+
+
+@dataclass(frozen=True)
+class VoxelDesign:
+    """Apply ordered cuboids to a sparse grid, with openings cut by erase modules."""
+
+    modules: tuple[dict, ...]
+    name: str = "Builder design"
+    overlay: bool = False
+
+    @classmethod
+    def edit(cls, changes: dict, base=None):
+        if set(changes) - {"name", "modules", "overlay"}:
+            raise DesignError("体素方案使用建筑名称和填充、空壳、开洞模块。")
+        name = changes.get("name", base.name if base else "Builder design")
+        new = changes.get("modules")
+        overlay = changes.get("overlay", False)
+        if (not isinstance(name, str) or not name.strip() or len(name) > 80
+                or type(overlay) is not bool or overlay and base is None):
+            raise DesignError("请提供简短的建筑名称，增量模块需要一份现有设计。")
+        if new is None and base is not None:
+            return base
+        if not isinstance(new, (list, tuple)) or not 1 <= len(new) <= MAX_MODULES:
+            raise DesignError(f"请将设计组合成 1–{MAX_MODULES} 个体素模块。")
+        modules = (base.modules + tuple(new)) if overlay else tuple(new)
+        if len(modules) > MAX_MODULES:
+            raise DesignError("增量模块过多，请合并围墙、楼板和屋顶后重试。")
+        return cls(modules, name.strip())
+
+    def building(self) -> Building:
+        model = Building(self.name)
+        for module in self.modules:
+            if not isinstance(module, dict) or set(module) - {"mode", "from", "to", "block", "properties"}:
+                raise DesignError("体素模块需要模式、起止位置和方块。")
+            mode = module.get("mode")
+            start, end = module.get("from"), module.get("to")
+            if (mode not in MODULE_MODES
+                    or any(not isinstance(point, (list, tuple)) or len(point) != 3
+                           or any(type(axis) is not int or abs(axis) > 128 for axis in point)
+                           for point in (start, end))):
+                raise DesignError("模块需要有效模式和三维整数局部坐标。")
+            low, high = tuple(map(min, start, end)), tuple(map(max, start, end))
+            span = tuple(b - a + 1 for a, b in zip(low, high))
+            if prod(span) > MAX_ACTIONS * 4:
+                raise DesignError("请缩小单个填充区域。")
+            block = module.get("block")
+            properties = module.get("properties") or {}
+            if mode != "erase" and (not isinstance(block, str) or block not in VANILLA_BLOCKS | {
+                    CHIPPED_WOOD, QUARK_ROOF, QUARK_STAIR} or not isinstance(properties, dict)):
+                raise DesignError(f"这个模块的材料或方块状态不可用。")
+            if mode != "erase":
+                properties = self.block_properties(block, properties)
+            for point in product(*(range(a, b + 1) for a, b in zip(low, high))):
+                if mode == "erase":
+                    model.blocks.pop(point, None)
+                elif mode == "fill" or any(axis in (a, b) for axis, a, b in zip(point, low, high)):
+                    model.place(point, block, **properties)
+            if len(model.blocks) > MAX_ACTIONS * 2:
+                raise DesignError("模块展开过大，请缩小占地或减少实体填充。")
+        if not 1 <= len(model.blocks) <= MAX_ACTIONS:
+            raise DesignError(f"施工设计需要 1–{MAX_ACTIONS} 个实体方块。")
+        return model
+
+    @staticmethod
+    def block_properties(block, supplied):
+        choices = {}
+        if block.endswith("_log"):
+            choices["axis"] = ("y", "x", "z")
+        if block.endswith("_stairs"):
+            choices.update(facing=("north", "east", "south", "west"),
+                           half=("bottom", "top"), shape=("straight",), waterlogged=("false",))
+        if block.endswith("_slab"):
+            choices.update(type=("bottom", "top"), waterlogged=("false",))
+        if set(supplied) - choices.keys() or any(value not in choices[key] for key, value in supplied.items()):
+            raise DesignError(f"{block} 的朝向或方块状态超出支持范围。")
+        return {key: supplied.get(key, values[0]) for key, values in choices.items()}
+
+
+DESIGNS = {"voxel": VoxelDesign, "window_wall": Wall, "cottage": Cottage}
+
+
+def voxel_footings(model, sites, origin, rotation, prior=None):
+    if prior is not None:
+        positions = prior
+    else:
+        anchor = next((site for site in sites if tuple(site["origin"]) == origin), {})
+        positions = []
+        for x, depth, z in anchor.get("foundation_gaps", ()):
+            local_x, local_z = ((x, z), (z, -x), (-x, -z), (-z, x))[rotation // 90]
+            positions.extend((local_x, -y, local_z) for y in range(1, depth + 1))
+    added = []
+    for x, y, z in positions:
+        if (x, 0, z) in model.blocks and (x, y, z) not in model.blocks:
+            model.place((x, y, z), "minecraft:dirt")
+            added.append((x, y, z))
+    if len(model.blocks) > MAX_ACTIONS:
+        raise DesignError("补齐地基后方块总数超过施工计划上限，请缩小建筑占地。")
+    return added
+
+
+def fitted_origin(model, context, rotation):
+    """Pick a surveyed anchor whose transformed bounds fit the authorized area."""
+    radians = rotation // 90
+    points = list(model.bounds())
+    min_pos, max_pos = context["approved_area"]["min"], context["approved_area"]["max"]
+    bounds = []
+    for x, _, z in product(*(sorted({a, b}) for a, b in zip(*points))):
+        bounds.append(((x, z), (-z, x), (-x, -z), (z, -x))[radians])
+    bottom, top = points[0][1], points[1][1]
+    candidates = context.get("sites", ()) or ({"origin": context["suggested_origin"]},)
+    for candidate in candidates:
+        ox, oy, oz = candidate["origin"]
+        if (min_pos[1] <= oy + bottom <= oy + top <= max_pos[1]
+                and all(min_pos[0] <= ox + x <= max_pos[0] and min_pos[2] <= oz + z <= max_pos[2]
+                        for x, z in bounds)):
+            return ox, oy, oz
+    raise DesignError("这份方案超出已批准的施工区。我们可以缩小建筑，或为它标记一块更大的区域。")
 
 
 def placement(intent: dict, context: dict, prior: dict | None, locked: bool) -> tuple[tuple[int, int, int], int]:

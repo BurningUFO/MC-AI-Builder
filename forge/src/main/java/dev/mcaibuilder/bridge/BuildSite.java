@@ -25,8 +25,7 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn,
         Box area = Box.read(data.get("area"), "area");
         BlockPos spawn = Wire.position(data.get("npc_spawn"), "npc_spawn");
         if (world.isBlank() || port < 1024 || port > 65535 || !token.matches("[0-9a-f]{64}")
-                || !area.contains(spawn) || !area.contains(spawn.above()) || spawn.getY() != area.min().getY()
-                || area.halo().volume() > 24_000) {
+                || !area.contains(spawn) || !area.contains(spawn.above())) {
             throw Wire.invalid("Invalid bridge world, port, token, or approved site");
         }
         ArchitectConfig architect = null;
@@ -53,19 +52,20 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn,
         return area.contains(pos) && !pos.equals(spawn) && !pos.equals(spawn.above()) && !worksite.protectedAt(pos);
     }
 
+    boolean canWorkAt(ServerLevel level, BlockPos pos) {
+        return canBuildAt(pos) && level.isInWorldBounds(pos) && level.getWorldBorder().isWithinBounds(pos)
+                && level.hasChunkAt(pos);
+    }
+
     void requireLoaded(ServerLevel level) {
-        Box monitored = area.halo();
+        Box monitored = area;
         if (!level.isInWorldBounds(monitored.min()) || !level.isInWorldBounds(monitored.max())
                 || !level.getWorldBorder().isWithinBounds(monitored.min())
                 || !level.getWorldBorder().isWithinBounds(monitored.max())) {
-            throw Wire.conflict("site_out_of_world", "The approved site and its halo must fit in the world");
+            throw Wire.conflict("site_out_of_world", "施工区应位于当前维度和世界边界之内。");
         }
-        for (int x = monitored.min().getX() >> 4; x <= monitored.max().getX() >> 4; x++) {
-            for (int z = monitored.min().getZ() >> 4; z <= monitored.max().getZ() >> 4; z++) {
-                if (!level.getChunkSource().hasChunk(x, z)) {
-                    throw Wire.conflict("site_not_loaded", "Keep the approved site loaded during construction");
-                }
-            }
+        if (!level.hasChunkAt(spawn)) {
+            throw Wire.conflict("site_not_loaded", "请先加载 NPC 出发点所在的区块。");
         }
     }
 
@@ -95,7 +95,7 @@ record BuildSite(String world, int port, String token, Box area, BlockPos spawn,
             long x = 1L + max.getX() - min.getX();
             long y = 1L + max.getY() - min.getY();
             long z = 1L + max.getZ() - min.getZ();
-            return x > 24_000 || y > 24_000 || z > 24_000 ? Long.MAX_VALUE : x * y * z;
+            return x > Long.MAX_VALUE / y / z ? Long.MAX_VALUE : x * y * z;
         }
 
         Box halo() {

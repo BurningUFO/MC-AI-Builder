@@ -149,7 +149,7 @@ final class LocalCameraFixture {
                 if (Math.abs(yaw) > 180 || Math.abs(pitch) > 90) {
                     throw Wire.invalid("Camera fixture pose outside the supported range");
                 }
-                target.setNoAi(true);
+                target.getNavigation().stop();
                 target.setYRot(yaw);
                 target.setYHeadRot(yaw);
                 target.setYBodyRot(yaw);

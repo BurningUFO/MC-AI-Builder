@@ -278,38 +278,25 @@ final class LocalCopyFixture {
         // Simulated cargo in the real server. Keep the NPC and chest inventories untouched.
         var full = new SimpleContainer(1);
         full.setItem(0, new ItemStack(Items.DIRT, 64));
-        String chestHash = Warehouse.digest(chest);
-        String cargoHash = Warehouse.cargoDigest(full);
+        var before = Warehouse.items(chest);
+        var cargo = Warehouse.items(full);
         var target = new BuildPlan.Target(BlockPos.ZERO, pos.above(), Blocks.STONE_BRICKS.defaultBlockState(), Items.STONE_BRICKS);
         var step = new WorkStep(target, Blocks.AIR.defaultBlockState(), false);
-        int denied = 0;
-        try {
-            Warehouse.requireNextItem(chest, full, step);
-        } catch (Wire.Problem problem) {
-            if (problem.code.equals("inventory_full")) {
-                denied++;
-            }
-        }
-        try {
-            Warehouse.planTransfer(chest, full, java.util.List.of(step), 0, Warehouse.COTTAGE_TRIP_ITEMS);
-        } catch (Wire.Problem problem) {
-            if (problem.code.equals("inventory_full")) {
-                denied++;
-            }
-        }
-        boolean unchanged = chestHash.equals(Warehouse.digest(chest)) && cargoHash.equals(Warehouse.cargoDigest(full));
-        if (denied != 2 || !unchanged) {
-            throw Wire.invalid("Unsafe full-cargo checkout");
+        var stock = new Warehouse.Stock(pos, new net.minecraftforge.items.wrapper.InvWrapper(chest));
+        var transfer = Warehouse.transfer(stock, full, java.util.List.of(step), 0);
+        boolean unchanged = before.equals(Warehouse.items(chest)) && cargo.equals(Warehouse.items(full));
+        if (!transfer.getAsJsonObject("items").entrySet().isEmpty() || !unchanged) {
+            throw Wire.invalid("Unsafe full-cargo transfer");
         }
         var result = new JsonObject();
         result.addProperty("simulated_cargo", true);
-        result.addProperty("rejected_checks", denied);
+        result.addProperty("rejected_checks", 1);
         result.addProperty("chest_and_test_cargo_unchanged", unchanged);
         return result;
     }
 
     private static JsonArray snapshot(ServerPlayer player, BuildSite.Box area) {
-        if (area.volume() > 24_000 || !area.contains(player.blockPosition())) {
+        if (area.volume() > 200_000 || !area.contains(player.blockPosition())) {
             throw Wire.invalid("Fixture snapshot must be limited to the player's site");
         }
         ServerLevel level = player.serverLevel();

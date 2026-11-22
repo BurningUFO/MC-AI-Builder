@@ -131,7 +131,7 @@ def _terrain(value):
 def _construction(value):
     state = value["state"]
     _check(type(state) is str and state in JOB_STATES)
-    total = _integer(value["total"], 0, 24_000)
+    total = _integer(value["total"], 0, 2**31 - 1)
     return {"state": state, "building_version": _integer(value["building_version"], 0 if state == "survey" else 1, 2**31 - 1),
             "processed": _integer(value["processed"], 0, total), "total": total}
 
@@ -148,7 +148,7 @@ def _public_fields(source):
     dimension = source["dimension"]
     _check(type(dimension) is str and dimension in DIMENSIONS | {"modded_dimension"})
     bounds = source["approved_bounds"]
-    limit = [24_000] * 3
+    limit = [60_000_000] * 3
     out = {
         "dimension": dimension, "approved_bounds": {
             key: _point(bounds[key], [-v for v in limit], limit) for key in ("min", "max")
@@ -235,7 +235,7 @@ def _validate_response(schema, value):
                and all(ord(char) >= 32 and ord(char) != 127 for char in value))
         _check("enum" not in schema or value in schema["enum"])
     else:
-        _integer(value, -24_000, 24_000)
+        _integer(value, -2**31, 2**31 - 1)
 
 
 def decode_scene(output: str) -> dict:

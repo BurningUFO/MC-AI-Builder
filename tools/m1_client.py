@@ -166,7 +166,7 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
             "world": WORLD_NAME,
             "port": port,
             "token": secrets.token_hex(32),
-            "area": {"min": [0, -60, 0], "max": [32, -50, 24]},
+            "area": {"min": [0, -61, 0], "max": [32, -50, 24]},
             "npc_spawn": [1, -60, 13],
         }
         changed = True

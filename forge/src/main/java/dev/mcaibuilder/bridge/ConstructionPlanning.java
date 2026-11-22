@@ -35,8 +35,7 @@ final class ConstructionPlanning {
 
     JsonObject claim(ConstructionJob job, UUID owner, long tick, Predicate<BlockPos> safeFeet) {
         if (record != null || job.state != ConstructionJob.State.RUNNING || job.cursor < MIN_PROGRESS
-                || !job.plan.optimizedCottage() || job.intent >= 0
-                || (job.supply != null && job.supply.intent != null)) {
+                || !job.plan.optimizedCottage()) {
             return new JsonObject();
         }
         int roofY = job.plan.worldBounds().max().getY();

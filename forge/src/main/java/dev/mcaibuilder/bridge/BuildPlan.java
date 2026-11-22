@@ -33,7 +33,7 @@ import java.util.UUID;
 
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
                  List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds) {
-    private static final int MAX_ACTIONS = 512;
+    private static final int MAX_ACTIONS = 4096;
     static final boolean LEGACY_EXECUTION = "1".equals(System.getenv("MC_AI_BUILDER_LEGACY_EXECUTOR"));
     private static final String QUARK_STAIR = "quark:red_shingles_stairs";
     private static final Set<String> MODDED = Set.of(
@@ -82,6 +82,10 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         return value;
     }
 
+    boolean voxel() {
+        return buildingId.startsWith("voxel_");
+    }
+
     boolean optimizedCottage() {
         return buildingId.startsWith("cottage_") && !LEGACY_EXECUTION;
     }
@@ -112,7 +116,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     }
 
     Comparator<WorkStep> revisionPlacementOrder() {
-        if (!buildingId.startsWith("cottage_")) {
+        if (!buildingId.startsWith("cottage_") && !voxel()) {
             return Comparator.comparing(WorkStep::target, PLACEMENT_ORDER);
         }
         var order = new HashMap<BlockPos, Integer>();
@@ -125,10 +129,18 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     static Set<Block> palette() {
         // Resolve vanilla blocks after the server has finished registry initialization.
         Set<Block> blocks = new HashSet<>(Set.of(Blocks.STONE, Blocks.COBBLESTONE, Blocks.STONE_BRICKS, Blocks.OAK_PLANKS,
-                Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_PLANKS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
+                Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_PLANKS,
+                Blocks.DIRT, Blocks.SANDSTONE, Blocks.SMOOTH_SANDSTONE, Blocks.DEEPSLATE_BRICKS, Blocks.BRICKS,
+                Blocks.MOSSY_COBBLESTONE, Blocks.ANDESITE, Blocks.POLISHED_ANDESITE, Blocks.TERRACOTTA,
+                Blocks.WHITE_TERRACOTTA, Blocks.RED_TERRACOTTA, Blocks.MUD_BRICKS, Blocks.BIRCH_PLANKS,
+                Blocks.JUNGLE_PLANKS, Blocks.ACACIA_PLANKS, Blocks.MANGROVE_PLANKS, Blocks.CHERRY_PLANKS,
+                Blocks.OAK_LOG, Blocks.SPRUCE_LOG, Blocks.DARK_OAK_LOG, Blocks.STRIPPED_OAK_LOG,
+                Blocks.STRIPPED_SPRUCE_LOG, Blocks.STRIPPED_DARK_OAK_LOG, Blocks.SPRUCE_STAIRS, Blocks.DARK_OAK_STAIRS,
+                Blocks.BRICK_STAIRS, Blocks.SPRUCE_SLAB, Blocks.DARK_OAK_SLAB, Blocks.BRICK_SLAB,
+                Blocks.WHITE_STAINED_GLASS, Blocks.GREEN_STAINED_GLASS, Blocks.BROWN_STAINED_GLASS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
                 Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB));
         for (String id : MODDED) {
-            ResourceLocation key = new ResourceLocation(id);
+            ResourceLocation key = ResourceLocation.tryParse(id);
             Block block = ForgeRegistries.BLOCKS.getValue(key);
             if (block != null && key.equals(ForgeRegistries.BLOCKS.getKey(block))
                     && !block.defaultBlockState().hasBlockEntity() && block.asItem() instanceof BlockItem item
@@ -176,15 +188,8 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             case 270 -> Rotation.COUNTERCLOCKWISE_90;
             default -> throw Wire.invalid("Rotation must be 0, 90, 180 or 270 degrees clockwise");
         };
-        if (site.worldCopy()) {
-            boolean permitted = surveyed
-                    ? site.canBuildAt(origin) && Math.abs((long) origin.getY() - site.origin().getY()) <= 2
-                        && Math.abs((long) origin.getX() - site.origin().getX()) <= 4
-                        && Math.abs((long) origin.getZ() - site.origin().getZ()) <= 4
-                    : origin.equals(site.origin()) && rotation == site.rotation();
-            if (!permitted) {
-                throw Wire.conflict("placement_scope", "拟建原点或朝向超出了施工区授权。");
-            }
+        if (site.worldCopy() && !site.canBuildAt(origin)) {
+            throw Wire.conflict("placement_scope", "拟建原点超出了施工区授权。");
         }
         BuildSite.Box declared = BuildSite.Box.read(data.get("local_bounds"), "local_bounds");
         JsonArray actions = Wire.array(data.get("actions"), "actions");
@@ -230,7 +235,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
-        targets.sort(buildingId.startsWith("cottage_") ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER);
+        targets.sort((buildingId.startsWith("cottage_") || buildingId.startsWith("voxel_")) ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER);
         JsonArray blocks = new JsonArray();
         model.values().forEach(blocks::add);
         String modelHash = Wire.sha256(blocks);
