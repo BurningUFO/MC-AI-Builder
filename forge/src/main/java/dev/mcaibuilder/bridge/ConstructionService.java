@@ -10,6 +10,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
@@ -47,6 +51,7 @@ final class ConstructionService {
     private final ConstructionWorker worker;
     private final JobJournal journal;
     private final Map<UUID, Registration> registered = new LinkedHashMap<>();
+    private final Map<String, BuildPlan> completedLighting = new HashMap<>();
     private JsonObject history = new JsonObject();
     private ConstructionJob current;
     private UUID surveyNpc;
@@ -817,11 +822,17 @@ final class ConstructionService {
         UUID predecessor = current.plan.id();
         SiteSnapshot snapshot = current.snapshot;
         var scaffolds = new LinkedHashMap<>(current.scaffolds);
+        var previousSupply = current.supply;
         snapshot.track(next);
         snapshot.track(check.steps());
         archiveCurrent(next.id());
         current = new ConstructionJob(next, worker.id(), predecessor, check.report(), snapshot, check.steps());
         current.supply = site.survival() ? new SupplyCheckpoint(owner) : null;
+        if (current.supply != null && previousSupply != null) {
+            current.supply.temporary.putAll(previousSupply.temporary);
+            current.supply.heatedFurnace = previousSupply.heatedFurnace;
+            current.supply.heat = previousSupply.heat;
+        }
         updateSupplyArea();
         current.scaffolds.putAll(scaffolds);
         worker.useScaffolds(current.scaffolds, next.byPosition().keySet());
@@ -907,6 +918,7 @@ final class ConstructionService {
     private void updateSupplyArea() {
         Warehouse.Source source = current.supply == null ? null : warehouses.get(current.supply.owner);
         worker.useSupplyArea(source == null ? null : source.pos());
+        worker.useWorkshop(current == null ? null : current.supply);
     }
 
     private void requireSupplyOwner(UUID owner) {
@@ -945,7 +957,8 @@ final class ConstructionService {
             remaining.addAll(scaffoldDirt());
         }
         JsonObject report = supplySummary(owner, remaining, 0);
-        if ("warehouse_unreachable".equals(current.reason)) {
+        if (Set.of("warehouse_unreachable", "workstation_unreachable", "workshop_inventory")
+                .stream().anyMatch(reason -> reason.equals(current.reason))) {
             report.addProperty("reason", current.reason);
         }
         return report;
@@ -957,8 +970,13 @@ final class ConstructionService {
         if (ownsSupply(owner)) {
             worker.attach(current.npc);
         }
+        var stations = steps.isEmpty() ? Set.<CraftingAssistant.Station>of()
+                : worker.stations(source == null ? null : source.pos());
+        var workshop = sameWorker && current != null ? current.supply : null;
+        int heat = workshop != null && workshop.heatedFurnace != null && level.hasChunkAt(workshop.heatedFurnace)
+                && level.getBlockState(workshop.heatedFurnace).is(Blocks.FURNACE) ? workshop.heat : 0;
         JsonObject summary = Warehouse.summary(steps, cursor, sameWorker ? worker.inventory() : null,
-                Warehouse.scan(level, site, source));
+                Warehouse.scan(level, site, source), worker.recipes(), stations, heat);
         summary.addProperty("mode", "survival");
         summary.addProperty("warehouse_approved", source != null);
         return summary;
@@ -1006,19 +1024,27 @@ final class ConstructionService {
 
     private void resupply(List<WorkStep> steps, int cursor) {
         SupplyCheckpoint supply = current.supply;
-        supply.phase = "to_warehouse";
-        List<Warehouse.Stock> stock = Warehouse.scan(level, site, warehouses.get(supply.owner));
-        JsonObject transfer = worker.resupply(stock, steps, cursor);
+        if (!supply.phase.equals("to_warehouse") && !supply.phase.equals("processing")) {
+            worker.mentionSupply();
+        }
+        JsonObject transfer = worker.resupply(() -> Warehouse.scan(level, site, warehouses.get(supply.owner)), steps, cursor);
         if (transfer != null) {
             transfer.addProperty("tick", level.getGameTime());
-            supply.trips.add(transfer);
-            supply.phase = "to_site";
-            current.performance.event("warehouse_transfer");
+            if (transfer.has("crafted")) {
+                supply.recipes.add(transfer);
+                supply.phase = "processing";
+                current.performance.event("recipe_batch");
+            } else {
+                supply.trips.add(transfer);
+                supply.phase = "to_site";
+                current.performance.event("warehouse_transfer");
+            }
             schedule();
-            checkpoint();
         } else {
+            supply.phase = worker.activity().equals("processing_materials") ? "processing" : "to_warehouse";
             current.nextTick = level.getGameTime() + 4;
         }
+        checkpoint();
     }
 
     private void requireCandidate(UUID id) {
@@ -1167,7 +1193,7 @@ final class ConstructionService {
                         registered.put(candidate.plan().id(), candidate.withDisposition("rejected"));
                         candidate = null;
                     }
-                    if (current.scaffolds.isEmpty()) {
+                    if (current.scaffolds.isEmpty() && (current.supply == null || current.supply.temporary.isEmpty())) {
                         finish(State.CANCELLED, "cancelled_by_request");
                     } else {
                         current.cancelling = true;
@@ -1212,10 +1238,18 @@ final class ConstructionService {
         if (editedLevel == level && current != null && !worker.isActor(entity)) {
             // Once a player takes over a temporary block, it is no longer ours to remove.
             current.scaffolds.remove(pos);
+            if (current.supply != null) {
+                current.supply.temporary.remove(pos);
+                if (pos.equals(current.supply.heatedFurnace)) {
+                    current.supply.heatedFurnace = null;
+                    current.supply.heat = 0;
+                }
+            }
         }
     }
 
     void tick() {
+        worker.tickLife((current == null || current.state != State.RUNNING) && pendingStockVisit == null);
         if (current != null) {
             current.planning.expire(current);
         }
@@ -1268,9 +1302,18 @@ final class ConstructionService {
 
     private void executeNext() {
         if (current.cancelling || current.cursor == current.steps.size()) {
-            if (!worker.cleanScaffolds()) {
+            if (!worker.cleanScaffolds() || !worker.cleanWorkshop()) {
                 checkpoint();
                 return;
+            }
+            if (!current.cancelling && current.plan.lighting()) {
+                long now = level.getGameTime();
+                if (current.lightingSettleUntil == 0) {
+                    current.lightingSettleUntil = now + 10;
+                }
+                if (now < current.lightingSettleUntil) {
+                    return;
+                }
             }
             finish(current.cancelling ? State.CANCELLED : State.COMPLETED,
                     current.cancelling ? "cancelled_by_request" : null);
@@ -1278,8 +1321,13 @@ final class ConstructionService {
             return;
         }
         if (current.needsScaffoldDirt && current.supply != null) {
-            if (Warehouse.find(worker.inventory(), net.minecraft.world.item.Items.DIRT) < 0) {
-                resupply(scaffoldDirt(), 0);
+            var dirt = scaffoldDirt();
+            if (!worker.gatherScaffoldMaterial(dirt.size())) {
+                checkpoint();
+                return;
+            }
+            if (Warehouse.carried(worker.inventory()).getOrDefault(net.minecraft.world.item.Items.DIRT, 0) < dirt.size()) {
+                resupply(dirt, 0);
                 return;
             }
             current.needsScaffoldDirt = false;
@@ -1352,7 +1400,7 @@ final class ConstructionService {
         if (result.status().equals("failed")) {
             if (current.supply != null && result.reason().equals("scaffold_material")) {
                 current.needsScaffoldDirt = true;
-                checkSupply();
+                worker.halt();
                 schedule();
             } else {
                 pause(result.reason());
@@ -1407,11 +1455,13 @@ final class ConstructionService {
         List<WorkStep> early = new ArrayList<>(current.steps.subList(0, current.cursor));
         List<WorkStep> delayed = new ArrayList<>();
         List<WorkStep> above = new ArrayList<>();
-        // Finish the lower placement layer before its roof or upper floor seals access to it.
+        // Finish the lower placement layer before its roof, then install its light fixtures.
         for (WorkStep pending : current.steps.subList(current.cursor, current.steps.size())) {
             if (pending.pos().equals(step.pos())) {
                 delayed.add(pending);
-            } else if (!step.remove() && !pending.remove() && pending.pos().getY() > step.pos().getY()) {
+            } else if (!step.remove() && !pending.remove()
+                    && (pending.target().light() && !step.target().light()
+                    || pending.target().light() == step.target().light() && pending.pos().getY() > step.pos().getY())) {
                 above.add(pending);
             } else {
                 early.add(pending);
@@ -1437,7 +1487,7 @@ final class ConstructionService {
     }
 
     private boolean reopenAccess(WorkStep step) {
-        if (step.remove()) {
+        if (step.remove() || current.plan.localized()) {
             return false;
         }
         List<WorkStep> removals = new ArrayList<>();
@@ -1544,6 +1594,14 @@ final class ConstructionService {
             current.state = State.FAILED;
             current.reason = "world_verification_failed";
         }
+        if (current.state == State.COMPLETED) {
+            if (current.plan.lighting()) {
+                completedLighting.put(current.plan.buildingId(), current.plan);
+            } else {
+                completedLighting.remove(current.plan.buildingId());
+            }
+            worker.celebrate(current.plan.worldBounds());
+        }
         if (current.supply != null) {
             current.supply.phase = current.state.wire();
         }
@@ -1554,7 +1612,12 @@ final class ConstructionService {
         JsonArray states = new JsonArray();
         JsonArray mismatches = new JsonArray();
         int matched = 0;
+        Set<BlockPos> inspected = current.plan.localized() && current.predecessor != null
+                ? current.steps.stream().map(WorkStep::pos).collect(java.util.stream.Collectors.toSet()) : null;
         for (BuildPlan.Target target : current.plan.targets()) {
+            if (inspected != null && !inspected.contains(target.world()) && !level.hasChunkAt(target.world())) {
+                continue;
+            }
             if (!level.hasChunkAt(target.world())) {
                 throw Wire.conflict("site_not_loaded", "请加载建筑所在区块，以便验收。");
             }
@@ -1563,7 +1626,7 @@ final class ConstructionService {
             states.add(row);
             if (matches(actual, target.state())) {
                 matched++;
-            } else {
+            } else if (inspected == null || inspected.contains(target.world())) {
                 mismatches.add(row);
             }
         }
@@ -1572,7 +1635,53 @@ final class ConstructionService {
         data.addProperty("matched", matched);
         data.add("target_mismatches", mismatches);
         data.add("target_states", states);
+        if (current.plan.lighting()) {
+            JsonArray dark = new JsonArray();
+            int checked = 0;
+            for (BuildPlan.Target target : current.plan.targets()) {
+                BlockPos feet = target.world().above();
+                if (target.light() || !spawnSurface(feet, current.plan)) {
+                    continue;
+                }
+                checked++;
+                if (level.getBrightness(LightLayer.BLOCK, feet) == 0) {
+                    dark.add(Wire.position(feet));
+                }
+            }
+            JsonObject lighting = new JsonObject();
+            lighting.addProperty("surfaces_checked", checked);
+            lighting.add("dark_cells", dark);
+            data.add("lighting", lighting);
+        }
         return data;
+    }
+
+    private boolean spawnSurface(BlockPos feet, BuildPlan plan) {
+        if (!site.area().contains(feet)) {
+            return false;
+        }
+        BlockPos floor = feet.below();
+        BuildPlan.Target support = plan.at(floor);
+        if (support == null || !matches(level.getBlockState(floor), support.state())) {
+            return false;
+        }
+        return support.state().isFaceSturdy(level, floor, Direction.UP)
+                && level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
+                && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty();
+    }
+
+    void protectNaturalSpawns(MobSpawnEvent.PositionCheck event) {
+        if (event.getLevel() != level || event.getSpawnType() != MobSpawnType.NATURAL
+                || event.getEntity().getType().getCategory() != MobCategory.MONSTER) {
+            return;
+        }
+        BlockPos feet = BlockPos.containing(event.getX(), event.getY(), event.getZ());
+        for (BuildPlan plan : completedLighting.values()) {
+            if (plan.at(feet.below()) != null && spawnSurface(feet, plan)) {
+                event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+                return;
+            }
+        }
     }
 
     private static JsonObject difference(BlockPos pos, BlockState expected, BlockState actual) {
@@ -1942,6 +2051,14 @@ final class ConstructionService {
             registered.put(plan.id(), new Registration(plan, payload, disposition));
         }
         history = Wire.object(data.get("history"), "journal history");
+        for (Registration registration : registered.values()) {
+            BuildPlan known = registration.plan();
+            JsonElement archived = history.get(known.id().toString());
+            if (known.lighting() && archived instanceof JsonObject job && job.has("state")
+                    && job.get("state").getAsString().equals("completed") && !job.has("superseded_by")) {
+                completedLighting.put(known.buildingId(), known);
+            }
+        }
         autonomyRevoked = data.has("autonomy_revoked") && data.get("autonomy_revoked").getAsBoolean();
         if (data.has("survey_npc") && site.worldCopy()) {
             surveyNpc = BuildPlan.id(data, "survey_npc");
@@ -1963,6 +2080,9 @@ final class ConstructionService {
                 throw Wire.invalid("The current job is missing its approved version");
             }
             current = ConstructionJob.restore(checkpoint, entry.plan(), palette, site);
+            if (current.plan.lighting() && current.state == State.COMPLETED) {
+                completedLighting.put(current.plan.buildingId(), current.plan);
+            }
             worker.useScaffolds(current.scaffolds, current.plan.byPosition().keySet());
             updateSupplyArea();
         }

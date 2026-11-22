@@ -29,7 +29,8 @@ import java.util.UUID;
 final class Warehouse {
     private static final int RADIUS = 16;
     private static final int TRIP_ITEMS = 48;
-    private static final Set<Item> TOOLS = Set.of(Items.IRON_AXE, Items.IRON_PICKAXE, Items.IRON_SHOVEL, Items.SHEARS);
+    private static final Set<Item> TOOLS = Set.of(Items.IRON_AXE, Items.IRON_PICKAXE, Items.IRON_SHOVEL, Items.SHEARS,
+            Items.STONE_AXE, Items.STONE_PICKAXE, Items.STONE_SHOVEL);
 
     private Warehouse() {}
 
@@ -131,6 +132,37 @@ final class Warehouse {
         return step.remove() ? FakePlayersWorker.toolFor(step.before()) : step.target().item();
     }
 
+    static boolean tool(Item item) {
+        return TOOLS.contains(item);
+    }
+
+    static Item substitute(WorkStep step) {
+        Item item = item(step);
+        Item candidate = item == Items.IRON_PICKAXE ? Items.STONE_PICKAXE
+                : item == Items.IRON_AXE ? Items.STONE_AXE
+                : item == Items.IRON_SHOVEL ? Items.STONE_SHOVEL : null;
+        return candidate != null && (!step.before().requiresCorrectToolForDrops()
+                || new ItemStack(candidate).isCorrectToolForDrops(step.before())) ? candidate : null;
+    }
+
+    static Map<Item, Item> substitutes(List<WorkStep> steps, int cursor) {
+        Map<Item, Item> values = new LinkedHashMap<>();
+        Set<Item> incompatible = new java.util.HashSet<>();
+        for (WorkStep step : steps.subList(cursor, steps.size())) {
+            if (!step.remove() || optionalTool(step)) {
+                continue;
+            }
+            Item alternative = substitute(step);
+            if (alternative == null) {
+                incompatible.add(item(step));
+            } else {
+                values.put(item(step), alternative);
+            }
+        }
+        incompatible.forEach(values::remove);
+        return values;
+    }
+
     static boolean optionalTool(WorkStep step) {
         return step.remove() && !step.before().requiresCorrectToolForDrops();
     }
@@ -149,7 +181,7 @@ final class Warehouse {
         return ForgeRegistries.ITEMS.getKey(item).toString();
     }
 
-    private static Map<Item, Integer> needs(List<WorkStep> steps, int cursor) {
+    static Map<Item, Integer> needs(List<WorkStep> steps, int cursor) {
         Map<Item, Integer> required = new LinkedHashMap<>();
         for (int index = cursor; index < steps.size(); index++) {
             WorkStep step = steps.get(index);
@@ -161,7 +193,7 @@ final class Warehouse {
         return required;
     }
 
-    private static Map<Item, Integer> carried(Container inventory) {
+    static Map<Item, Integer> carried(Container inventory) {
         Map<Item, Integer> totals = new LinkedHashMap<>();
         if (inventory != null) {
             for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
@@ -189,25 +221,34 @@ final class Warehouse {
         return jsonTotals(counts);
     }
 
-    private static JsonObject jsonTotals(Map<Item, Integer> totals) {
+    static JsonObject jsonTotals(Map<Item, Integer> totals) {
         JsonObject json = new JsonObject();
         totals.forEach((item, count) -> json.addProperty(id(item), count));
         return json;
     }
 
-    static JsonObject summary(List<WorkStep> steps, int cursor, Container inventory, List<Stock> stocks) {
-        Map<Item, Integer> cargo = carried(inventory);
+    static Map<Item, Integer> stocked(List<Stock> stocks) {
         Map<Item, Integer> stocked = new LinkedHashMap<>();
         for (Stock stock : stocks) {
             for (int slot = 0; slot < stock.items().getSlots(); slot++) {
                 ItemStack visible = stock.items().getStackInSlot(slot);
                 if (!visible.isEmpty() && !stock.items().extractItem(slot, 1, true).isEmpty()) {
-                    add(stocked, visible);
+                    add(stocked, stock.items().extractItem(slot, visible.getCount(), true));
                 }
             }
         }
+        return stocked;
+    }
+
+    static JsonObject summary(List<WorkStep> steps, int cursor, Container inventory, List<Stock> stocks,
+                              CraftingAssistant recipes, Set<CraftingAssistant.Station> stations, int heat) {
+        Map<Item, Integer> cargo = carried(inventory);
+        Map<Item, Integer> stocked = stocked(stocks);
+        var needs = needs(steps, cursor);
+        var substitutes = substitutes(steps, cursor);
+        var estimate = recipes.estimate(needs, substitutes, cargo, stocked, stations, heat);
         JsonObject rows = new JsonObject();
-        needs(steps, cursor).forEach((item, need) -> {
+        needs.forEach((item, need) -> {
             int owned = cargo.getOrDefault(item, 0);
             int supplied = stocked.getOrDefault(item, 0);
             JsonObject row = new JsonObject();
@@ -215,11 +256,18 @@ final class Warehouse {
             row.addProperty("required", need);
             row.addProperty("npc", owned);
             row.addProperty("warehouse", supplied);
-            row.addProperty("missing", (int) Math.max(0L, (long) need - owned - supplied));
+            if (substitutes.containsKey(item)) {
+                Item substitute = substitutes.get(item);
+                row.addProperty("equivalent", id(substitute));
+                row.addProperty("alternate_owned", (long) cargo.getOrDefault(substitute, 0) + stocked.getOrDefault(substitute, 0));
+            }
+            row.addProperty("craftable", estimate.crafted().getOrDefault(item, 0));
+            row.addProperty("missing", estimate.missing().getOrDefault(item, 0));
             rows.add(id(item), row);
         });
         JsonObject result = new JsonObject();
         result.add("requirements", rows);
+        result.add("recipe_inputs", jsonTotals(estimate.fetched()));
         result.add("warehouse_items", jsonTotals(stocked));
         result.add("npc_items", jsonTotals(cargo));
         result.addProperty("containers", stocks.size());
@@ -244,8 +292,11 @@ final class Warehouse {
     }
 
     static JsonObject transfer(Stock stock, SimpleContainer cargo, List<WorkStep> steps, int cursor) {
+        return transfer(stock, cargo, needs(steps, cursor));
+    }
+
+    static JsonObject transfer(Stock stock, SimpleContainer cargo, Map<Item, Integer> wanted) {
         Map<Item, Integer> inventory = carried(cargo);
-        Map<Item, Integer> wanted = needs(steps, cursor);
         Map<Item, Integer> moved = new LinkedHashMap<>();
         int remaining = TRIP_ITEMS;
         for (var entry : wanted.entrySet()) {
@@ -284,7 +335,7 @@ final class Warehouse {
         return result;
     }
 
-    private static int room(SimpleContainer cargo, ItemStack stack) {
+    static int room(SimpleContainer cargo, ItemStack stack) {
         int capacity = 0;
         int limit = Math.min(cargo.getMaxStackSize(), stack.getMaxStackSize());
         for (int slot = 0; slot < cargo.getContainerSize(); slot++) {
@@ -296,6 +347,31 @@ final class Warehouse {
             }
         }
         return capacity;
+    }
+
+    static boolean fabricate(SimpleContainer cargo, Map<Item, Integer> inputs, ItemStack result) {
+        if (result.isEmpty()) {
+            return false;
+        }
+        var remaining = new LinkedHashMap<>(inputs);
+        var updated = new SimpleContainer(cargo.getContainerSize());
+        for (int slot = 0; slot < cargo.getContainerSize(); slot++) {
+            ItemStack stack = cargo.getItem(slot).copy();
+            Item item = stack.getItem();
+            int consume = stack.hasTag() ? 0 : Math.min(stack.getCount(), remaining.getOrDefault(item, 0));
+            stack.shrink(consume);
+            if (consume > 0) {
+                remaining.put(item, remaining.get(item) - consume);
+            }
+            updated.setItem(slot, stack);
+        }
+        if (remaining.values().stream().anyMatch(amount -> amount != 0) || !updated.addItem(result).isEmpty()) {
+            return false;
+        }
+        for (int slot = 0; slot < cargo.getContainerSize(); slot++) {
+            cargo.setItem(slot, updated.getItem(slot));
+        }
+        return true;
     }
 
     static int find(Container inventory, Item item) {

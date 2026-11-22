@@ -35,7 +35,8 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             BuildPlan.Target wanted = next.at(pos);
             BlockState actual = level.getBlockState(pos);
             BlockState desired = goal(wanted);
-            boolean unchanged = ConstructionService.matches(actual, desired);
+            boolean unchanged = ConstructionService.matches(actual, desired)
+                    || next.localized() && ConstructionService.matches(goal(old.at(pos)), desired);
             if (wanted == null && !snapshot.owns(pos)) {
                 continue;
             }
@@ -43,7 +44,7 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             String category;
             WorkStep removal = null;
             WorkStep placement = null;
-            if (reason == null && !unchanged) {
+            if (!unchanged) {
                 if (!actual.isAir()) {
                     var previous = new BuildPlan.Target(next.localPosition(pos), pos, actual, actual.getBlock().asItem());
                     removal = snapshot.owns(pos) && actual.getBlock() == goal(old.at(pos)).getBlock()
@@ -92,6 +93,14 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             changes.add(row);
         }
 
+        Set<BlockPos> removedSupports = removals.stream().map(WorkStep::pos).collect(java.util.stream.Collectors.toSet());
+        for (BuildPlan.Target target : next.targets()) {
+            if (target.light() && removedSupports.contains(target.attachment())
+                    && ConstructionService.matches(level.getBlockState(target.world()), target.state())
+                    && removals.stream().noneMatch(step -> step.pos().equals(target.world()))) {
+                placements.add(new WorkStep(target, AIR, false));
+            }
+        }
         removals.sort(Comparator.comparing(WorkStep::pos, BuildPlan.BUILD_ORDER.reversed()));
         placements.sort(next.revisionPlacementOrder());
         removals.addAll(placements);

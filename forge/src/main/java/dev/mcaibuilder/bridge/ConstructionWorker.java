@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 interface ConstructionWorker {
     record Result(String status, String reason, JsonObject evidence) {}
@@ -38,7 +39,23 @@ interface ConstructionWorker {
 
     boolean hasSupply(WorkStep step);
 
-    JsonObject resupply(List<Warehouse.Stock> stocks, List<WorkStep> steps, int cursor);
+    CraftingAssistant recipes();
+
+    Set<CraftingAssistant.Station> stations(BlockPos center);
+
+    void useWorkshop(SupplyCheckpoint supply);
+
+    boolean cleanWorkshop();
+
+    boolean gatherScaffoldMaterial(int amount);
+
+    void tickLife(boolean idle);
+
+    void celebrate(BuildSite.Box bounds);
+
+    void mentionSupply();
+
+    JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor);
 
     JsonObject status();
 

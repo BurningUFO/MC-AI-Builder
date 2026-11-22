@@ -25,6 +25,7 @@ from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudget
                                      ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
 from src.architect import planning
+from src.architect.grammar import LIGHTING, ROOF_STYLES
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
 from src.architect import feedback, survey
 
@@ -36,7 +37,7 @@ MAX_RESPONSE_BYTES = 32768
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
     "ground_near_anchor", "fixed_site", "construction", "design", "supply", "available_mod_blocks",
-    "phase", "event", "sites",
+    "phase", "event", "sites", "gaze",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 
@@ -55,23 +56,35 @@ DESIGN_FIELDS = {
 }
 POINT = {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3}
 MODULE_FIELDS = {
-    "mode": {"type": "string", "enum": ["fill", "shell", "erase"]},
+    "mode": {"type": "string", "enum": ["fill", "shell", "erase", "roof", "framing"]},
     "from": POINT, "to": POINT,
+    "style": {"type": ["string", "null"], "enum": [*ROOF_STYLES, None]},
+    "overhang": {"type": ["integer", "null"]},
+    "ridge_axis": {"type": ["string", "null"], "enum": ["x", "z", None]},
+    "spacing": {"type": ["integer", "null"]},
     "block": {"type": ["string", "null"]},
     "properties": {
         "type": ["object", "null"],
-        "properties": {key: {"type": ["string", "null"]} for key in ("axis", "facing", "half", "type")},
-        "required": ["axis", "facing", "half", "type"], "additionalProperties": False,
+        "properties": {key: {"type": ["string", "null"]} for key in ("axis", "facing", "half", "type", "hanging")},
+        "required": ["axis", "facing", "half", "type", "hanging"], "additionalProperties": False,
     },
 }
 INTENT_DESIGN_FIELDS = {
     **DESIGN_FIELDS,
     "name": {"type": ["string", "null"]},
     "overlay": {"type": ["boolean", "null"]},
+    "lighting": {"type": ["string", "null"], "enum": [*LIGHTING, None]},
     "modules": {"type": ["array", "null"], "items": {
         "type": "object", "properties": MODULE_FIELDS,
         "required": list(MODULE_FIELDS), "additionalProperties": False,
     }},
+}
+EDIT_FIELDS = {
+    "surface": {"type": "string", "enum": ["wall", "window", "roof"]},
+    "material": {"type": "string"},
+    "width": {"type": ["integer", "null"]},
+    "height": {"type": ["integer", "null"]},
+    "floor_to_ceiling": {"type": ["boolean", "null"]},
 }
 FIELDS = {
     "action": {"type": "string", "enum": sorted(ACTIONS)},
@@ -81,6 +94,8 @@ FIELDS = {
         "required": list(INTENT_DESIGN_FIELDS), "additionalProperties": False,
     },
     "base_version": {"type": ["integer", "null"]},
+    "edit": {"type": ["object", "null"], "properties": EDIT_FIELDS,
+             "required": list(EDIT_FIELDS), "additionalProperties": False},
     "origin": {"anyOf": [
         {"type": "array", "items": {"type": "integer"}, "minItems": 3, "maxItems": 3},
         {"type": "string", "enum": ["here"]}, {"type": "null"},
@@ -126,6 +141,8 @@ def decode_intent(output: str) -> dict:
             for module in normalized["changes"].get("modules", ()):
                 if isinstance(module.get("properties"), dict):
                     module["properties"] = {key: value for key, value in module["properties"].items() if value is not None}
+        if isinstance(normalized.get("edit"), dict):
+            normalized["edit"] = {key: value for key, value in normalized["edit"].items() if value is not None}
         return parse_intent(normalized)
     except (AttributeError, TypeError, ValueError, RecursionError):
         raise InvalidOutput("Invalid structured Codex intent") from None

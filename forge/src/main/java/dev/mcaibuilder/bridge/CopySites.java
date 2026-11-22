@@ -464,6 +464,7 @@ final class CopySites {
     void deactivate() {
         if (active != null) {
             active.architect().stopSurvey();
+            active.architect().closePreviews();
             active.construction().close();
             active = null;
         }

@@ -35,13 +35,22 @@ public final class ForgeBridge {
     private long profilingTickStart;
 
     public ForgeBridge() {
+        GhostPreview.register();
         MinecraftForge.EVENT_BUS.addListener(this::started);
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
+        MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::protectNaturalSpawns);
         MinecraftForge.EVENT_BUS.addListener(this::chat);
         MinecraftForge.EVENT_BUS.addListener(this::tick);
         MinecraftForge.EVENT_BUS.addListener(this::stopping);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerPlace);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::playerBreak);
+    }
+
+    private void protectNaturalSpawns(net.minecraftforge.event.entity.living.MobSpawnEvent.PositionCheck event) {
+        ConstructionService service = construction();
+        if (service != null) {
+            service.protectNaturalSpawns(event);
+        }
     }
 
     private void registerCommands(RegisterCommandsEvent event) {
@@ -237,6 +246,9 @@ public final class ForgeBridge {
             if (copy != null) {
                 copy.deactivate();
             } else {
+                if (architect != null) {
+                    architect.closePreviews();
+                }
                 construction.close();
             }
             http = null;

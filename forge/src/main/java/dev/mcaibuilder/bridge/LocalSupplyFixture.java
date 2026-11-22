@@ -187,7 +187,13 @@ final class LocalSupplyFixture {
         }
         String action = Wire.string(request.get("companion"), "companion");
         switch (action) {
-            case "camera" -> player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 180, 20);
+            case "camera" -> {
+                player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 180, 20);
+                if (request.has("look")) {
+                    var target = Wire.position(request.get("look"), "fixture.look");
+                    player.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(target));
+                }
+            }
             case "double_chest" -> {
                 if (!site.canWorkAt(level, pos.east())) {
                     throw new IllegalStateException("Double chest outside the test site");

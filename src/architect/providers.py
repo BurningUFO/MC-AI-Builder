@@ -10,9 +10,10 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from src.architect.design import CHIPPED_WOOD, DESIGNS, GLASS, MASONRY, ROOFS, WOODS
+from src.architect.grammar import GRAMMAR_PROMPT
 from src.construction.plan import VANILLA_BLOCKS
 
-DESIGN = frozenset(("create_design", "revise_design"))
+DESIGN = frozenset(("create_design", "revise_design", "surgical_edit"))
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
@@ -42,7 +43,7 @@ def parse_intent(output: dict) -> dict:
         raise InvalidOutput("unsupported action")
     action = output["action"]
     fields = {"action"}
-    if action in DESIGN:
+    if action in ("create_design", "revise_design"):
         fields |= {"kind", "changes", "origin", "rotation"}
         if action == "revise_design":
             fields.add("base_version")
@@ -50,6 +51,17 @@ def parse_intent(output: dict) -> dict:
                 raise InvalidOutput("missing base version")
         if output.get("kind") not in tuple(DESIGNS) or not isinstance(output.get("changes"), dict):
             raise InvalidOutput("invalid design envelope")
+    if action == "surgical_edit":
+        fields |= {"base_version", "edit"}
+        edit = output.get("edit")
+        if (type(output.get("base_version")) is not int or output["base_version"] < 1 or not isinstance(edit, dict)
+                or set(edit) - {"surface", "material", "width", "height", "floor_to_ceiling"}
+                or edit.get("surface") not in ("wall", "window", "roof") or type(edit.get("material")) is not str
+                or any(type(edit[name]) is not int or not 1 <= edit[name] <= 5 for name in ("width", "height") if name in edit)
+                or type(edit.get("floor_to_ceiling", False)) is not bool):
+            raise InvalidOutput("invalid local edit")
+        if edit["surface"] != "window" and set(edit) - {"surface", "material"}:
+            raise InvalidOutput("window dimensions on non-window edit")
     if "message" in output or action in ("chat", "clarify", "unsupported"):
         fields.add("message")
         if (type(output.get("message")) is not str or not output["message"].strip()
@@ -69,7 +81,7 @@ commands, credentials or URLs. Only the player can authorize building and supply
 have started or finished work unless the game state confirms it.
 
 Use create_design with kind "voxel" for original designs: houses, bridges, pavilions, towers,
-and other shapes. changes contains name and modules. Each module has mode ("fill", "shell", "erase"),
+and other shapes. changes contains name and modules. Each module has mode ("fill", "shell", "erase", "roof", "framing"),
 from and to (inclusive [x,y,z] local integer corners), block (registered block ID, null for erase),
 and optional properties. Apply modules in order. A shell creates the six faces of a cuboid. Use
 erase to cut doors and openings after the wall modules. Floors, perimeter walls, log pillars,
@@ -79,6 +91,7 @@ Local north is negative Z. Keep upper blocks connected to supports. Build at mos
 and 96 modules. Use vanilla materials below and only modded materials advertised in available_mod_blocks.
 Stairs may set facing and half, slabs may set type, logs may set axis. Other properties can be omitted.
 Vanilla palette: {", ".join(sorted(VANILLA_BLOCKS))}.
+{GRAMMAR_PROMPT}
 
 Default to the surveyed anchors unless the player explicitly specifies an approved position or direction.
 For fixed_site contexts all coordinates are relative to suggested_origin. Rotation is clockwise from
@@ -87,12 +100,19 @@ For revision use revise_design, the visible kind and base_version, and keep its 
 Send a full replacement module list for a new shape, or set changes.overlay true to apply new modules
 on top of the existing shape. Legacy window_wall and cottage designs can keep their existing parameters
 when revised. For a simple new window wall you may also use window_wall.
+For changing this wall, this window, or the roof material of an existing design use surgical_edit
+with base_version and edit containing surface ("wall", "window", or "roof") and material (a
+supported Minecraft block ID). For windows only, optionally give width and height in blocks,
+and floor_to_ceiling for a full-height window. Use the provided gaze for indicating a wall or
+window; ask the player to point at the wall if no gaze is available. Do not propose replacement
+modules for a local edit. The existing footprint, orientation, openings outside that wall, and
+all unrelated parts remain in place.
 
 Available actions without a design: chat, clarify, unsupported, get_capabilities, get_world_context,
 get_build_status, get_construction_progress, get_material_status, preview_design, review_changes,
 request_approval, pause_construction, request_resume, request_cancel.
 For a supply_update event use get_material_status and a friendly message grounded in supply data.
-The game appends exact item counts from the live scan, so use the message to explain what to do next.
+The game appends exact item counts. A craftable quantity means the Builder can process it using its own inventory and recipe_inputs from nearby storage.
 For progress give a short explanation based on the recorded phase and step count.
 For an ambiguous request ask a focused question. If dimensions or style can be sensibly inferred
 from the conversation, make a proposal that the player can adjust before approval."""
@@ -218,6 +238,18 @@ class FixtureProvider:
                 if word in text:
                     changes[field] = value
                     break
+        if visible and re.search(r"这面墙|这个位置.*窗|落地窗|屋顶换|换.*屋顶|replace this wall", text):
+            surface = "roof" if "屋顶" in text else "window" if "窗" in text else "wall"
+            if surface != "roof" and not context.get("gaze"):
+                return {"action": "clarify", "message": "请把准心对着你想动的墙面。"}
+            material = (changes.get("wood", WOODS[2]) if surface == "roof" else
+                        changes.get("glass", GLASS[0]) if surface == "window" else
+                        changes.get("masonry", MASONRY[0]))
+            edit = {"surface": surface, "material": material}
+            if surface == "window":
+                edit.update(width=2, height=3 if "落地" in text else 2, floor_to_ceiling="落地" in text)
+            return {"action": "surgical_edit", "base_version": visible["version"], "edit": edit,
+                    "message": "我把你说的这一处先放进预览。"}
         if re.search(r"小木屋|木屋|小屋|住宅|房子|cabin|cottage|凉亭|pavilion|塔楼|tower", text):
             return self.voxel(context, text, changes)
         if re.fullmatch(r"(?:你好|哈喽|嗨|hi|hello)[!！。 ]*", text):
@@ -275,9 +307,21 @@ class FixtureProvider:
             for x in (-edge + 1, edge - 1):
                 region([x, 2, -edge], [x, 2, -edge], glass)
                 region([x, 2, edge], [x, 2, edge], glass)
-        for rise in range(1 if tower else edge):
-            span = edge - rise
-            region([-span, top + rise, -edge], [span, top + rise, edge], wood)
+        styles = (("四面坡", "hip"), ("女儿墙", "parapet"), ("人字顶", "gable"))
+        roof_style = next((style for word, style in styles if word in text), None)
+        if roof_style:
+            modules.append({"mode": "roof", "style": roof_style,
+                            "from": [-edge, top + 1, -edge], "to": [edge, top + 1, edge], "block": wood,
+                            "overhang": 0 if "不出檐" in text else 1})
+            if not pavilion:
+                post = wood.replace("_planks", "_log")
+                if post in VANILLA_BLOCKS:
+                    modules.insert(2, {"mode": "framing", "from": [-edge, 1, -edge],
+                                       "to": [edge, top - 1, edge], "block": post})
+        else:
+            for rise in range(1 if tower else edge):
+                span = edge - rise
+                region([-span, top + rise, -edge], [span, top + rise, edge], wood)
         if "烟囱" in text or "chimney" in text:
             x, z = edge - 1, edge - 1
             region([x, 1, z], [x, top + edge, z], stone)

@@ -8,6 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
@@ -32,8 +33,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
-                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds) {
-    private static final int MAX_ACTIONS = 4096;
+                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds, boolean lighting, boolean localized) {
+    static final int MAX_ACTIONS = 4096;
+    static final List<String> WOOD_FAMILIES = List.of("oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry");
     static final boolean LEGACY_EXECUTION = "1".equals(System.getenv("MC_AI_BUILDER_LEGACY_EXECUTOR"));
     private static final String QUARK_STAIR = "quark:red_shingles_stairs";
     private static final Set<String> MODDED = Set.of(
@@ -43,10 +45,27 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
 
     // The two directional roof stairs can click a solid tile on the same layer.
     static final Comparator<Target> PLACEMENT_ORDER = Comparator.<Target>comparingInt(target -> target.world().getY())
+            .thenComparing(Target::topSlab)
             .thenComparing(target -> QUARK_STAIR.equals(ForgeRegistries.BLOCKS.getKey(target.state().getBlock()).toString()))
             .thenComparing(Target::world, BUILD_ORDER);
 
-    record Target(BlockPos local, BlockPos world, BlockState state, Item item) {}
+    record Target(BlockPos local, BlockPos world, BlockState state, Item item) {
+        boolean light() {
+            return state.is(Blocks.TORCH) || state.is(Blocks.WALL_TORCH) || state.is(Blocks.LANTERN);
+        }
+
+        boolean topSlab() {
+            return state.hasProperty(BlockStateProperties.SLAB_TYPE)
+                    && state.getValue(BlockStateProperties.SLAB_TYPE) == net.minecraft.world.level.block.state.properties.SlabType.TOP;
+        }
+
+        BlockPos attachment() {
+            if (state.is(Blocks.WALL_TORCH)) {
+                return world.relative(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite());
+            }
+            return state.is(Blocks.LANTERN) && state.getValue(BlockStateProperties.HANGING) ? world.above() : world.below();
+        }
+    }
 
     Target at(BlockPos world) {
         return byPosition.get(world);
@@ -79,6 +98,12 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         value.add("origin", Wire.position(origin));
         value.addProperty("rotation", rotation.ordinal() * 90);
         value.add("world_bounds", worldBounds.json());
+        if (lighting) {
+            value.addProperty("lighting", true);
+        }
+        if (localized) {
+            value.addProperty("localized", true);
+        }
         return value;
     }
 
@@ -111,12 +136,13 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         Comparator<Target> adjacentRows = Comparator.<Target>comparingInt(target -> target.local().getZ())
                 .thenComparingInt(target -> (target.local().getZ() & 1) == 0 ? target.local().getX() : -target.local().getX());
         return Comparator.<Target>comparingInt(target -> target.world().getY())
+                .thenComparing(Target::topSlab)
                 .thenComparingInt(target -> distance.getOrDefault(target.world(), Integer.MAX_VALUE))
                 .thenComparing(LEGACY_EXECUTION ? PLACEMENT_ORDER : adjacentRows);
     }
 
     Comparator<WorkStep> revisionPlacementOrder() {
-        if (!buildingId.startsWith("cottage_") && !voxel()) {
+        if (!buildingId.startsWith("cottage_") && !voxel() && !lighting) {
             return Comparator.comparing(WorkStep::target, PLACEMENT_ORDER);
         }
         var order = new HashMap<BlockPos, Integer>();
@@ -138,7 +164,13 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 Blocks.STRIPPED_SPRUCE_LOG, Blocks.STRIPPED_DARK_OAK_LOG, Blocks.SPRUCE_STAIRS, Blocks.DARK_OAK_STAIRS,
                 Blocks.BRICK_STAIRS, Blocks.SPRUCE_SLAB, Blocks.DARK_OAK_SLAB, Blocks.BRICK_SLAB,
                 Blocks.WHITE_STAINED_GLASS, Blocks.GREEN_STAINED_GLASS, Blocks.BROWN_STAINED_GLASS, Blocks.GLASS, Blocks.LIGHT_BLUE_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS, Blocks.OAK_STAIRS, Blocks.STONE_BRICK_STAIRS,
-                Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB));
+                Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB, Blocks.COBBLESTONE_STAIRS, Blocks.COBBLESTONE_SLAB,
+                Blocks.STONE_STAIRS, Blocks.STONE_SLAB, Blocks.TORCH, Blocks.WALL_TORCH, Blocks.LANTERN));
+        for (String wood : WOOD_FAMILIES) {
+            for (String piece : List.of("log", "stairs", "slab")) {
+                blocks.add(ForgeRegistries.BLOCKS.getValue(ResourceLocation.tryParse("minecraft:" + wood + "_" + piece)));
+            }
+        }
         for (String id : MODDED) {
             ResourceLocation key = ResourceLocation.tryParse(id);
             Block block = ForgeRegistries.BLOCKS.getValue(key);
@@ -214,12 +246,12 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 throw Wire.invalid("M1 cannot place block entity data at " + local.toShortString());
             }
             BlockState state = readState(action, palette).rotate(rotation);
-            Item item = state.getBlock().asItem();
+            Item item = state.is(Blocks.WALL_TORCH) ? Items.TORCH : state.getBlock().asItem();
             ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(item);
             JsonElement declaredItem = action.get("item_id");
             boolean resolveModItem = MODDED.contains(action.get("id").getAsString())
                     && (declaredItem == null || declaredItem.isJsonNull());
-            if (!(item instanceof BlockItem placing) || placing.getBlock() != state.getBlock() || itemId == null
+            if (!(item instanceof BlockItem placing) || placing.getBlock() != state.getBlock() && !state.is(Blocks.WALL_TORCH) || itemId == null
                     || (!resolveModItem && !itemId.toString().equals(Wire.string(declaredItem, "action.item_id")))) {
                 throw Wire.invalid("Incorrect or unsupported placement item at " + local.toShortString());
             }
@@ -235,7 +267,9 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
-        targets.sort((buildingId.startsWith("cottage_") || buildingId.startsWith("voxel_")) ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER);
+        Comparator<Target> order = buildingId.startsWith("cottage_") || buildingId.startsWith("voxel_")
+                ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER;
+        targets.sort(Comparator.comparing(Target::light).thenComparing(order));
         JsonArray blocks = new JsonArray();
         model.values().forEach(blocks::add);
         String modelHash = Wire.sha256(blocks);
@@ -243,7 +277,10 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             throw Wire.invalid("Model content hash does not match the supplied blocks");
         }
         return new BuildPlan(id, buildingId, version, origin, rotation, modelHash, List.copyOf(targets),
-                Map.copyOf(byPosition), bounds(byPosition.keySet()));
+
+                Map.copyOf(byPosition), bounds(byPosition.keySet()),
+                data.has("lighting") && data.get("lighting").getAsBoolean(),
+                data.has("localized") && data.get("localized").getAsBoolean());
     }
 
     static UUID id(JsonObject data, String key) {

@@ -47,6 +47,7 @@ final class ConstructionJob {
     int deferred;
     boolean cancelling;
     boolean needsScaffoldDirt;
+    long lightingSettleUntil;
     final Map<BlockPos, BlockState> scaffolds = new LinkedHashMap<>();
     String reason;
     JsonObject verification;

@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from itertools import product
 from math import prod
 
+from src.architect.grammar import LIGHTING, generate_framing, generate_roof, illuminate
 from src.core.building import Building
 from src.construction.plan import MAX_ACTIONS, VANILLA_BLOCKS
 
@@ -178,7 +179,7 @@ class Cottage:
 
 
 MAX_MODULES = 96
-MODULE_MODES = ("fill", "shell", "erase")
+MODULE_MODES = ("fill", "shell", "erase", "roof", "framing")
 
 
 @dataclass(frozen=True)
@@ -188,10 +189,11 @@ class VoxelDesign:
     modules: tuple[dict, ...]
     name: str = "Builder design"
     overlay: bool = False
+    lighting: str = "none"
 
     @classmethod
     def edit(cls, changes: dict, base=None):
-        if set(changes) - {"name", "modules", "overlay"}:
+        if set(changes) - {"name", "modules", "overlay", "lighting"}:
             raise DesignError("体素方案使用建筑名称和填充、空壳、开洞模块。")
         name = changes.get("name", base.name if base else "Builder design")
         new = changes.get("modules")
@@ -200,18 +202,28 @@ class VoxelDesign:
                 or type(overlay) is not bool or overlay and base is None):
             raise DesignError("请提供简短的建筑名称，增量模块需要一份现有设计。")
         if new is None and base is not None:
-            return base
+            new = base.modules
+            overlay = False
         if not isinstance(new, (list, tuple)) or not 1 <= len(new) <= MAX_MODULES:
             raise DesignError(f"请将设计组合成 1–{MAX_MODULES} 个体素模块。")
         modules = (base.modules + tuple(new)) if overlay else tuple(new)
         if len(modules) > MAX_MODULES:
             raise DesignError("增量模块过多，请合并围墙、楼板和屋顶后重试。")
-        return cls(modules, name.strip())
+        default_light = base.lighting if base else "torch" if any(
+            isinstance(module, dict) and module.get("mode") == "roof" for module in modules) else "none"
+        lighting = changes.get("lighting", default_light)
+        if lighting not in LIGHTING:
+            raise DesignError("照明可用火把、灯笼或手动布置。")
+        return cls(modules, name.strip(), lighting=lighting)
+
+    generate_roof = staticmethod(generate_roof)
+    generate_framing = staticmethod(generate_framing)
 
     def building(self) -> Building:
         model = Building(self.name)
-        for module in self.modules:
-            if not isinstance(module, dict) or set(module) - {"mode", "from", "to", "block", "properties"}:
+        for raw in self.modules:
+            module = {key: value for key, value in raw.items() if value is not None} if isinstance(raw, dict) else {}
+            if set(module) - {"mode", "from", "to", "block", "properties", "style", "overhang", "ridge_axis", "spacing"}:
                 raise DesignError("体素模块需要模式、起止位置和方块。")
             mode = module.get("mode")
             start, end = module.get("from"), module.get("to")
@@ -229,15 +241,26 @@ class VoxelDesign:
             if mode != "erase" and (not isinstance(block, str) or block not in VANILLA_BLOCKS | {
                     CHIPPED_WOOD, QUARK_ROOF, QUARK_STAIR} or not isinstance(properties, dict)):
                 raise DesignError(f"这个模块的材料或方块状态不可用。")
-            if mode != "erase":
-                properties = self.block_properties(block, properties)
-            for point in product(*(range(a, b + 1) for a, b in zip(low, high))):
-                if mode == "erase":
-                    model.blocks.pop(point, None)
-                elif mode == "fill" or any(axis in (a, b) for axis, a, b in zip(point, low, high)):
-                    model.place(point, block, **properties)
+            if mode in ("roof", "framing"):
+                try:
+                    pieces = self.generate_roof(module.get("style"), (low, high), module.get("overhang", 1),
+                                                block, module.get("ridge_axis")) if mode == "roof" else self.generate_framing(
+                                                    (low, high), block, module.get("spacing", 4))
+                except ValueError as error:
+                    raise DesignError(str(error)) from error
+                for point, (material, state) in pieces.items():
+                    model.place(point, material, **state)
+            else:
+                if mode != "erase":
+                    properties = self.block_properties(block, properties)
+                for point in product(*(range(a, b + 1) for a, b in zip(low, high))):
+                    if mode == "erase":
+                        model.blocks.pop(point, None)
+                    elif mode == "fill" or any(axis in (a, b) for axis, a, b in zip(point, low, high)):
+                        model.place(point, block, **properties)
             if len(model.blocks) > MAX_ACTIONS * 2:
                 raise DesignError("模块展开过大，请缩小占地或减少实体填充。")
+        illuminate(model, self.lighting)
         if not 1 <= len(model.blocks) <= MAX_ACTIONS:
             raise DesignError(f"施工设计需要 1–{MAX_ACTIONS} 个实体方块。")
         return model
@@ -250,6 +273,10 @@ class VoxelDesign:
         if block.endswith("_stairs"):
             choices.update(facing=("north", "east", "south", "west"),
                            half=("bottom", "top"), shape=("straight",), waterlogged=("false",))
+        if block == "minecraft:wall_torch":
+            choices["facing"] = ("north", "east", "south", "west")
+        if block == "minecraft:lantern":
+            choices.update(hanging=("false", "true"), waterlogged=("false",))
         if block.endswith("_slab"):
             choices.update(type=("bottom", "top"), waterlogged=("false",))
         if set(supplied) - choices.keys() or any(value not in choices[key] for key, value in supplied.items()):

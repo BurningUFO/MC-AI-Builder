@@ -21,8 +21,8 @@ from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted,
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
-from src.core.building import write_json
-from src.architect import feedback, planning, survey
+from src.core.building import Building, write_json
+from src.architect import feedback, planning, surgical, survey
 from src.architect.telemetry import Trace, timed
 
 PREVIEW_ACTIONS = {"preview_design", "review_changes", "request_approval"}
@@ -116,18 +116,22 @@ class SessionStore:
 
     @local_db
     def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
-                kind="window_wall", footing=None, worksite_order=None):
+                kind="window_wall", footing=None, worksite_order=None, edits=()):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
             return json.loads(row[0])
         largest, = db.execute("SELECT max(version) FROM designs WHERE building = ?", (building_id,)).fetchone()
         version = max(largest or 0, from_version) + 1
-        plan = make_plan(model, building_id=building_id, version=version, origin=origin, rotation=rotation)
+        params = parameters if isinstance(parameters, dict) else asdict(parameters)
+        plan = make_plan(model, building_id=building_id, version=version, origin=origin, rotation=rotation,
+                         lighting=params.get("lighting", "none") != "none", localized=action == "surgical_edit")
         plan["plan_id"] = plan_id
         if worksite_order is not None:
             plan["worksite_order"] = worksite_order
-        spec = {"kind": kind, "parameters": asdict(parameters), "plan": plan, "action": action}
+        spec = {"kind": kind, "parameters": params, "plan": plan, "action": action}
+        if edits:
+            spec["edits"] = edits
         if footing is not None:
             spec["footing"] = footing
         folder = self.directory(plan_id)
@@ -172,19 +176,27 @@ def describe_supply(supply, *, approval=False):
     def quantities(key):
         return "、".join(f"{item.removeprefix('minecraft:')} ×{row[key]}"
                         + (" 耐久" if row["unit"] == "durability" else "")
-                        for item, row in sorted(rows.items()) if row[key])
+                        for item, row in sorted(rows.items()) if row.get(key, 0))
 
     required = quantities("required") or "无剩余材料需求"
     short = quantities("missing")
+    crafted = quantities("craftable")
+    inputs = "、".join(f"{item.removeprefix('minecraft:')} ×{count}"
+                      for item, count in sorted(supply.get("recipe_inputs", {}).items()))
+    production = f"我会{'用附近的 ' + inputs if inputs else '用手头的原料'}做出 {crafted}。" if crafted else ""
     if not rows and not supply.get("warehouse_approved"):
         return "准备好后，把材料放进附近箱子或木桶，再叫我来盘点。"
     if not supply.get("warehouse_approved") and rows:
         return f"需要 {required}。把材料放进附近箱子或木桶，跟我说「材料齐了」，我就去盘点。"
     if approval:
-        return required + (f"。还差 {short}" if short else "。附近库存够用")
+        return required + (f"。还差 {short}。" if short else "。附近库存够用。") + production
     if supply.get("reason") == "warehouse_unreachable":
         return "我暂时走不到存放下一批材料的容器。能把材料挪到附近容易走到的箱子吗？"
-    return f"还差 {short}。补到附近的箱子后告诉我一声。" if short else "附近库存够用。"
+    if supply.get("reason") == "workstation_unreachable":
+        return "我需要附近一处可以走到的工位或空地，才能接着处理原料。"
+    if supply.get("reason") == "workshop_inventory":
+        return "我需要再盘一遍背包和箱子里的原料或工具。"
+    return production + (f"还差 {short}。补到附近的箱子后告诉我一声。" if short else "附近库存够用。")
 
 
 class Runtime:
@@ -216,7 +228,7 @@ class Runtime:
         context = {key: request[key] for key in ("dimension", "position", "facing", "suggested_origin",
                                                  "approved_area", "ground_near_anchor")}
         context["message"] = message
-        for key in ("phase", "event", "sites"):
+        for key in ("phase", "event", "sites", "gaze"):
             if key in request:
                 context[key] = request[key]
         context["recent"] = self.store.dialog(self.conversation_key(request))
@@ -225,11 +237,13 @@ class Runtime:
         if "supply" in request:
             supply = request["supply"]
             context["supply"] = {key: supply[key] for key in ("mode", "warehouse_approved", "containers",
-                                                              "requirements", "reason") if key in supply}
+                                                              "requirements", "recipe_inputs", "reason") if key in supply}
         job = request.get("job")
         visible = request.get("draft") or job
         if job is not None:
             context["construction"] = {key: job[key] for key in ("state", "building_version", "processed", "total")}
+            if "supply" in job:
+                context["construction"]["supply_phase"] = job["supply"]["phase"]
         if visible:
             spec = self.store.design(visible.get("plan_id") or visible["job_id"])
             if spec is not None:
@@ -251,6 +265,8 @@ class Runtime:
                 context["sites"] = [{**option, "origin": relative(option["origin"])} for option in context["sites"]]
             if "design" in context:
                 context["design"]["origin"] = relative(context["design"]["origin"])
+            if "gaze" in context:
+                context["gaze"] = {**context["gaze"], "position": relative(context["gaze"]["position"])}
         return context
 
     def handle(self, request, queued=None):
@@ -355,6 +371,8 @@ class Runtime:
 
     def _design(self, request, intent):
         action = intent["action"]
+        if action == "surgical_edit":
+            return self.local_edit(request, intent)
         prior = None
         old_version = 0
         kind = intent.get("kind", "window_wall")
@@ -418,11 +436,35 @@ class Runtime:
         if kind == "voxel":
             footing = voxel_footings(building, request.get("sites", ()), origin, rotation,
                                      prior=prior.get("footing", []) if prior else None)
+        edits = prior.get("edits", []) if prior else []
+        for edit in edits:
+            surgical.apply_edit(building, {"kind": kind, "parameters": asdict(parameters)}, edit["edit"], edit["gaze"])
         worksite_order = intent.get("_worksite_order") if request.get("worksite") else None
         spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
                                   building, origin, rotation, parameters, action, kind=kind, footing=footing,
-                                  worksite_order=worksite_order)
+                                  worksite_order=worksite_order, edits=edits)
         return spec
+
+    def local_edit(self, request, intent):
+        visible = request.get("draft") or request.get("job")
+        plan_id = (visible.get("plan_id") or visible.get("job_id")) if visible else None
+        prior = self.store.design(plan_id) if plan_id else None
+        if prior is None:
+            raise DesignError("我需要一份已有的方案，才能找出要改的那一处。")
+        plan = prior["plan"]
+        if intent["base_version"] != plan["building_version"]:
+            raise DesignError("方案已经更新。请重新指一下你想改的地方。")
+        model = Building.read(self.store.directory(plan_id) / "building.json")
+        gaze = surgical.local_gaze(request.get("gaze"), plan)
+        edit = intent["edit"]
+        before = model.blocks.copy()
+        surgical.apply_edit(model, prior, edit, gaze)
+        if model.blocks == before:
+            raise DesignError("这处已经用上了你选择的材料。")
+        return self.store.reserve(self.proposal_id(request["request_id"]), plan["building_id"], plan["building_version"],
+                                  model, plan["origin"], plan["rotation"], prior["parameters"], intent["action"],
+                                  kind=prior["kind"], footing=prior.get("footing"),
+                                  edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}])
 
     def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message=""):
         with timed("bridge_review"):
@@ -514,6 +556,8 @@ class Runtime:
                     f"已完成 {job['processed']}/{job['total']} 步。" if job else "我还没有在建的项目。")
             if job and job.get("reason") and job["reason"] != "awaiting_materials":
                 text += " " + diagnose(job["reason"]).recovery
+            elif job and job.get("supply", {}).get("phase") == "processing":
+                text += " 我在准备下一批方块，手头有合成和烧炼的活。"
         elif action == "get_capabilities":
             text = "我能和你选址、设计建筑、盘点附近的材料，等你批准后动手施工。也可以边聊边改图。"
         elif action == "get_material_status":

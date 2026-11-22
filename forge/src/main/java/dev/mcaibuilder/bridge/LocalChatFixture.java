@@ -55,6 +55,15 @@ final class LocalChatFixture {
                 if (chat.handleChatInput(message, true)) {
                     client.setScreen(null);
                 }
+            } else if (action.equals("probe_preview")) {
+                var pos = Wire.position(request.get("position"), "preview probe");
+                var state = client.level.getBlockState(pos);
+                var reply = new JsonObject();
+                reply.add("request", request.get("request"));
+                reply.addProperty("ghost_cells", GhostPreviewClient.size());
+                reply.add("block", Wire.state(state));
+                reply.addProperty("collides", !state.getCollisionShape(client.level, pos).isEmpty());
+                Files.writeString(root.resolve(".mcaibuilder-preview-result"), reply.toString());
             } else {
                 throw new IOException("Unknown isolated chat fixture action");
             }
@@ -70,7 +79,7 @@ final class LocalChatFixture {
             return;
         }
         String message = event.getMessage().getString();
-        if (message.contains("M5_PUBLIC_")) {
+        if (message.contains("M5_PUBLIC_") || message.startsWith("[Builder] ")) {
             JsonObject data = new JsonObject();
             data.addProperty("message", message);
             try {

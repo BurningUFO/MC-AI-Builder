@@ -10,6 +10,7 @@ from src.core.building import Building, Position, write_json
 
 
 SCHEMA_VERSION = 1
+WOOD_FAMILIES = ("oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry")
 MAX_ACTIONS = 4096
 VANILLA_BLOCKS = frozenset(f"minecraft:{name}" for name in (
     "stone", "cobblestone", "stone_bricks", "oak_planks", "spruce_planks", "dark_oak_planks",
@@ -19,6 +20,8 @@ VANILLA_BLOCKS = frozenset(f"minecraft:{name}" for name in (
     "oak_log", "spruce_log", "dark_oak_log", "stripped_oak_log", "stripped_spruce_log", "stripped_dark_oak_log",
     "spruce_stairs", "dark_oak_stairs", "brick_stairs", "spruce_slab", "dark_oak_slab", "brick_slab",
     "white_stained_glass", "green_stained_glass", "brown_stained_glass",
+    "stone_stairs", "stone_slab", "cobblestone_stairs", "cobblestone_slab", "torch", "wall_torch", "lantern",
+    *(f"{wood}_{piece}" for wood in WOOD_FAMILIES for piece in ("stairs", "slab", "log")),
     "glass", "light_blue_stained_glass", "blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
 ))
 
@@ -30,6 +33,8 @@ def make_plan(
     version: int,
     origin: Position,
     rotation: int = 0,
+    lighting: bool = False,
+    localized: bool = False,
 ) -> dict:
     """Carry explicit states and optional block-entity data to the backend."""
     if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{0,63}", building_id):
@@ -54,7 +59,8 @@ def make_plan(
             "local": [x, y, z],
             "id": block_id,
             "properties": dict(block.state.properties),
-            "item_id": block_id if block_id in VANILLA_BLOCKS else None,
+            "item_id": "minecraft:torch" if block_id == "minecraft:wall_torch"
+            else block_id if block_id in VANILLA_BLOCKS else None,
         }
         if block.block_entity is not None:
             action["block_entity"] = block.block_entity
@@ -72,6 +78,8 @@ def make_plan(
         "data_version": building.data_version,
         "origin": list(origin),
         "rotation": rotation,
+        **({"lighting": True} if lighting else {}),
+        **({"localized": True} if localized else {}),
         "local_bounds": {"min": list(minimum), "max": list(maximum)},
         "actions": actions,
     }

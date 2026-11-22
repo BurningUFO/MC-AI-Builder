@@ -28,6 +28,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 final class FakePlayersWorker implements ConstructionWorker {
     private static final double REACH = 4.5;
@@ -89,8 +91,31 @@ final class FakePlayersWorker implements ConstructionWorker {
     private boolean recoveringScaffold;
     private boolean soughtScaffold;
     private int scaffoldDirtCollected;
+    private BlockPos dirtTarget;
+    private final Set<BlockPos> unreachableSoil = new HashSet<>();
+    private CraftingAssistant crafting;
+    private SupplyCheckpoint workshop;
+    private final Map<CraftingAssistant.Station, List<BlockPos>> workshopNearby = new java.util.EnumMap<>(
+            CraftingAssistant.Station.class);
+    private final Set<BlockPos> skippedStations = new HashSet<>();
+    private BlockPos stationScanCenter;
+    private long stationScanUntil;
+    private BlockPos stationTarget;
+    private CraftingAssistant.Plan fabrication;
+    private Map<Item, Integer> fabricationPickups;
+    private int batchCursor;
+    private long cookingUntil;
+    private long greetingAfter;
+    private long speechAfter;
+    private boolean greeted;
+    private Vec3 ceremonyLook;
+    private long ceremonyMoveUntil;
+    private long ceremonyLookUntil;
 
     private record ScaffoldRoute(BlockPos base, int workY) {}
+    private record Descent(BlockPos edge, BlockPos landing, long deadline) {}
+    private Descent descent;
+    private final Set<BlockPos> triedDescents = new HashSet<>();
     private BlockPos surveyDestination;
     private BlockPos surveyStart;
     private long surveyDeadline;
@@ -106,6 +131,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public void prepare(List<BuildPlan.Target> targets, boolean removals) {
+        ceremonyLook = null;
         if (npc == null || !npc.isAlive()) {
             spawn();
         }
@@ -152,6 +178,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public void startSurvey() {
+        ceremonyLook = null;
         boolean spawned = npc == null;
         if (spawned) {
             if (!surveyFooting(site.spawn())) {
@@ -357,6 +384,9 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public String activity() {
+        if (fabrication != null && fabricationPickups.isEmpty()) {
+            return "processing_materials";
+        }
         if (destination != null) {
             return "navigating";
         }
@@ -374,6 +404,9 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public Result act(WorkStep step) {
+        if (tickDescent()) {
+            return null;
+        }
         if (!available()) {
             return failure("npc_unavailable");
         }
@@ -392,7 +425,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         Vec3 current = trackPosition();
         Item item = Warehouse.item(step);
-        int slot = item == Items.AIR ? -1 : supplySlot(item);
+        int slot = item == Items.AIR ? -1 : supplySlot(step);
         if (item != Items.AIR && slot < 0 && !Warehouse.optionalTool(step)) {
             return failure(step.remove() ? "out_of_tool" : "out_of_material");
         }
@@ -443,6 +476,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         if (npc.onGround() && findScaffold(step, stack)) {
             return climbScaffold();
+        }
+        if (startDescent(step.pos())) {
+            return null;
         }
         if (!scaffolds.isEmpty()) {
             triedStances.clear();
@@ -552,6 +588,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             if (route.base().equals(npc.blockPosition())) {
                 stopNavigation();
                 scaffoldRoute = route;
+                sayOccasionally("屋顶这里够不着，我搭几个垫脚块，上去就好。");
                 deadline = level.getGameTime() + MOVE_LIMIT_TICKS;
                 return true;
             }
@@ -559,6 +596,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             if (path != null && path.canReach() && insideSite(path) && npc.getNavigation().moveTo(path, 1.15)) {
                 destination = route.base();
                 scaffoldRoute = route;
+                sayOccasionally("屋顶这里够不着，我搭几个垫脚块，上去就好。");
                 deadline = level.getGameTime() + MOVE_LIMIT_TICKS;
                 return true;
             }
@@ -644,14 +682,10 @@ final class FakePlayersWorker implements ConstructionWorker {
         BlockPos footing = feet.below();
         List<BlockPos> usable = new ArrayList<>();
         for (BlockPos dirt : BlockPos.withinManhattan(footing, 3, 1, 3)) {
-            if (dirt.getX() == footing.getX() && dirt.getZ() == footing.getZ()
-                    || designCells.contains(dirt) || scaffolds.containsKey(dirt) || !site.canWorkAt(level, dirt)) {
+            if (dirt.getX() == footing.getX() && dirt.getZ() == footing.getZ()) {
                 continue;
             }
-            BlockState actual = level.getBlockState(dirt);
-            if ((actual.is(Blocks.DIRT) || actual.is(Blocks.GRASS_BLOCK))
-                    && level.getBlockState(dirt.above()).isAir() && level.getBlockState(dirt.below()).isSolid()
-                    && guard.mutationRisk(dirt, actual, true, Set.of()) == null && chestAim(dirt, stance) != null) {
+            if (scaffoldSoilAt(dirt, guard) && chestAim(dirt, stance) != null) {
                 usable.add(dirt.immutable());
                 if (usable.size() >= limit) {
                     break;
@@ -712,11 +746,15 @@ final class FakePlayersWorker implements ConstructionWorker {
         deadline = scaffoldDeadline;
         jumpBlock = null;
         performance.event("scaffold_placed");
+        sayOccasionally("这边有点高，我先垫几格，做完再收走。");
         return null;
     }
 
     @Override
     public boolean cleanScaffolds() {
+        if (tickDescent()) {
+            return false;
+        }
         scaffolds.entrySet().removeIf(entry -> level.hasChunkAt(entry.getKey())
                 && level.getBlockState(entry.getKey()) != entry.getValue());
         if (scaffolds.isEmpty()) {
@@ -740,7 +778,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         Aim aim = chestAim(pos, current);
         if (aim == null) {
             BlockPos target = pos;
-            if (navigate(pos, current, feet -> chestAim(target, feet) != null, "scaffold_cleanup_unreachable") != null) {
+            if (navigate(pos, current, feet -> chestAim(target, feet) != null, "scaffold_cleanup_unreachable") != null
+                    && !startDescent(target)) {
                 throw Wire.conflict("scaffold_cleanup_unreachable", "我需要一条能到达脚手架顶端的通道来拆除临时方块。");
             }
             return false;
@@ -758,6 +797,66 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
+    public boolean gatherScaffoldMaterial(int amount) {
+        if (count(Items.DIRT) >= amount) {
+            dirtTarget = null;
+            unreachableSoil.clear();
+            haltAction();
+            return true;
+        }
+        if (!scaffolds.isEmpty() && !cleanScaffolds()) {
+            return false;
+        }
+        var guard = new Clearance(level, site);
+        if (dirtTarget == null || !scaffoldSoilAt(dirtTarget, guard)) {
+            haltAction();
+            dirtTarget = null;
+            BlockPos center = npc.blockPosition();
+            for (BlockPos pos : BlockPos.withinManhattan(center.below(), 9, 10, 9)) {
+                if (scaffoldSoilAt(pos, guard) && !unreachableSoil.contains(pos)) {
+                    dirtTarget = pos.immutable();
+                    break;
+                }
+            }
+            if (dirtTarget == null) {
+                return true;
+            }
+            sayOccasionally("我再去找点土，把高处剩下的几块搭完。");
+        }
+        BlockPos pos = dirtTarget;
+        Aim aim = chestAim(pos, trackPosition());
+        if (aim == null || pos.equals(npc.blockPosition().below())) {
+            if (navigate(pos, npc.position(), feet -> !pos.equals(BlockPos.containing(feet).below())
+                    && chestAim(pos, feet) != null, "scaffold_soil_unreachable") != null) {
+                unreachableSoil.add(pos);
+                dirtTarget = null;
+            }
+            return false;
+        }
+        stopNavigation();
+        int before = count(Items.DIRT);
+        var state = level.getBlockState(pos);
+        var target = new BuildPlan.Target(pos, pos, state, Items.DIRT);
+        var result = mine(new WorkStep(target, state, true, true), -1, aim);
+        if (result != null) {
+            scaffoldDirtCollected += Math.max(0, count(Items.DIRT) - before);
+            unreachableSoil.add(pos);
+            dirtTarget = null;
+        }
+        return false;
+    }
+
+    private boolean scaffoldSoilAt(BlockPos pos, Clearance guard) {
+        if (!site.canWorkAt(level, pos) || designCells.contains(pos) || scaffolds.containsKey(pos)) {
+            return false;
+        }
+        var actual = level.getBlockState(pos);
+        return (actual.is(Blocks.DIRT) || actual.is(Blocks.GRASS_BLOCK))
+                && level.getBlockState(pos.above()).isAir() && level.getBlockState(pos.below()).isSolid()
+                && guard.mutationRisk(pos, actual, true, Set.of()) == null;
+    }
+
+    @Override
     public SimpleContainer inventory() {
         return available() ? npc.getInventory() : null;
     }
@@ -765,7 +864,13 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public boolean hasSupply(WorkStep step) {
         Item item = Warehouse.item(step);
-        return available() && (item == Items.AIR || Warehouse.optionalTool(step) || supplySlot(item) >= 0);
+        return available() && (item == Items.AIR || Warehouse.optionalTool(step) || supplySlot(step) >= 0);
+    }
+
+    private int supplySlot(WorkStep step) {
+        int exact = supplySlot(Warehouse.item(step));
+        Item alternative = site.survival() && exact < 0 ? Warehouse.substitute(step) : null;
+        return alternative == null ? exact : supplySlot(alternative);
     }
 
     private int supplySlot(Item item) {
@@ -773,19 +878,60 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public JsonObject resupply(List<Warehouse.Stock> stocks, List<WorkStep> steps, int cursor) {
+    public JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor) {
         if (!available()) {
             throw Wire.conflict("npc_unavailable", "NPC 暂时无法搬运。");
+        }
+        if (tickDescent()) {
+            return null;
         }
         if (!scaffolds.isEmpty() && !cleanScaffolds()) {
             return null;
         }
         Item item = Warehouse.item(steps.get(cursor));
-        List<Warehouse.Stock> candidates = stocks.stream().filter(stock -> stock.has(item))
-                .sorted(Comparator.comparingDouble(stock -> stock.pos().distSqr(npc.blockPosition()))).toList();
-        if (candidates.isEmpty()) {
-            throw Wire.conflict("awaiting_materials", "附近箱子里的下一批材料用完了。");
+        List<Warehouse.Stock> stocks = null;
+        if (fabrication == null) {
+            stocks = availableStock.get();
+            Item substitute = Warehouse.substitute(steps.get(cursor));
+            var direct = rankedStock(stocks, Set.of(item));
+            if (!direct.isEmpty()) {
+                return fetchStock(direct, Warehouse.needs(steps, cursor));
+            }
+            if (substitute != null) {
+                direct = rankedStock(stocks, Set.of(substitute));
+                if (!direct.isEmpty()) {
+                    return fetchStock(direct, Map.of(substitute, 1));
+                }
+            }
+            var carried = Warehouse.carried(npc.getInventory());
+            fabrication = recipes().next(item, Warehouse.needs(steps, cursor), Warehouse.substitutes(steps, cursor),
+                    carried, Warehouse.stocked(stocks), stations(supplyCenter), furnaceHeat());
+            if (fabrication == null) {
+                throw Wire.conflict("awaiting_materials", "附近箱子里的下一批材料用完了。");
+            }
+            fabricationPickups = new LinkedHashMap<>();
+            fabrication.fetch().forEach((needed, count) ->
+                    fabricationPickups.put(needed, carried.getOrDefault(needed, 0) + count));
         }
+        var carried = Warehouse.carried(npc.getInventory());
+        fabricationPickups.entrySet().removeIf(entry -> carried.getOrDefault(entry.getKey(), 0) >= entry.getValue());
+        if (!fabricationPickups.isEmpty()) {
+            var candidates = rankedStock(stocks == null ? availableStock.get() : stocks, fabricationPickups.keySet());
+            if (candidates.isEmpty()) {
+                resetFabrication();
+                throw Wire.conflict("awaiting_materials", "做下一批方块的原料刚刚用完了。补齐以后我再继续。");
+            }
+            return fetchStock(candidates, fabricationPickups);
+        }
+        return fabricateBatch();
+    }
+
+    private List<Warehouse.Stock> rankedStock(List<Warehouse.Stock> stocks, Set<Item> items) {
+        return stocks.stream().filter(stock -> items.stream().anyMatch(stock::has))
+                .sorted(Comparator.comparingDouble(stock -> stock.pos().distSqr(npc.blockPosition()))).toList();
+    }
+
+    private JsonObject fetchStock(List<Warehouse.Stock> candidates, Map<Item, Integer> wanted) {
         Warehouse.Stock stock = candidates.stream().filter(candidate -> candidate.pos().equals(stockTarget)).findFirst()
                 .orElseGet(() -> candidates.stream().filter(candidate -> !skippedStock.contains(candidate.pos())).findFirst().orElse(null));
         if (stock == null) {
@@ -801,7 +947,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (aim == null) {
             String trouble = navigate(stock.pos(), current, feet -> chestAim(stock.pos(), feet) != null,
                     "warehouse_unreachable");
-            if (trouble != null) {
+            if (trouble != null && !startDescent(stock.pos())) {
                 skipStock(stock);
             }
             return null;
@@ -813,7 +959,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return null;
         }
         lookAndSwing(aim);
-        JsonObject transfer = Warehouse.transfer(stock, npc.getInventory(), steps, cursor);
+        JsonObject transfer = Warehouse.transfer(stock, npc.getInventory(), wanted);
         if (transfer.getAsJsonObject("items").entrySet().isEmpty()) {
             throw Wire.conflict("warehouse_inventory_full", "我的背包暂时装不下这批材料。");
         }
@@ -823,6 +969,367 @@ final class FakePlayersWorker implements ConstructionWorker {
         skippedStock.clear();
         stockTarget = null;
         return transfer;
+    }
+
+    @Override
+    public CraftingAssistant recipes() {
+        if (crafting == null || !crafting.current()) {
+            crafting = new CraftingAssistant(level);
+        }
+        return crafting;
+    }
+
+    @Override
+    public Set<CraftingAssistant.Station> stations(BlockPos center) {
+        if (level.getGameTime() >= stationScanUntil || !java.util.Objects.equals(stationScanCenter, center)) {
+            stationScanCenter = center;
+            stationScanUntil = level.getGameTime() + 80;
+            workshopNearby.clear();
+            scanStations(site.spawn());
+            if (center != null && !center.equals(site.spawn())) {
+                scanStations(center);
+            }
+        }
+        var found = java.util.EnumSet.noneOf(CraftingAssistant.Station.class);
+        for (var station : List.of(CraftingAssistant.Station.TABLE, CraftingAssistant.Station.FURNACE)) {
+            if (!stationChoices(station).isEmpty()) {
+                found.add(station);
+            }
+        }
+        return found;
+    }
+
+    private void scanStations(BlockPos center) {
+        var corner = center.offset(-16, -5, -16);
+        var opposite = center.offset(16, 5, 16);
+        for (BlockPos pos : BlockPos.betweenClosed(corner, opposite)) {
+            if (pos.distSqr(center) > 16 * 16 || !level.hasChunkAt(pos) || !level.isInWorldBounds(pos)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(pos);
+            if (state.is(Blocks.CRAFTING_TABLE)) {
+                workshopNearby.computeIfAbsent(CraftingAssistant.Station.TABLE, ignored -> new ArrayList<>()).add(pos.immutable());
+            } else if (state.is(Blocks.FURNACE)) {
+                workshopNearby.computeIfAbsent(CraftingAssistant.Station.FURNACE, ignored -> new ArrayList<>()).add(pos.immutable());
+            }
+        }
+    }
+
+    private List<BlockPos> stationChoices(CraftingAssistant.Station station) {
+        var candidates = new java.util.LinkedHashSet<>(workshopNearby.getOrDefault(station, List.of()));
+        if (workshop != null) {
+            workshop.temporary.forEach((pos, type) -> {
+                if (type == station) {
+                    candidates.add(pos);
+                }
+            });
+        }
+        var origin = available() ? npc.blockPosition() : site.spawn();
+        return candidates.stream().filter(pos -> canTravelAt(pos) && !site.worksite().protectedAt(pos)
+                        && !skippedStations.contains(pos) && level.hasChunkAt(pos)
+                        && level.getWorldBorder().isWithinBounds(pos)
+                        && level.getBlockState(pos).is(station.block())
+                        && (actor == null || level.mayInteract(actor, pos)))
+                .sorted(Comparator.comparingDouble(origin::distSqr)).toList();
+    }
+
+    @Override
+    public void useWorkshop(SupplyCheckpoint supply) {
+        if (workshop != supply) {
+            workshop = supply;
+            skippedStations.clear();
+            resetFabrication();
+        }
+    }
+
+    private int furnaceHeat() {
+        return workshop.heatedFurnace != null
+                && stationChoices(CraftingAssistant.Station.FURNACE).contains(workshop.heatedFurnace) ? workshop.heat : 0;
+    }
+
+    private JsonObject fabricateBatch() {
+        if (!crafting.current()) {
+            resetFabrication();
+            return null;
+        }
+        var batch = fabrication.batches().get(batchCursor);
+        var station = batch.formula().station();
+        BlockPos pos = null;
+        if (station != CraftingAssistant.Station.HAND) {
+            if (station == CraftingAssistant.Station.FURNACE && furnaceHeat() != batch.heatBefore()) {
+                resetFabrication();
+                return null;
+            }
+            List<BlockPos> known = stationChoices(station);
+            if (known.isEmpty()) {
+                if (supplySlot(station.block().asItem()) < 0) {
+                    resetFabrication();
+                    return null;
+                }
+                placeWorkstation(station);
+                return null;
+            }
+            pos = stationTarget != null && known.contains(stationTarget) ? stationTarget
+                    : workshop.heatedFurnace != null && known.contains(workshop.heatedFurnace)
+                    ? workshop.heatedFurnace : known.get(0);
+            if (!pos.equals(stationTarget)) {
+                haltAction();
+                stationTarget = pos;
+                cookingUntil = 0;
+            }
+            Aim aim = chestAim(pos, trackPosition());
+            if (aim == null) {
+                BlockPos next = pos;
+                if (navigate(pos, npc.position(), point -> chestAim(next, point) != null, "workstation_unreachable") != null) {
+                    skippedStations.add(pos);
+                    resetFabrication();
+                }
+                return null;
+            }
+            stopNavigation();
+            if (cookingUntil == 0) {
+                var interaction = ForgeHooks.onRightClickBlock(actor, InteractionHand.MAIN_HAND, pos, aim.hit());
+                if (interaction.isCanceled() || interaction.getUseBlock() == Event.Result.DENY) {
+                    skippedStations.add(pos);
+                    resetFabrication();
+                    return null;
+                }
+                lookAndSwing(aim);
+                if (station == CraftingAssistant.Station.FURNACE) {
+                    cookingUntil = level.getGameTime() + (long) batch.formula().cookTicks() * batch.times();
+                }
+            }
+            if (level.getGameTime() < cookingUntil) {
+                return null;
+            }
+        } else {
+            npc.swing(InteractionHand.MAIN_HAND);
+        }
+        ItemStack result = batch.output(level);
+        if (!Warehouse.fabricate(npc.getInventory(), batch.inputs(), result)) {
+            resetFabrication();
+            throw Wire.conflict("workshop_inventory", "这批原料或我的背包空间不够，等我重新盘点。");
+        }
+        if (station == CraftingAssistant.Station.FURNACE) {
+            workshop.heat = batch.heatAfter();
+            workshop.heatedFurnace = pos;
+        }
+        var receipt = new JsonObject();
+        receipt.addProperty("item", Warehouse.id(result.getItem()));
+        receipt.addProperty("count", result.getCount());
+        receipt.add("ingredients", Warehouse.jsonTotals(batch.inputs()));
+        receipt.addProperty("station", station.name().toLowerCase(java.util.Locale.ROOT));
+        if (pos != null) {
+            receipt.add("position", Wire.position(pos));
+        }
+        receipt.addProperty("recipe", batch.formula().recipe().getId().toString());
+        receipt.addProperty("crafted", true);
+        cookingUntil = 0;
+        batchCursor++;
+        if (batchCursor == fabrication.batches().size()) {
+            resetFabrication();
+        }
+        return receipt;
+    }
+
+    private void placeWorkstation(CraftingAssistant.Station type) {
+        Item item = type.block().asItem();
+        int slot = supplySlot(item);
+        ItemStack stack = npc.getInventory().getItem(slot);
+        BlockPos center = npc.blockPosition();
+        var choices = new ArrayList<BlockPos>();
+        for (BlockPos pos : BlockPos.betweenClosed(center.offset(-3, -2, -3), center.offset(3, 2, 3))) {
+            if (site.canWorkAt(level, pos) && !designCells.contains(pos) && !scaffolds.containsKey(pos)
+                    && level.getBlockState(pos).isAir() && level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
+                    && level.isUnobstructed(type.block().defaultBlockState(), pos,
+                    net.minecraft.world.phys.shapes.CollisionContext.of(actor))) {
+                choices.add(pos.immutable());
+            }
+        }
+        choices.sort(Comparator.comparingDouble(center::distSqr));
+        for (BlockPos pos : choices) {
+            var state = type.block().defaultBlockState();
+            for (Direction facing : Direction.Plane.HORIZONTAL) {
+                BlockState placed = state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
+                        ? state.setValue(BlockStateProperties.HORIZONTAL_FACING, facing) : state;
+                var target = new BuildPlan.Target(pos, pos, placed, item);
+                Aim aim = chooseAim(new WorkStep(target, Blocks.AIR.defaultBlockState(), false), stack, npc.position());
+                if (aim != null && useItem(target, slot, aim).status().equals("placed")) {
+                    workshop.temporary.put(pos, type);
+                    performance.event("workstation_placed");
+                    return;
+                }
+            }
+        }
+        resetFabrication();
+        throw Wire.conflict("workstation_unreachable", "箱子里有原料，我需要附近一处能站稳并放下工作台或熔炉的空地。");
+    }
+
+    @Override
+    public boolean cleanWorkshop() {
+        if (tickDescent()) {
+            return false;
+        }
+        if (workshop == null || workshop.temporary.isEmpty()) {
+            return true;
+        }
+        var entry = workshop.temporary.entrySet().stream()
+                .max(Comparator.comparingInt(value -> value.getValue().ordinal())).orElseThrow();
+        BlockPos pos = entry.getKey();
+        if (!level.hasChunkAt(pos)) {
+            throw Wire.conflict("site_not_loaded", "请回到施工区，我还要收起临时工位。");
+        }
+        BlockState state = level.getBlockState(pos);
+        var blockEntity = level.getBlockEntity(pos);
+        if (!state.is(entry.getValue().block()) || !site.canWorkAt(level, pos)
+                || blockEntity instanceof net.minecraft.world.Container contents && !contents.isEmpty()
+                || state.hasProperty(BlockStateProperties.LIT) && state.getValue(BlockStateProperties.LIT)
+                || new Clearance(level, site).mutationRisk(pos, Blocks.AIR.defaultBlockState(), true, Set.of()) != null) {
+            workshop.temporary.remove(pos);
+            return false;
+        }
+        if (!pos.equals(stationTarget)) {
+            haltAction();
+            stationTarget = pos;
+        }
+        Aim aim = chestAim(pos, trackPosition());
+        if (aim == null) {
+            if (navigate(pos, npc.position(), feet -> chestAim(pos, feet) != null, "workstation_unreachable") != null
+                    && !startDescent(pos)) {
+                throw Wire.conflict("workstation_unreachable", "等附近能通行时，我会回来收起这个临时工位。");
+            }
+            return false;
+        }
+        stopNavigation();
+        int slot = -1;
+        if (entry.getValue() == CraftingAssistant.Station.FURNACE) {
+            slot = supplySlot(Items.IRON_PICKAXE);
+            if (slot < 0) {
+                slot = supplySlot(Items.STONE_PICKAXE);
+            }
+        }
+        var target = new BuildPlan.Target(pos, pos, state, state.getBlock().asItem());
+        if (entry.getValue() == CraftingAssistant.Station.FURNACE && slot < 0) {
+            var source = supplyCenter == null ? null : new Warehouse.Source(workshop.owner, supplyCenter);
+            var receipt = resupply(() -> Warehouse.scan(level, site, source), List.of(new WorkStep(target, state, true)), 0);
+            if (receipt != null) {
+                receipt.addProperty("tick", level.getGameTime());
+                if (receipt.has("crafted")) {
+                    workshop.recipes.add(receipt);
+                } else {
+                    workshop.trips.add(receipt);
+                }
+            }
+            return false;
+        }
+        Result result = mine(new WorkStep(target, state, true), slot, aim);
+        if (result != null && level.getBlockState(pos).isAir()) {
+            workshop.temporary.remove(pos);
+            stationTarget = null;
+            performance.event("workstation_removed");
+        } else if (result != null) {
+            throw Wire.conflict("workstation_unreachable", "临时工位暂时无法收起。");
+        }
+        return workshop.temporary.isEmpty();
+    }
+
+    private void resetFabrication() {
+        fabrication = null;
+        fabricationPickups = null;
+        batchCursor = 0;
+        cookingUntil = 0;
+        stationTarget = null;
+        haltAction();
+    }
+
+    @Override
+    public void mentionSupply() {
+        sayOccasionally("我去附近的箱子搬这一批材料，等会儿回来。");
+    }
+
+    private void sayOccasionally(String text) {
+        long now = level.getGameTime();
+        if (now >= speechAfter) {
+            speechAfter = now + 20 * 45;
+            say(text);
+        }
+    }
+
+    private void say(String text) {
+        level.getServer().getPlayerList().broadcastSystemMessage(Component.literal("[Builder] " + text), false);
+    }
+
+    @Override
+    public void celebrate(BuildSite.Box bounds) {
+        if (!available()) {
+            return;
+        }
+        var min = bounds.min();
+        var max = bounds.max();
+        ceremonyLook = new Vec3((min.getX() + max.getX() + 1) * 0.5, max.getY() + 0.8,
+                (min.getZ() + max.getZ() + 1) * 0.5);
+        ceremonyMoveUntil = level.getGameTime() + 35;
+        ceremonyLookUntil = 0;
+        Vec3 away = npc.position().subtract(ceremonyLook).multiply(1, 0, 1);
+        if (away.horizontalDistanceSqr() < 0.04) {
+            away = npc.getLookAngle().multiply(-1, 0, -1);
+        }
+        BlockPos step = BlockPos.containing(npc.position().add(away.normalize().scale(2)));
+        for (int y : new int[]{0, -1, 1}) {
+            BlockPos goal = step.offset(0, y, 0);
+            if (!canStand(goal)) {
+                continue;
+            }
+            Path path = npc.getNavigation().createPath(goal, 0);
+            if (path != null && path.canReach() && insideSite(path)) {
+                npc.getNavigation().moveTo(path, 0.8);
+                return;
+            }
+        }
+        ceremonyMoveUntil = level.getGameTime();
+    }
+
+    @Override
+    public void tickLife(boolean idle) {
+        if (!available()) {
+            return;
+        }
+        long now = level.getGameTime();
+        if (ceremonyLook != null) {
+            if (!idle) {
+                ceremonyLook = null;
+                return;
+            }
+            if (ceremonyLookUntil == 0) {
+                if (now < ceremonyMoveUntil && !npc.getNavigation().isDone()) {
+                    return;
+                }
+                stopNavigation();
+                ceremonyLookUntil = now + 40;
+            }
+            npc.getLookControl().setLookAt(ceremonyLook.x, ceremonyLook.y, ceremonyLook.z, 35, 35);
+            if (now >= ceremonyLookUntil) {
+                npc.swing(InteractionHand.MAIN_HAND);
+                say("完工啦！我刚退后看过了。快来看看我们一起建的作品吧。");
+                ceremonyLook = null;
+            }
+            return;
+        }
+        if (!idle || surveyDestination != null || !npc.getNavigation().isDone()) {
+            return;
+        }
+        var player = level.getNearestPlayer(npc.getX(), npc.getY(), npc.getZ(), 4,
+                entity -> entity.isAlive() && !entity.isSpectator() && !isActor(entity));
+        if (player == null) {
+            greeted = false;
+        } else {
+            npc.getLookControl().setLookAt(player.getX(), player.getEyeY(), player.getZ(), 25, 25);
+            if (!greeted && now >= greetingAfter) {
+                npc.swing(InteractionHand.MAIN_HAND);
+                greeted = true;
+                greetingAfter = now + 180;
+            }
+        }
     }
 
     private void skipStock(Warehouse.Stock stock) {
@@ -897,6 +1404,97 @@ final class FakePlayersWorker implements ConstructionWorker {
         return unreachable;
     }
 
+    private boolean startDescent(BlockPos target) {
+        BlockPos here = npc.blockPosition();
+        if (!npc.onGround() || here.getY() < target.getY() + 2) {
+            return false;
+        }
+        int maxDrop = npc.getHealth() >= 8 ? 6 : 3;
+        List<Descent> options = new ArrayList<>();
+        for (BlockPos edge : BlockPos.withinManhattan(here, 6, 1, 6)) {
+            if (!canTravelAt(edge) || !canStand(edge)) {
+                continue;
+            }
+            for (Direction side : Direction.Plane.HORIZONTAL) {
+                BlockPos air = edge.relative(side);
+                if (triedDescents.contains(air) || !freeTravelColumn(air)) {
+                    continue;
+                }
+                for (int drop = 1; drop <= maxDrop; drop++) {
+                    BlockPos landing = air.below(drop);
+                    if (!freeTravelColumn(landing)) {
+                        break;
+                    }
+                    if (canStand(landing)) {
+                        if (drop >= 2 && landing.getY() < here.getY()) {
+                            options.add(new Descent(edge.immutable(), landing, level.getGameTime() + 110));
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        options.sort(Comparator.comparingDouble(option -> option.edge().distSqr(here)
+                + 0.35 * option.landing().distSqr(target)));
+        for (Descent option : options) {
+            if (option.edge().equals(here)) {
+                haltAction();
+                descent = option;
+                return true;
+            }
+            Path path = npc.getNavigation().createPath(option.edge(), 0);
+            if (path != null && path.canReach() && insideSite(path)) {
+                haltAction();
+                if (npc.getNavigation().moveTo(path, 0.9)) {
+                    descent = option;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean freeTravelColumn(BlockPos feet) {
+        return canTravelAt(feet) && canTravelAt(feet.above()) && level.hasChunkAt(feet)
+                && level.isInWorldBounds(feet.above()) && level.getBlockState(feet).isAir()
+                && level.getBlockState(feet.above()).isAir();
+    }
+
+    private boolean tickDescent() {
+        if (descent == null) {
+            return false;
+        }
+        BlockPos here = npc.blockPosition();
+        if (npc.onGround() && here.getY() <= descent.landing().getY()
+                || level.getGameTime() >= descent.deadline()) {
+            if (here.getY() > descent.landing().getY()) {
+                triedDescents.add(new BlockPos(descent.landing().getX(), descent.edge().getY(), descent.landing().getZ()));
+            }
+            descent = null;
+            haltAction();
+            return false;
+        }
+        if (!npc.getNavigation().isDone()) {
+            return true;
+        }
+        if (here.getY() >= descent.edge().getY()) {
+            BlockPos shaft = new BlockPos(descent.landing().getX(), descent.edge().getY(), descent.landing().getZ());
+            boolean safe = canStand(descent.landing());
+            for (BlockPos pos = shaft; safe && pos.getY() >= descent.landing().getY(); pos = pos.below()) {
+                safe = freeTravelColumn(pos);
+            }
+            if (!safe || !here.equals(descent.edge()) && !here.equals(shaft)) {
+                triedDescents.add(shaft);
+                descent = null;
+                haltAction();
+                return false;
+            }
+        }
+        Vec3 landing = BuildTerrain.standPoint(level, descent.landing());
+        npc.getMoveControl().setWantedPosition(landing.x, landing.y, landing.z, 0.9);
+        return true;
+    }
+
     private boolean canStand(BlockPos position) {
         return BuildTerrain.canStand(level, position);
     }
@@ -936,6 +1534,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         BuildPlan.Target target = step.target();
         for (Direction face : FACES) {
             BlockPos clicked = target.world().relative(face.getOpposite());
+            if (target.light() && !clicked.equals(target.attachment())) {
+                continue;
+            }
             BlockState support = level.getBlockState(clicked);
             if (!level.hasChunkAt(clicked) || Clearance.managed(support) || !support.getFluidState().isEmpty()
                     || support.isAir() || !anchors.contains(support.getBlock())
@@ -954,6 +1555,17 @@ final class FakePlayersWorker implements ConstructionWorker {
                     continue;
                 }
                 Aim aim = face(hit, eye);
+                if (target.state().getBlock() instanceof net.minecraft.world.level.block.StairBlock) {
+                    float facing = target.state().getValue(BlockStateProperties.HORIZONTAL_FACING).toYRot();
+                    float angle = Mth.wrapDegrees(aim.yaw() - facing);
+                    // A player can click a block off the center of the crosshair while keeping the desired
+                    // cardinal heading. Keep the hit ray and reach checks, and only turn within this field.
+                    if (Math.abs(angle) < 72) {
+                        float yaw = facing + Mth.clamp(angle, -43, 43);
+                        actor.setYRot(yaw);
+                        aim = new Aim(hit, yaw, aim.pitch(), aim.distance());
+                    }
+                }
                 BlockPlaceContext context = new BlockPlaceContext(actor, InteractionHand.MAIN_HAND, stack, hit);
                 BlockState placed = target.state().getBlock().getStateForPlacement(context);
                 if (context.canPlace() && context.getClickedPos().equals(target.world())
@@ -1183,7 +1795,11 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public void halt() {
-        haltAction();
+        resetFabrication();
+        descent = null;
+        triedDescents.clear();
+        dirtTarget = null;
+        unreachableSoil.clear();
         surveyDestination = null;
         stockTarget = null;
         skippedStock.clear();
