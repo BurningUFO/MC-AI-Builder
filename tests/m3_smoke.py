@@ -141,7 +141,7 @@ def start_runtime(run, source, provider, number):
                          MC_ARCHITECT_API_KEY="fixture-key-not-a-credential")
         timeout = "1.2"
     args = [sys.executable, "-B", "-m", "src.architect", "--config", str(run / "config" / "mcaibuilder-architect.json"),
-            "--instance", str(source), "--timeout", timeout]
+            "--instance", str(source), "--project-root", str(run), "--timeout", timeout]
     with (run / f"runtime-{number}.log").open("wb") as log:
         return subprocess.Popen(args, cwd=ROOT, env=model_env, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
 
@@ -219,7 +219,7 @@ def test_model_failures(child, chat, bridge, scoped, model):
 
 def exercise(run, java_home, source, port, bmc4, model, trace):
     def start_game():
-        return launch_client(java_home, source, run, port, smoke=True, m3_smoke=True, bmc4=bmc4)
+        return launch_client(java_home, source, run, port, smoke=True, m3_smoke=True, bmc4=bmc4, project_root=run)
 
     runtime = None
     child = start_game()

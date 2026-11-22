@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 import subprocess
+import socket
 from tempfile import mkdtemp
 
 from src.architect.design import CHIPPED_WOOD, QUARK_ROOF, QUARK_STAIR
@@ -86,7 +87,7 @@ def exercise(options, run, trace):
         wait_for(child, bridge.status, "BMC4 survival world", seconds=600)
         wait_ticks(child, bridge, bridge.status()["game_tick"] + 30)
         catalog = bridge.progress()["modded_materials"]
-        require(set(catalog) == MODDED, f"Expected the three curated block/placement-item pairs: {catalog}")
+        require(MODDED <= set(catalog), f"Expected the three curated block/placement-item pairs: {catalog}")
         require(all(catalog[block]["item_id"] in STOCK for block in MODDED), "Verified registry mappings supply the plans")
         trace["registry"] = catalog
         trace["stock"] = [provision(child, run, STOCK, place=True)]
@@ -205,13 +206,24 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument("--java-home", type=Path, required=True)
     parser.add_argument("--source-instance", type=Path, required=True)
-    parser.add_argument("--bmc4-pack", type=Path, required=True)
-    parser.add_argument("--ledger", type=Path, required=True)
-    parser.add_argument("--port", type=int, default=18774)
+    parser.add_argument("--bmc4-pack", type=Path, help="existing isolated BMC4 JAR mirror")
+    parser.add_argument("--ledger", type=Path, help="select the legacy live-Codex acceptance suite")
+    parser.add_argument("--port", type=int)
     options = parser.parse_args()
-    pack = options.bmc4_pack.resolve()
-    if not pack.is_relative_to(TEST_ROOT.resolve()) or not (pack / ".mcaibuilder-test").is_file():
+    pack = options.bmc4_pack.resolve() if options.bmc4_pack else None
+    if pack is not None and (not pack.is_relative_to(TEST_ROOT.resolve()) or not (pack / ".mcaibuilder-test").is_file()):
         parser.error("--bmc4-pack must be an existing, marked isolated test instance")
+    if options.ledger is None:
+        if options.port is None:
+            with socket.socket() as listener:
+                listener.bind(("127.0.0.1", 0))
+                options.port = listener.getsockname()[1]
+        from tests.project_library_smoke import exercise as exercise_projects
+        exercise_projects(options)
+        return
+    if pack is None:
+        parser.error("--ledger also requires the existing isolated --bmc4-pack fixture")
+    options.port = options.port or 18774
     count = sum(jar.name not in (BRIDGE_JAR.name, PLAYERS_JAR.name) for jar in (pack / "mods").glob("*.jar"))
     require(count == 387, f"Use the validated 387-mod BMC4 fixture, got {count}")
     runs = TEST_ROOT / "m4-bmc4-runs"

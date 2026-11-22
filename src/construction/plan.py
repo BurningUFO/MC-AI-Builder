@@ -35,6 +35,7 @@ def make_plan(
     rotation: int = 0,
     lighting: bool = False,
     localized: bool = False,
+    source_project: str | None = None,
 ) -> dict:
     """Carry explicit states and optional block-entity data to the backend."""
     if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{0,63}", building_id):
@@ -63,6 +64,8 @@ def make_plan(
             else block_id if block_id in VANILLA_BLOCKS else None,
         }
         if block.block_entity is not None:
+            if source_project is not None:
+                raise ValueError("工程包含容器内容或其他方块实体数据，施工只支持空的原版或模组设施。")
             action["block_entity"] = block.block_entity
         actions.append(action)
 
@@ -80,6 +83,7 @@ def make_plan(
         "rotation": rotation,
         **({"lighting": True} if lighting else {}),
         **({"localized": True} if localized else {}),
+        **({"source_project": source_project} if source_project is not None else {}),
         "local_bounds": {"min": list(minimum), "max": list(maximum)},
         "actions": actions,
     }

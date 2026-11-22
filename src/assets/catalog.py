@@ -65,11 +65,13 @@ def choose_palette(library: ModelLibrary, *, defaults=VANILLA, candidates=STARTE
     return palette, decisions
 
 
-def cache_texture(project_root: Path, library: ModelLibrary, reference: str) -> dict:
+def cache_texture(project_root: Path, library: ModelLibrary, reference: str, *, cache=False) -> dict:
     namespace, name = location(reference)
     raw = library.texture(reference)
     digest = sha256(raw).hexdigest()
     relative = Path("assets", "textures", namespace, f"{name}-{digest[:12]}.png")
+    if cache:
+        relative = Path(".cache") / relative
     target = project_root / relative
     if not target.is_file() or sha256(target.read_bytes()).hexdigest() != digest:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -100,12 +102,53 @@ def excluded_examples(library: ModelLibrary) -> dict:
     return examples
 
 
-def build_index(root: Path, building: Building, library: ModelLibrary, choices: dict, *, outline_observations=False) -> dict:
+
+def vanilla_fallback(state, library):
+    """Bake only a visual stand-in while retaining the source state as the catalogue key."""
+    path = state.block_id.split(":", 1)[1]
+    props = dict(state.properties)
+    wood = next((wood for wood in ("dark_oak", "spruce", "birch", "mangrove", "jungle", "acacia", "cherry", "oak")
+                 if wood in path), "oak")
+    rocky = any(word in path for word in ("quark", "bricks", "stone", "tuff", "shale", "slate", "calcite", "shingles"))
+    material = "brick" if "shingles" in path else "stone_brick" if rocky else wood
+    matching = {}
+    if path.endswith("_stairs") or path.endswith(("_chair", "_bench", "_couch")):
+        block = material + "_stairs"
+        matching = {"facing": props.get("facing", "north"), "half": props.get("half", "bottom"),
+                    "shape": props.get("shape", "straight")}
+    elif path.endswith("_slab"):
+        block = material + "_slab"
+        matching = {"type": props.get("type", "bottom")}
+    elif path.endswith(("_log", "_wood", "_beam", "_stem", "_hyphae")):
+        block = wood + "_log"
+        matching = {"axis": props.get("axis", "y")}
+    elif path.endswith(("_leaves", "_sapling", "_flower", "_lavender")):
+        block = "oak_leaves" if path.endswith("_leaves") else "dandelion"
+    elif "glass" in path:
+        block = "glass"
+    elif "bookshelf" in path:
+        block = "bookshelf"
+    else:
+        block = "bricks" if "shingles" in path else "stone_bricks" if rocky else wood + "_planks"
+    for candidate in (state_of("minecraft:" + block, matching), state_of("minecraft:oak_planks", {})):
+        try:
+            asset = library.bake(candidate)
+            for reference in {face["texture"] for face in asset["faces"]}:
+                library.texture(reference)
+            return candidate.key, asset
+        except (AssetError, ValueError, KeyError, TypeError):
+            continue
+    raise AssetError("The vanilla client is missing both stand-in materials.")
+
+
+def build_index(root: Path, building: Building, library: ModelLibrary, choices: dict, *,
+                outline_observations=False, fallback_mods=False) -> dict:
     stats = building.state_counts()
     blocks = {}
     baked = {}
     references = set()
     unrendered = []
+    fallbacks = {}
     for state, count in sorted(stats.items(), key=lambda entry: entry[0].key):
         info = blocks.get(state.block_id)
         try:
@@ -113,14 +156,22 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
                 info = library.archives.block_info(state.block_id) | {"count": 0, "states": []}
             asset = library.bake(state)
             textures = {face["texture"] for face in asset["faces"]}
-            if outline_observations:
+            if outline_observations or fallback_mods:
                 for ref in sorted(textures - references):
                     library.texture(ref)
-        except AssetError:
-            if not outline_observations:
+        except (AssetError, ValueError, KeyError, TypeError) as error:
+            if fallback_mods and not state.block_id.startswith("minecraft:"):
+                substitute, asset = vanilla_fallback(state, library)
+                if info is None:
+                    info = {"source_jar": None, "display_name": state.block_id, "count": 0, "states": []}
+                info["preview_status"] = "vanilla_fallback"
+                fallbacks[state.key] = {"status": "vanilla_fallback", "rendered_as": substitute, "detail": str(error)}
+                textures = {face["texture"] for face in asset["faces"]}
+            elif outline_observations:
+                unrendered.append(state.key)
+                continue
+            else:
                 raise
-            unrendered.append(state.key)
-            continue
         blocks[state.block_id] = info
         info["count"] += count
         info["states"].append(state.key)
@@ -135,11 +186,13 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
         "starter_palette": choices,
         "excluded_examples": excluded_examples(library),
         "blocks": blocks,
-        "textures": {ref: cache_texture(root, library, ref) for ref in sorted(references)},
+        "textures": {ref: cache_texture(root, library, ref, cache=fallback_mods) for ref in sorted(references)},
         "states": baked,
     }
     if unrendered:
         result["unrendered_observations"] = unrendered
+    if fallbacks:
+        result["render_fallbacks"] = fallbacks
     return result
 
 
@@ -153,7 +206,7 @@ def write_materials(path: Path, catalog: dict) -> None:
             writer.writerow(("block_id", "count", "display_name", "source_jar", "state_count", "preview"))
             for block_id, entry in sorted(catalog["blocks"].items()):
                 writer.writerow((block_id, entry["count"], entry["display_name"], entry["source_jar"],
-                                 len(entry["states"]), "static_assets_verified"))
+                                 len(entry["states"]), entry.get("preview_status", "static_assets_verified")))
         scratch.replace(path)
     finally:
         if scratch is not None:

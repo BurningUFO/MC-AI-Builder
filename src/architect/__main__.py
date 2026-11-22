@@ -7,6 +7,7 @@ import sys
 from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL, REASONING_EFFORTS, CodexProvider
 from src.architect.providers import FixtureProvider, HttpProvider
 from src.architect.runtime import ArchitectClient, Runtime, SessionStore
+from src.assets.projects import ProjectLibrary
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,6 +17,7 @@ def main():
     parser.add_argument("--config", type=Path, required=True, help="Scoped Architect loopback configuration")
     parser.add_argument("--instance", type=Path, required=True, help="PCL instance for local Minecraft assets")
     parser.add_argument("--blender", type=Path, default=ROOT / "tools/blender/blender.exe")
+    parser.add_argument("--project-root", type=Path, default=ROOT, help="workspace containing projects/ and previews/")
     parser.add_argument("--stop-file", type=Path, help="Exit gracefully when this local launcher marker appears")
     parser.add_argument("--provider", choices=("http", "fixture", "codex"), default="http")
     parser.add_argument("--timeout", type=float, default=15.0, help="Model connection and response timeout")
@@ -47,7 +49,8 @@ def main():
         storage = SessionStore(config.parent.parent / "architect-previews")
         blender = options.blender.resolve() if options.blender.is_file() else None
         runtime = Runtime(client, provider, storage, options.instance.resolve(strict=True),
-                          blender, share_observations=options.share_observations,
+                          blender, projects=ProjectLibrary(options.project_root),
+                          share_observations=options.share_observations,
                           parallel_planning=options.planning)
         print(f"Architect runtime ready ({options.provider})", flush=True)
         runtime.run(options.stop_file.is_file if options.stop_file else lambda: False)

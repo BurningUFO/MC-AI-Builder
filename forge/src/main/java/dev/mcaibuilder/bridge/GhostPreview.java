@@ -19,7 +19,7 @@ import java.util.List;
 
 final class GhostPreview {
     private static final int MAX_BLOCKS = 4096;
-    private static final String VERSION = "1";
+    private static final String VERSION = "2";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.tryParse(ForgeBridge.MOD_ID + ":ghost_preview"), () -> VERSION,
             NetworkRegistry.acceptMissingOr(VERSION), NetworkRegistry.acceptMissingOr(VERSION));
@@ -33,6 +33,40 @@ final class GhostPreview {
                 .consumerMainThread((projection, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                         () -> () -> GhostPreviewClient.show(projection)))
                 .add();
+        CHANNEL.messageBuilder(ProjectLinks.class, 1, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ProjectLinks::write)
+                .decoder(ProjectLinks::read)
+                .consumerMainThread((links, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                        () -> () -> GhostPreviewClient.links(links)))
+                .add();
+    }
+
+    static boolean sendLinks(ServerPlayer viewer, ProjectLinks links) {
+        if (!CHANNEL.isRemotePresent(viewer.connection.connection)) {
+            return false;
+        }
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer), links);
+        return true;
+    }
+
+    record ProjectLinks(String name, String image, String scene) {
+        ProjectLinks {
+            ProjectBlocks.name(name);
+            if (!image.matches("[a-z0-9_-]{1,80}\\.png") || !scene.endsWith(".blend")) {
+                throw Wire.invalid("Invalid Blender preview filenames");
+            }
+            ProjectBlocks.name(scene.substring(0, scene.length() - ".blend".length()));
+        }
+
+        void write(FriendlyByteBuf buf) {
+            buf.writeUtf(name, 96);
+            buf.writeUtf(image, 84);
+            buf.writeUtf(scene, 102);
+        }
+
+        static ProjectLinks read(FriendlyByteBuf buf) {
+            return new ProjectLinks(buf.readUtf(96), buf.readUtf(84), buf.readUtf(102));
+        }
     }
 
     static void show(ServerPlayer viewer, JsonObject review) {

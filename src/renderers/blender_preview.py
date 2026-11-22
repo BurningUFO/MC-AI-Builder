@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.assets.models import AXES
 from src.core.building import Building
 from src.generators.medieval import DEPTH, EAVES, STAIR_X, UPPER_FLOOR, WIDTH
-from src.renderers.views import PREVIEWS
+from src.renderers.views import preview_for
 
 
 def blender_space(position):
@@ -333,8 +333,8 @@ def main():
     arguments = sys.argv[sys.argv.index("--") + 1:]
     data_path, index_path, root, out_path = map(Path, arguments[:4])
     sample, quality = arguments[4:]
-    preview = PREVIEWS[sample]
     building = Building.read(data_path)
+    preview = preview_for(sample, building, name=data_path.parent.name)
     index = json.loads(index_path.read_text(encoding="utf-8"))
     source_hash = sha256(data_path.read_bytes()).hexdigest()
     if source_hash != index["building_sha256"]:
@@ -358,7 +358,8 @@ def main():
             scene = bpy.context.scene if not scenes else bpy.data.scenes.new(view.scene)
             scene.name = view.scene
             scene["building_sha256"] = source_hash
-            scene["building_source"] = data_path.relative_to(root).as_posix()
+            scene["building_source"] = (data_path.relative_to(root).as_posix() if data_path.is_relative_to(root)
+                                        else f"projects/{data_path.parent.name}/building.json")
             scene["minecraft_axes"] = "Blender (X, Y, Z) = Minecraft (x, -z, y)"
             scenes[view.scene] = scene
             configure_scene(scene, quality, device)
@@ -366,7 +367,7 @@ def main():
             geometry = collection_for(scene, "Building · " + view.scene)
             for name, blocks in mesh_sections(selected, preview.sections).items():
                 add_block_mesh(geometry, name, blocks, selected, baked, materials, opaque)
-            ground_z = UPPER_FLOOR - 0.22 if view.scene == "Upper floor cutaway" else -0.025
+            ground_z = UPPER_FLOOR - 0.22 if view.scene == "Upper floor cutaway" else min(0, building.bounds()[0][1]) - 0.025
             fixtures = preview.interior_lights if view.scene == preview.full_scene else ()
             if preview.water_level is not None:
                 ground_z = min(preview.water_level - 3.25, building.bounds()[0][1] - 0.025)

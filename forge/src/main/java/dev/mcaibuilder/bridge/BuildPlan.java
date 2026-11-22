@@ -6,18 +6,14 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.SlabType;
-import net.minecraft.world.level.block.state.properties.Half;
-import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayDeque;
@@ -33,13 +29,11 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
-                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds, boolean lighting, boolean localized) {
+                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds, boolean lighting, boolean localized, String sourceProject) {
     static final int MAX_ACTIONS = 4096;
     static final List<String> WOOD_FAMILIES = List.of("oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry");
     static final boolean LEGACY_EXECUTION = "1".equals(System.getenv("MC_AI_BUILDER_LEGACY_EXECUTOR"));
     private static final String QUARK_STAIR = "quark:red_shingles_stairs";
-    private static final Set<String> MODDED = Set.of(
-            "chipped:stacked_spruce_planks", "quark:red_shingles", QUARK_STAIR);
     static final Comparator<BlockPos> BUILD_ORDER = Comparator.<BlockPos>comparingInt(BlockPos::getY)
             .thenComparingInt(BlockPos::getZ).thenComparingInt(BlockPos::getX);
 
@@ -49,9 +43,34 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             .thenComparing(target -> QUARK_STAIR.equals(ForgeRegistries.BLOCKS.getKey(target.state().getBlock()).toString()))
             .thenComparing(Target::world, BUILD_ORDER);
 
-    record Target(BlockPos local, BlockPos world, BlockState state, Item item) {
+    record Target(BlockPos local, BlockPos world, BlockState state, Item item, boolean replica) {
+        Target(BlockPos local, BlockPos world, BlockState state, Item item) {
+            this(local, world, state, item, false);
+        }
+
+        boolean upper() {
+            return replica && ProjectBlocks.upper(state);
+        }
+
+        boolean paired() {
+            return replica && ProjectBlocks.doubleHigh(state) && !upper();
+        }
+
+        int units() {
+            return replica ? ProjectBlocks.units(state) : 1;
+        }
+
+        Item potPlant() {
+            return replica ? ProjectBlocks.pottedItem(state) : Items.AIR;
+        }
+
+        boolean matches(BlockState actual) {
+            return replica ? ProjectBlocks.alignJoins(actual, state) == state : ConstructionService.matches(actual, state);
+        }
+
         boolean light() {
-            return state.is(Blocks.TORCH) || state.is(Blocks.WALL_TORCH) || state.is(Blocks.LANTERN);
+            return state.is(Blocks.TORCH) || state.is(Blocks.WALL_TORCH) || state.is(Blocks.LANTERN)
+                    || state.is(Blocks.SOUL_LANTERN);
         }
 
         boolean topSlab() {
@@ -63,7 +82,8 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             if (state.is(Blocks.WALL_TORCH)) {
                 return world.relative(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite());
             }
-            return state.is(Blocks.LANTERN) && state.getValue(BlockStateProperties.HANGING) ? world.above() : world.below();
+            return state.hasProperty(BlockStateProperties.HANGING) && state.getValue(BlockStateProperties.HANGING)
+                    ? world.above() : world.below();
         }
     }
 
@@ -104,6 +124,9 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (localized) {
             value.addProperty("localized", true);
         }
+        if (sourceProject != null) {
+            value.addProperty("source_project", sourceProject);
+        }
         return value;
     }
 
@@ -142,7 +165,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     }
 
     Comparator<WorkStep> revisionPlacementOrder() {
-        if (!buildingId.startsWith("cottage_") && !voxel() && !lighting) {
+        if (sourceProject == null && !buildingId.startsWith("cottage_") && !voxel() && !lighting) {
             return Comparator.comparing(WorkStep::target, PLACEMENT_ORDER);
         }
         var order = new HashMap<BlockPos, Integer>();
@@ -171,24 +194,29 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 blocks.add(ForgeRegistries.BLOCKS.getValue(ResourceLocation.tryParse("minecraft:" + wood + "_" + piece)));
             }
         }
-        for (String id : MODDED) {
-            ResourceLocation key = ResourceLocation.tryParse(id);
-            Block block = ForgeRegistries.BLOCKS.getValue(key);
-            if (block != null && key.equals(ForgeRegistries.BLOCKS.getKey(block))
-                    && !block.defaultBlockState().hasBlockEntity() && block.asItem() instanceof BlockItem item
-                    && item.getBlock() == block
-                    && (id.endsWith("_stairs") ? block instanceof StairBlock
-                    : block.defaultBlockState().getProperties().isEmpty())) {
-                blocks.add(block);
-            }
-        }
+        Set<String> namespaces = Set.of("chipped", "handcrafted", "quark", "supplementaries", "twigs",
+                "decorative_blocks", "biomesoplenty");
+        ForgeRegistries.BLOCKS.getEntries().stream()
+                .filter(entry -> namespaces.contains(entry.getKey().location().getNamespace()))
+                .filter(entry -> designerMaterial(entry.getKey().location().getPath()))
+                .filter(entry -> !Clearance.managed(entry.getValue().defaultBlockState())
+                        && ProjectBlocks.allowed(entry.getValue().defaultBlockState()))
+                .map(Map.Entry::getValue).forEach(blocks::add);
         return Set.copyOf(blocks);
+    }
+
+    private static boolean designerMaterial(String path) {
+        return path.matches("(?:stacked_(?:oak|spruce|birch|dark_oak)_planks"
+                + "|(?:red|blue|light_blue)_shingles(?:_stairs|_slab)?"
+                + "|(?:polished_(?:shale|limestone|tuff)|(?:shale|limestone|calcite|polished_tuff)_bricks)(?:_stairs|_slab)?"
+                + "|(?:stripped_)?(?:jacaranda|magic|mahogany|redwood|fir)_(?:planks|stairs|slab|log|wood)"
+                + "|(?:dark_oak|spruce|birch|oak)_(?:beam|chair|table|bookshelf)|daub(?:_cross_brace|_frame)?)");
     }
 
     static JsonObject moddedMaterials(Set<Block> palette) {
         JsonObject materials = new JsonObject();
         palette.stream().sorted(Comparator.comparing(block -> ForgeRegistries.BLOCKS.getKey(block).toString()))
-                .filter(block -> MODDED.contains(ForgeRegistries.BLOCKS.getKey(block).toString())).forEach(block -> {
+                .filter(block -> !ForgeRegistries.BLOCKS.getKey(block).getNamespace().equals("minecraft")).forEach(block -> {
                     JsonObject entry = Wire.state(block.defaultBlockState());
                     entry.addProperty("item_id", Warehouse.id(block.asItem()));
                     materials.add(ForgeRegistries.BLOCKS.getKey(block).toString(), entry);
@@ -223,6 +251,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         if (site.worldCopy() && !site.canBuildAt(origin)) {
             throw Wire.conflict("placement_scope", "拟建原点超出了施工区授权。");
         }
+        String project = data.has("source_project") ? ProjectBlocks.name(Wire.string(data.get("source_project"), "source_project")) : null;
         BuildSite.Box declared = BuildSite.Box.read(data.get("local_bounds"), "local_bounds");
         JsonArray actions = Wire.array(data.get("actions"), "actions");
         if (actions.isEmpty() || actions.size() > MAX_ACTIONS) {
@@ -245,17 +274,17 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             if (action.has("block_entity") && !action.get("block_entity").isJsonNull()) {
                 throw Wire.invalid("M1 cannot place block entity data at " + local.toShortString());
             }
-            BlockState state = readState(action, palette).rotate(rotation);
-            Item item = state.is(Blocks.WALL_TORCH) ? Items.TORCH : state.getBlock().asItem();
+            BlockState state = (project == null ? readState(action, palette) : ProjectBlocks.read(action)).rotate(rotation);
+            Item item = ProjectBlocks.primaryItem(state);
             ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(item);
             JsonElement declaredItem = action.get("item_id");
-            boolean resolveModItem = MODDED.contains(action.get("id").getAsString())
-                    && (declaredItem == null || declaredItem.isJsonNull());
-            if (!(item instanceof BlockItem placing) || placing.getBlock() != state.getBlock() && !state.is(Blocks.WALL_TORCH) || itemId == null
-                    || (!resolveModItem && !itemId.toString().equals(Wire.string(declaredItem, "action.item_id")))) {
+            boolean resolveItem = project != null || !ForgeRegistries.BLOCKS.getKey(state.getBlock()).getNamespace().equals("minecraft");
+            if (!ProjectBlocks.placementItem(state, item, project != null)
+                    || itemId == null || (!(resolveItem && (declaredItem == null || declaredItem.isJsonNull()))
+                    && !itemId.toString().equals(Wire.string(declaredItem, "action.item_id")))) {
                 throw Wire.invalid("Incorrect or unsupported placement item at " + local.toShortString());
             }
-            Target target = new Target(local, world, state, item);
+            Target target = new Target(local, world, state, item, project != null);
             targets.add(target);
             byPosition.put(world, target);
             JsonObject block = new JsonObject();
@@ -264,10 +293,20 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             block.add("properties", action.get("properties"));
             model.put(local, block);
         }
+        if (project != null) {
+            for (Target target : targets) {
+                if (target.upper() || target.paired()) {
+                    Target other = byPosition.get(target.upper() ? target.world().below() : target.world().above());
+                    if (other == null || other.state() != ProjectBlocks.otherHalf(target.state())) {
+                        throw Wire.conflict("project_invalid_halves", "工程中的门或双高植物需要上下两半 " + target.local().toShortString());
+                    }
+                }
+            }
+        }
         if (!declared.equals(bounds(model.keySet()))) {
             throw Wire.invalid("Declared bounds differ from the target coordinates");
         }
-        Comparator<Target> order = buildingId.startsWith("cottage_") || buildingId.startsWith("voxel_")
+        Comparator<Target> order = project != null || buildingId.startsWith("cottage_") || buildingId.startsWith("voxel_")
                 ? supportedLayers(targets, byPosition) : PLACEMENT_ORDER;
         targets.sort(Comparator.comparing(Target::light).thenComparing(order));
         JsonArray blocks = new JsonArray();
@@ -280,7 +319,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
 
                 Map.copyOf(byPosition), bounds(byPosition.keySet()),
                 data.has("lighting") && data.get("lighting").getAsBoolean(),
-                data.has("localized") && data.get("localized").getAsBoolean());
+                data.has("localized") && data.get("localized").getAsBoolean(), project);
     }
 
     static UUID id(JsonObject data, String key) {
@@ -317,14 +356,6 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         }
         if (state.hasBlockEntity()) {
             throw Wire.invalid("Block entity placements are not supported");
-        }
-        if (MODDED.contains(action.get("id").getAsString())) {
-            if (action.getAsJsonObject("properties").size() != state.getProperties().size()
-                    || (state.getBlock() instanceof StairBlock
-                    && (state.getValue(BlockStateProperties.HALF) != Half.BOTTOM
-                    || state.getValue(BlockStateProperties.STAIRS_SHAPE) != StairsShape.STRAIGHT))) {
-                throw Wire.invalid("Modded blocks require explicit states and straight, lower stairs");
-            }
         }
         return state;
     }

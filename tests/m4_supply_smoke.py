@@ -51,7 +51,7 @@ def provision(child, run, items, *, place=False):
 
 def start_runtime(run, source):
     args = [sys.executable, "-B", "-m", "src.architect", "--instance", str(source), "--provider", "fixture",
-            "--config", str(run / "config" / "mcaibuilder-architect.json")]
+            "--config", str(run / "config" / "mcaibuilder-architect.json"), "--project-root", str(run)]
     with (run / "runtime.log").open("wb") as log:
         return subprocess.Popen(args, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
 
@@ -82,7 +82,8 @@ def verify_receipts(receipts, *, max_items=16):
 
 def base_case(options, run, trace):
     def launch():
-        return launch_client(options.java_home, options.source_instance, run, options.port, smoke=True, m4_smoke=True)
+        return launch_client(options.java_home, options.source_instance, run, options.port,
+                             smoke=True, m4_smoke=True, project_root=run)
 
     chat, child, runtime = Chat(run), None, None
     try:

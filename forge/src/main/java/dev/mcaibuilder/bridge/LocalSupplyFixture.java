@@ -207,6 +207,14 @@ final class LocalSupplyFixture {
             }
             case "barrel" -> level.setBlockAndUpdate(pos, Blocks.BARREL.defaultBlockState());
             case "chest" -> level.setBlockAndUpdate(pos, Blocks.CHEST.defaultBlockState());
+            case "mod_chest" -> {
+                var key = ResourceLocation.tryParse(Wire.string(request.get("block_id"), "block_id"));
+                var chest = key != null && key.getNamespace().equals("quark") ? ForgeRegistries.BLOCKS.getValue(key) : null;
+                if (chest == null || !key.equals(ForgeRegistries.BLOCKS.getKey(chest)) || !key.getPath().endsWith("_chest")) {
+                    throw new IllegalStateException("Missing Quark test chest");
+                }
+                level.setBlockAndUpdate(pos, chest.defaultBlockState());
+            }
             case "air" -> level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
             case "grass" -> level.setBlockAndUpdate(pos, Blocks.GRASS.defaultBlockState());
             case "tree" -> {

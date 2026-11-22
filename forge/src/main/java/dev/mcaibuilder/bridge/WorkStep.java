@@ -21,7 +21,8 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove, bool
     }
 
     BlockPos secondary() {
-        return clearance && Clearance.pairedPlant(before) && !Clearance.upperHalf(before) ? pos().above() : null;
+        return !remove && target.paired() || clearance && Clearance.pairedPlant(before) && !Clearance.upperHalf(before)
+                ? pos().above() : null;
     }
 
     List<BlockPos> affected() {
@@ -77,7 +78,8 @@ record WorkStep(BuildPlan.Target target, BlockState before, boolean remove, bool
                 yield clear(plan, pos, before);
             }
             case "remove" -> {
-                if (!palette.contains(before.getBlock()) || after != Blocks.AIR.defaultBlockState()) {
+                if ((!palette.contains(before.getBlock()) && (plan.sourceProject() == null
+                        || !ProjectBlocks.allowed(before) || Clearance.managed(before))) || after != Blocks.AIR.defaultBlockState()) {
                     throw Wire.invalid("Unsafe removal in the journal");
                 }
                 yield new WorkStep(new BuildPlan.Target(local, pos, before, before.getBlock().asItem()), before, true);

@@ -4,7 +4,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.world.level.EmptyBlockGetter;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -14,6 +16,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,12 +40,48 @@ final class GhostPreviewClient {
         world = level;
         var next = new ArrayList<Mesh>();
         for (var cell : projection.cells()) {
-            var shape = cell.state().getShape(EmptyBlockGetter.INSTANCE, cell.pos());
-            var boxes = shape.isEmpty() ? List.of(new AABB(0, 0, 0, 1, 1, 1)) : shape.toAabbs();
-            int color = cell.removal() ? 0xff7858 : cell.state().getMapColor(level, cell.pos()).col;
-            next.add(new Mesh(cell, boxes, color == 0 ? 0x76dcff : color));
+            List<AABB> boxes;
+            int color = 0x76dcff;
+            try {
+                var shape = cell.state().getShape(level, cell.pos());
+                boxes = shape.isEmpty() ? List.of(new AABB(0, 0, 0, 1, 1, 1)) : shape.toAabbs();
+                color = cell.state().getMapColor(level, cell.pos()).col;
+            } catch (RuntimeException dynamicModel) {
+                boxes = List.of(new AABB(0, 0, 0, 1, 1, 1));
+            }
+            next.add(new Mesh(cell, boxes, cell.removal() ? 0xff7858 : color == 0 ? 0x76dcff : color));
         }
         meshes = List.copyOf(next);
+    }
+
+    static void links(GhostPreview.ProjectLinks links) {
+        String configured = System.getProperty("mcaibuilder.projectPreviews");
+        MutableComponent message = Component.literal("[Builder] Blender 工程已归档 ");
+        if (configured != null && !configured.isBlank()) {
+            Path folder = Path.of(configured).toAbsolutePath().normalize().resolve(links.name());
+            Path image = folder.resolve(links.image());
+            Path scene = folder.resolve(links.scene());
+            if (Files.isRegularFile(image) && Files.isRegularFile(scene)) {
+                message.append(open("[打开预览图]", image)).append(Component.literal(" · ")).append(open("[打开 .blend]", scene));
+            } else {
+                message.append(Component.literal("previews/" + links.name() + "/"));
+            }
+        } else {
+            message.append(Component.literal("previews/" + links.name() + "/"));
+        }
+        // OPEN_FILE is stripped from server-sent chat components. Attach it on the receiving client.
+        Minecraft.getInstance().gui.getChat().addMessage(message);
+        LocalChatFixture.recordProjectLinks(message);
+    }
+
+    private static MutableComponent open(String label, Path file) {
+        return Component.literal(label).withStyle(style -> style.withUnderlined(true)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file.toString())));
+    }
+
+    static net.minecraft.world.level.block.state.BlockState stateAt(net.minecraft.core.BlockPos pos) {
+        return meshes.stream().filter(mesh -> mesh.cell().pos().equals(pos)).map(mesh -> mesh.cell().state())
+                .findFirst().orElse(net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
     }
 
     static int size() {

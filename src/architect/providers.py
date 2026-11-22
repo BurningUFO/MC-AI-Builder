@@ -13,11 +13,11 @@ from src.architect.design import CHIPPED_WOOD, DESIGNS, GLASS, MASONRY, ROOFS, W
 from src.architect.grammar import GRAMMAR_PROMPT
 from src.construction.plan import VANILLA_BLOCKS
 
-DESIGN = frozenset(("create_design", "revise_design", "surgical_edit"))
+DESIGN = frozenset(("create_design", "revise_design", "surgical_edit", "load_project"))
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
-    "request_resume", "request_cancel", "get_material_status", "get_capabilities", "chat", "clarify", "unsupported",
+    "request_resume", "request_cancel", "get_material_status", "get_capabilities", "list_projects", "chat", "clarify", "unsupported",
 }
 BOUNDED_RESPONSE = 128 * 1024
 
@@ -51,6 +51,12 @@ def parse_intent(output: dict) -> dict:
                 raise InvalidOutput("missing base version")
         if output.get("kind") not in tuple(DESIGNS) or not isinstance(output.get("changes"), dict):
             raise InvalidOutput("invalid design envelope")
+    if action == "load_project":
+        fields |= {"project_name", "origin", "rotation"}
+        name = output.get("project_name")
+        if (type(name) is not str or not name.strip() or len(name) > 100
+                or any(ord(ch) < 32 or ch in "/\\:" for ch in name)):
+            raise InvalidOutput("invalid project name")
     if action == "surgical_edit":
         fields |= {"base_version", "edit"}
         edit = output.get("edit")
@@ -80,6 +86,12 @@ Return one JSON object with an action, optionally a short message to the player.
 commands, credentials or URLs. Only the player can authorize building and supply. Do not claim to
 have started or finished work unless the game state confirms it.
 
+For existing buildings, workspace_projects lists the available names, titles and aliases.
+The built-in projects include medieval_house (中世纪双层民居), enchanting_library (附魔图书馆),
+warehouse_bridge (仓库拱桥), and warehouse_flat_bridge (木石平桥). Only offer entries in workspace_projects.
+Use load_project with project_name when players ask to reproduce one, even if they say 建 or 盖.
+An optional origin or rotation places that unchanged project on the requested site.
+Use list_projects for a catalog question and introduce the library briefly in the player's language.
 Use create_design with kind "voxel" for original designs: houses, bridges, pavilions, towers,
 and other shapes. changes contains name and modules. Each module has mode ("fill", "shell", "erase", "roof", "framing"),
 from and to (inclusive [x,y,z] local integer corners), block (registered block ID, null for erase),
@@ -235,7 +247,8 @@ class FixtureProvider:
         }
         for field, options in preferences.items():
             for word, value in options:
-                if word in text:
+                if word in text and (value.startswith("minecraft:") or ":" not in value
+                                     or value in context.get("available_mod_blocks", ())):
                     changes[field] = value
                     break
         if visible and re.search(r"这面墙|这个位置.*窗|落地窗|屋顶换|换.*屋顶|replace this wall", text):
@@ -307,7 +320,7 @@ class FixtureProvider:
             for x in (-edge + 1, edge - 1):
                 region([x, 2, -edge], [x, 2, -edge], glass)
                 region([x, 2, edge], [x, 2, edge], glass)
-        styles = (("四面坡", "hip"), ("女儿墙", "parapet"), ("人字顶", "gable"))
+        styles = (("四面坡", "hip"), ("女儿墙", "parapet"), ("人字顶", "gable"), ("斜顶", "gable"))
         roof_style = next((style for word, style in styles if word in text), None)
         if roof_style:
             modules.append({"mode": "roof", "style": roof_style,

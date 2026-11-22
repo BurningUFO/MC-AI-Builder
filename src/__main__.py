@@ -11,13 +11,15 @@ from tempfile import TemporaryDirectory
 from zipfile import BadZipFile
 
 from src.assets.archives import Archives
-from src.assets.catalog import build_index, choose_palette, save_project
+from src.assets.catalog import build_index, choose_palette, save_project, write_materials
 from src.assets.models import ModelLibrary
 from src.generators.bridge import BRIDGE_MODDED, BRIDGE_VANILLA, generate_bridge
 from src.generators.enchanting import LIBRARY_MODDED, LIBRARY_VANILLA, generate_library
 from src.generators.flat_bridge import FLAT_BRIDGE_MODDED, FLAT_BRIDGE_VANILLA, generate_flat_bridge
 from src.generators.medieval import generate_house
-from src.renderers.views import PREVIEWS
+from src.assets.projects import valid_name
+from src.core.building import Building, write_json
+from src.renderers.views import preview_for
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -38,13 +40,15 @@ PALETTES = {
 }
 
 
-def project_paths(vanilla: bool, sample: str = DEFAULT_SAMPLE) -> tuple[Path, Path]:
+def project_paths(vanilla: bool, sample: str = DEFAULT_SAMPLE, workspace=ROOT) -> tuple[Path, Path]:
+    if not valid_name(sample):
+        raise ValueError("Project name must be a single directory name.")
     name = f"{sample}_vanilla" if vanilla else sample
-    return ROOT / "projects" / name, ROOT / "previews" / name
+    return workspace / "projects" / name, workspace / "previews" / name
 
 
 def generate(args) -> None:
-    project, _ = project_paths(args.vanilla, args.sample)
+    project, _ = project_paths(args.vanilla, args.sample, args.workspace)
     forest_library = args.sample == "enchanting_library"
     extra_mods = ("biomesoplenty",) if forest_library else ()
     with Archives(args.instance, vanilla_only=args.vanilla, extra_mods=extra_mods) as archives:
@@ -94,32 +98,65 @@ def run_blender(executable: Path, script: Path, *script_args, scene: Path | None
     subprocess.run(command, cwd=ROOT, env=environment, check=True, timeout=timeout)
 
 
-def verify(args, folder: Path | None = None) -> None:
-    project, output = project_paths(args.vanilla, args.sample)
-    folder = folder or output
-    preview = PREVIEWS[args.sample]
-    run_blender(args.blender.resolve(strict=True), VERIFY_SCRIPT, project / "building.json", folder, args.sample,
-                scene=folder / preview.scene_file)
+def verify_project(executable, data, folder, sample, preview, *, timeout=None):
+    run_blender(executable, VERIFY_SCRIPT, data, folder, sample, scene=folder / preview.scene_file, timeout=timeout)
 
 
-def render(args) -> None:
-    project, output = project_paths(args.vanilla, args.sample)
-    preview = PREVIEWS[args.sample]
-    data = project / "building.json"
-    index = project / "material-index.json"
-    catalog = json.loads(index.read_text(encoding="utf-8"))
-    if catalog["building_sha256"] != sha256(data.read_bytes()).hexdigest():
-        raise ValueError("Building and material index differ. Regenerate both before rendering.")
-    executable = args.blender.resolve(strict=True)
+def refresh_project_index(data, building, instance, *, vanilla=False):
+    digest = sha256(data.read_bytes()).hexdigest()
+    namespaces = {block.state.block_id.split(":")[0] for block in building.blocks.values()} - {"minecraft"}
+    with Archives(instance, vanilla_only=vanilla, extra_mods=tuple(sorted(namespaces))) as archives:
+        archives.discover()
+        catalog = build_index(ROOT, building, ModelLibrary(archives), {}, fallback_mods=True)
+    if Building.read(data) != building or sha256(data.read_bytes()).hexdigest() != digest:
+        raise ValueError("Building changed while indexing.")
+    catalog["building_sha256"] = digest
+    write_json(data.with_name("material-index.json"), catalog)
+    write_materials(data.with_name("materials.csv"), catalog)
+
+
+def render_project(blender, data, output, sample, *, quality="final", instance=None, vanilla=False, timeout=None):
+    data = data.resolve(strict=True)
+    output = output.resolve()
+    building = Building.read(data)
+    preview = preview_for(sample, building, name=data.parent.name)
+    index = data.with_name("material-index.json")
+    digest = sha256(data.read_bytes()).hexdigest()
+    if instance is not None and not verified_index(index, digest):
+        refresh_project_index(data, building, instance, vanilla=vanilla)
+    if not verified_index(index, digest):
+        raise ValueError("Building and material index differ. Supply the Minecraft instance to refresh the index.")
+    executable = blender.resolve(strict=True)
     output.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix=".render-", dir=output.parent) as temp:
         staged = Path(temp)
-        run_blender(executable, RENDER_SCRIPT, data, index, ROOT, staged, args.sample, args.quality)
-        verify(args, staged)
+        run_blender(executable, RENDER_SCRIPT, data, index, ROOT, staged, sample, quality, timeout=timeout)
+        verify_project(executable, data, staged, sample, preview, timeout=timeout)
         output.mkdir(parents=True, exist_ok=True)
         for name in preview.files:
             (staged / name).replace(output / name)
-    print(output / preview.scene_file)
+    return output / preview.scene_file
+
+
+def verified_index(path, digest):
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("building_sha256") == digest
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def verify(args):
+    project, folder = project_paths(args.vanilla, args.sample, args.workspace)
+    data = project / "building.json"
+    preview = preview_for(args.sample, Building.read(data), name=project.name)
+    verify_project(args.blender.resolve(strict=True), data, folder, args.sample, preview)
+
+
+def render(args):
+    project, output = project_paths(args.vanilla, args.sample, args.workspace)
+    scene = render_project(args.blender, project / "building.json", output, args.sample,
+                           quality=args.quality, instance=args.instance, vanilla=args.vanilla)
+    print(scene)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -132,11 +169,14 @@ def parser() -> argparse.ArgumentParser:
         ("verify", "reopen the saved Blender scene and validate its PNGs"),
     ):
         cmd = commands.add_parser(name, help=help_text)
-        cmd.add_argument("--sample", choices=tuple(GENERATORS), default=DEFAULT_SAMPLE,
-                         help="building sample to generate or review")
+        cmd.add_argument("--workspace", type=Path, default=ROOT, help="root containing projects/ and previews/")
+        cmd.add_argument("--sample", choices=tuple(GENERATORS) if name in {"generate", "build"} else None,
+                         default=DEFAULT_SAMPLE, help="project directory name")
         cmd.add_argument("--vanilla", action="store_true", help="generate or select the separate vanilla sample")
         if name in {"generate", "build"}:
             cmd.add_argument("--instance", type=Path, required=True, help="BMC4 version directory with its client JAR")
+        elif name == "render":
+            cmd.add_argument("--instance", type=Path, help="refresh the material index from this Minecraft instance")
         if name != "generate":
             cmd.add_argument("--blender", type=Path, default=DEFAULT_BLENDER, help="path to blender.exe")
         if name in {"render", "build"}:

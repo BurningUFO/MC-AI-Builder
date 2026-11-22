@@ -1306,6 +1306,9 @@ final class ConstructionService {
                 checkpoint();
                 return;
             }
+            if (!current.cancelling && current.plan.sourceProject() != null && !alignProjectJoins()) {
+                return;
+            }
             if (!current.cancelling && current.plan.lighting()) {
                 long now = level.getGameTime();
                 if (current.lightingSettleUntil == 0) {
@@ -1352,13 +1355,24 @@ final class ConstructionService {
         BlockState actual = level.getBlockState(step.pos());
         var following = current.plan.at(step.pos());
         ConstructionWorker.Result result;
-        if (matches(actual, step.after()) || step.clearance() && following != null && matches(actual, following.state())) {
+        if ((step.remove() ? matches(actual, step.after()) : step.target().matches(actual))
+                || step.clearance() && following != null && following.matches(actual)) {
             result = new ConstructionWorker.Result("already_present", null, null);
             worker.halt();
         } else {
-            if (!step.remove() && !actual.isAir()) {
-                admitObstacle(step);
-                return;
+            if (!step.remove()) {
+                if (step.target().upper() && actual.isAir()) {
+                    deferStep(step, "project_pair_pending");
+                    return;
+                }
+                if (!actual.isAir()) {
+                    admitObstacle(step);
+                    return;
+                }
+                if (step.target().paired() && !level.getBlockState(step.pos().above()).isAir()) {
+                    admitObstacle(new WorkStep(current.plan.at(step.pos().above()), AIR, false));
+                    return;
+                }
             }
             WorkStep live = step.remove() && actual != step.before()
                     ? WorkStep.clear(current.plan, step.pos(), actual) : step;
@@ -1570,7 +1584,7 @@ final class ConstructionService {
         Set<BlockPos> together = group.isEmpty() ? Set.copyOf(step.affected()) : group;
         String risk = clearance.mutationRisk(step.pos(), actual, step.remove(), together);
         BlockPos secondary = step.secondary();
-        if (risk == null && secondary != null && level.getBlockState(secondary).is(actual.getBlock())) {
+        if (risk == null && step.remove() && secondary != null && level.getBlockState(secondary).is(actual.getBlock())) {
             risk = clearance.mutationRisk(secondary, level.getBlockState(secondary), true, together);
         }
         if (risk != null) {
@@ -1608,6 +1622,25 @@ final class ConstructionService {
         ForgeBridge.LOGGER.info("construction_finish {} state={} reason={}", current.plan.id(), current.state.wire(), current.reason);
     }
 
+    private boolean alignProjectJoins() {
+        var targets = current.plan.targets();
+        int end = Math.min(targets.size(), current.replicaJoinCursor + 128);
+        for (; current.replicaJoinCursor < end; current.replicaJoinCursor++) {
+            var target = targets.get(current.replicaJoinCursor);
+            BlockPos pos = target.world();
+            if (!current.snapshot.owns(pos) || !site.canWorkAt(level, pos)) {
+                continue;
+            }
+            BlockState actual = level.getBlockState(pos);
+            BlockState aligned = ProjectBlocks.alignJoins(actual, target.state());
+            if (aligned != actual && level.isUnobstructed(aligned, pos, net.minecraft.world.phys.shapes.CollisionContext.empty())) {
+                level.setBlock(pos, aligned, net.minecraft.world.level.block.Block.UPDATE_CLIENTS
+                        | net.minecraft.world.level.block.Block.UPDATE_KNOWN_SHAPE);
+            }
+        }
+        return end == targets.size();
+    }
+
     private JsonObject verify() {
         JsonArray states = new JsonArray();
         JsonArray mismatches = new JsonArray();
@@ -1624,7 +1657,7 @@ final class ConstructionService {
             BlockState actual = level.getBlockState(target.world());
             JsonObject row = difference(target.world(), target.state(), actual);
             states.add(row);
-            if (matches(actual, target.state())) {
+            if (current.plan.sourceProject() != null ? actual == target.state() : matches(actual, target.state())) {
                 matched++;
             } else if (inspected == null || inspected.contains(target.world())) {
                 mismatches.add(row);

@@ -1,5 +1,6 @@
 """Review cameras and architectural sections for the included buildings."""
 
+from math import dist
 from typing import NamedTuple
 
 
@@ -87,3 +88,22 @@ PREVIEWS = {
     ),
 }
 
+
+
+def preview_for(sample, building, *, name=None):
+    """Keep curated cameras and frame arbitrary projects from their actual voxel bounds."""
+    if sample in PREVIEWS:
+        return PREVIEWS[sample]
+    low, high = building.bounds()
+    target = tuple((lo + hi + 1) / 2 for lo, hi in zip(low, high))
+    scale = 1.29 * dist(low, tuple(value + 1 for value in high))
+    distance = max(6, scale)
+    views = tuple(View(image, "Building", camera, target,
+                       tuple(axis * distance for axis in offset), scale)
+                  for image, camera, offset in (
+                      ("01-front.png", "Front northwest", (-0.9, 1.1, 0.75)),
+                      ("02-rear.png", "Rear southeast", (1, -1.1, 0.68)),
+                      ("03-side.png", "Side northeast", (1.2, 0.82, 0.55)),
+                      ("04-top.png", "Roof plan", (0.03, 0.22, 1.6)),
+                  ))
+    return Preview(f"{name or sample}.blend", views, ((low[1], "Structure"),), ())

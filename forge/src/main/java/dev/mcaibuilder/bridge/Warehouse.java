@@ -112,13 +112,20 @@ final class Warehouse {
             }
             return new Stock(block.getBlockPos(), new InvWrapper((Container) block));
         }
-        String name = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock()).getPath();
-        if (!(name.contains("barrel") || name.contains("chest") || name.contains("drawer") || name.endsWith("crate"))
+        var id = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
+        if (id == null) {
+            return null;
+        }
+        String name = id.getPath();
+        if (!(block.getBlockState().is(net.minecraftforge.common.Tags.Blocks.CHESTS)
+                || name.contains("barrel") || name.contains("chest") || name.contains("drawer") || name.endsWith("crate"))
                 || name.contains("ender") || block.saveWithoutMetadata().contains("LootTable")) {
             return null;
         }
         return block.getCapability(ForgeCapabilities.ITEM_HANDLER, null)
-                .map(items -> new Stock(block.getBlockPos(), items)).orElse(null);
+                .map(items -> new Stock(block.getBlockPos(), items))
+                .orElseGet(() -> block instanceof Container container
+                        ? new Stock(block.getBlockPos(), new InvWrapper(container)) : null);
     }
 
     static Item item(WorkStep step) {
@@ -129,7 +136,8 @@ final class Warehouse {
                 default -> Items.IRON_PICKAXE;
             };
         }
-        return step.remove() ? FakePlayersWorker.toolFor(step.before()) : step.target().item();
+        return step.remove() ? FakePlayersWorker.toolFor(step.before())
+                : step.target().upper() ? Items.AIR : step.target().item();
     }
 
     static boolean tool(Item item) {
@@ -174,7 +182,9 @@ final class Warehouse {
         if (TOOLS.contains(stack.getItem())) {
             return stack.getMaxDamage() - stack.getDamageValue();
         }
-        return stack.hasTag() || stack.isDamageableItem() ? 0 : stack.getCount();
+        return stack.isDamageableItem()
+                || stack.hasTag() && !ItemStack.isSameItemSameTags(stack, stack.getItem().getDefaultInstance())
+                ? 0 : stack.getCount();
     }
 
     static String id(Item item) {
@@ -187,7 +197,10 @@ final class Warehouse {
             WorkStep step = steps.get(index);
             Item item = item(step);
             if (step.before() != step.after() && item != Items.AIR && !optionalTool(step)) {
-                required.merge(item, 1, Integer::sum);
+                required.merge(item, step.remove() ? 1 : step.target().units(), Integer::sum);
+                if (!step.remove() && step.target().potPlant() != Items.AIR) {
+                    required.merge(step.target().potPlant(), 1, Integer::sum);
+                }
             }
         }
         return required;

@@ -43,9 +43,9 @@ def roof_cells(spec, building):
         if mode == "roof":
             overhang = module.get("overhang")
             cells.update(VoxelDesign.generate_roof(module["style"], bounds, 1 if overhang is None else overhang,
-                                                  module["block"], module.get("ridge_axis")))
+                                                  "minecraft:oak_planks", module.get("ridge_axis")))
         elif mode == "framing":
-            cells.difference_update(VoxelDesign.generate_framing(bounds, module["block"], module.get("spacing") or 4))
+            cells.difference_update(VoxelDesign.generate_framing(bounds, "minecraft:oak_log", module.get("spacing") or 4))
         elif cells:
             cells = {pos for pos in cells if not _inside(pos, bounds) or mode == "shell"
                      and all(lo < v < hi for v, lo, hi in zip(pos, *bounds))}

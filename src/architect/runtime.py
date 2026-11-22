@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, closing
 from dataclasses import asdict
 from functools import wraps
+from hashlib import sha256
 import json
 from pathlib import Path
 import re
@@ -15,13 +16,16 @@ from time import monotonic, perf_counter_ns, sleep
 from uuid import NAMESPACE_URL, UUID, uuid5
 from zipfile import BadZipFile
 
-from src.architect.design import DESIGNS, DesignError, fitted_origin, placement, voxel_footings
+from src.__main__ import render_project
+from src.architect.design import DESIGNS, ROTATION, DesignError, fitted_origin, placement, voxel_footings
 from src.architect.diagnostics import diagnose
 from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
+from src.assets.projects import ProjectError
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
 from src.core.building import Building, write_json
+from src.renderers.views import preview_for
 from src.architect import feedback, planning, surgical, survey
 from src.architect.telemetry import Trace, timed
 
@@ -65,7 +69,7 @@ class ArchitectClient(BridgeClient):
             body["plan"] = plan
         return self._call("architect/stage", body)
 
-    def answer(self, request_id, message, *, review=False, control=None, visual=False):
+    def answer(self, request_id, message, *, review=False, control=None, visual=False, material_lines=()):
         body = {"request_id": request_id, "message": message}
         if review:
             body["review"] = True
@@ -73,10 +77,15 @@ class ArchitectClient(BridgeClient):
             body["control"] = control
         if visual:
             body["visual_answer"] = True
+        if material_lines:
+            body["material_lines"] = material_lines
         return self._call("architect/answer", body)
 
-    def preview_ready(self, plan_id, player_id):
-        return self._call("architect/preview", {"plan_id": plan_id, "player_id": player_id})
+    def preview_ready(self, plan_id, player_id, *, project=None):
+        body = {"plan_id": plan_id, "player_id": player_id}
+        if project is not None:
+            body["project"] = project
+        return self._call("architect/preview", body)
 
     def pause(self, request_id):
         return self._call("architect/pause", {"request_id": request_id})
@@ -116,7 +125,7 @@ class SessionStore:
 
     @local_db
     def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
-                kind="window_wall", footing=None, worksite_order=None, edits=()):
+                kind="window_wall", footing=None, worksite_order=None, edits=(), project_name=None, source_project=None):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
@@ -125,11 +134,14 @@ class SessionStore:
         version = max(largest or 0, from_version) + 1
         params = parameters if isinstance(parameters, dict) else asdict(parameters)
         plan = make_plan(model, building_id=building_id, version=version, origin=origin, rotation=rotation,
-                         lighting=params.get("lighting", "none") != "none", localized=action == "surgical_edit")
+                         lighting=params.get("lighting", "none") != "none", localized=action == "surgical_edit",
+                         source_project=source_project)
         plan["plan_id"] = plan_id
         if worksite_order is not None:
             plan["worksite_order"] = worksite_order
         spec = {"kind": kind, "parameters": params, "plan": plan, "action": action}
+        if project_name is not None:
+            spec["project_name"] = project_name
         if edits:
             spec["edits"] = edits
         if footing is not None:
@@ -199,15 +211,64 @@ def describe_supply(supply, *, approval=False):
     return production + (f"还差 {short}。补到附近的箱子后告诉我一声。" if short else "附近库存够用。")
 
 
+
+def project_material_lines(supply, blocks):
+    rows = supply.get("requirements", {}) if supply else {}
+    if rows:
+        entries = []
+        for item, row in sorted(rows.items()):
+            name = item.removeprefix("minecraft:")
+            units = " 耐久" if row["unit"] == "durability" else ""
+            shortage = f"（还差 {row['missing']}）" if supply.get("warehouse_approved") and row["missing"] else ""
+            entries.append(f"{name} ×{row['required']}{units}{shortage}")
+    else:
+        entries = [f"{item} ×{count}" for item, count in sorted(blocks.items())]
+    lines = []
+    current = ""
+    for item in entries:
+        if current and len(current) + len(item) > 235:
+            lines.append(current)
+            current = ""
+        current += ("、" if current else "") + item
+    if current:
+        lines.append(current)
+    if len(lines) > 16:
+        lines = [*lines[:15], "完整清单已随本次审阅记录保存。"]
+    return [f"用料 {index}/{len(lines)}  {line}" for index, line in enumerate(lines, 1)]
+
+
+def project_origin(model, context, rotation):
+    low, high = model.bounds()
+
+    def rotate(x, z):
+        return ((x, z), (-z, x), (-x, -z), (z, -x))[rotation // 90]
+
+    corners = [rotate(x, z) for x in (low[0], high[0]) for z in (low[2], high[2])]
+    horizontal_min = tuple(map(min, zip(*corners)))
+    horizontal_max = tuple(map(max, zip(*corners)))
+    minimum = (horizontal_min[0], low[1], horizontal_min[1])
+    maximum = (horizontal_max[0], high[1], horizontal_max[1])
+    allowed = context["approved_area"]
+    first = tuple(a - b for a, b in zip(allowed["min"], minimum, strict=True))
+    last = tuple(a - b for a, b in zip(allowed["max"], maximum, strict=True))
+    if any(a > b for a, b in zip(first, last, strict=True)):
+        raise ProjectError("这份原始工程放不进当前施工区。请为它标记一块更大的区域。")
+    front_x, front_z = rotate((low[0] + high[0]) // 2, low[2])
+    x, y, z = context["suggested_origin"]
+    origin = x - front_x, y, z - front_z
+    return tuple(max(a, min(b, value)) for a, b, value in zip(first, last, origin, strict=True))
+
 class Runtime:
-    def __init__(self, client, provider, store, instance, blender, *, render=preview_review,
-                 share_observations=False, parallel_planning=False):
+    def __init__(self, client, provider, store, instance, blender, *, render=preview_review, projects=None,
+                 project_render=render_project, share_observations=False, parallel_planning=False):
         self.client = client
         self.provider = provider
         self.store = store
         self.instance = instance
         self.blender = blender
         self.render = render
+        self.projects = projects
+        self.project_render = project_render
         self.share_observations = share_observations
         self.parallel_planning = parallel_planning
         self.observation_cache = Path(__file__).resolve().parents[2] / ".cache" / "observations" / store.root.parent.name
@@ -228,6 +289,8 @@ class Runtime:
         context = {key: request[key] for key in ("dimension", "position", "facing", "suggested_origin",
                                                  "approved_area", "ground_near_anchor")}
         context["message"] = message
+        if self.projects is not None:
+            context["workspace_projects"] = [project.context() for project in self.projects.catalog()[:40]]
         for key in ("phase", "event", "sites", "gaze"):
             if key in request:
                 context[key] = request[key]
@@ -315,7 +378,8 @@ class Runtime:
             elif prepared is None:
                 context = self.language_context(request, message)
                 with timed("intent_provider"):
-                    intent = parse_intent(self.provider.decide(context))
+                    library_intent = self.projects.conversation_intent(message) if self.projects is not None else None
+                    intent = parse_intent(library_intent or self.provider.decide(context))
                 action = intent["action"]
             else:
                 action = prepared["action"]
@@ -327,9 +391,10 @@ class Runtime:
             diagnostic = self.record_diagnostic(code)
             if code == "stale_request":
                 return
-            self.client.answer(request_id, diagnostic.recovery)
+            message = error.body.get("message", diagnostic.recovery) if code.startswith("project_") else diagnostic.recovery
+            self.client.answer(request_id, safe_message(message, self.redactions))
             action = code
-        except DesignError as error:
+        except (DesignError, ProjectError) as error:
             self.client.answer(request_id, safe_message(str(error), self.redactions))
             action = "design_error"
             self.record_diagnostic(action)
@@ -373,6 +438,8 @@ class Runtime:
         action = intent["action"]
         if action == "surgical_edit":
             return self.local_edit(request, intent)
+        if action == "load_project":
+            return self.load_project(request, intent)
         prior = None
         old_version = 0
         kind = intent.get("kind", "window_wall")
@@ -401,6 +468,8 @@ class Runtime:
             if footing is not None and base and (parameters.width, parameters.depth) != (base.width, base.depth):
                 raise DesignError("更改已勘察住宅的占地需要重新观察地基。")
             building = parameters.building(footing or ())
+        elif kind == "voxel":
+            building = parameters.building(request.get("available_mod_blocks", {}))
         else:
             building = parameters.building()
         blocks = {block.state.block_id for block in building.blocks.values()}
@@ -440,10 +509,30 @@ class Runtime:
         for edit in edits:
             surgical.apply_edit(building, {"kind": kind, "parameters": asdict(parameters)}, edit["edit"], edit["gaze"])
         worksite_order = intent.get("_worksite_order") if request.get("worksite") else None
-        spec = self.store.reserve(self.proposal_id(request["request_id"]), building_id, old_version,
+        plan_id = self.proposal_id(request["request_id"])
+        archive = self.projects.archive(building, plan_id, kind) if self.projects is not None and action == "create_design" else None
+        spec = self.store.reserve(plan_id, building_id, old_version,
                                   building, origin, rotation, parameters, action, kind=kind, footing=footing,
-                                  worksite_order=worksite_order, edits=edits)
+                                  worksite_order=worksite_order, edits=edits, project_name=archive)
         return spec
+
+    def load_project(self, request, intent):
+        if self.projects is None:
+            raise ProjectError("当前 Architect 会话没有工作区项目库。")
+        name, model, _, _ = self.projects.load_building_project(intent["project_name"])
+        place = dict(intent)
+        if "site_authorization" in request and isinstance(place.get("origin"), list):
+            place["origin"] = [base + offset for base, offset in zip(request["suggested_origin"], place["origin"], strict=True)]
+        place.setdefault("rotation", request.get("site_rotation", (ROTATION[request["facing"]] + 180) % 360))
+        origin, rotation = placement(place, request, None, False)
+        if "origin" not in place:
+            origin = project_origin(model, request, rotation)
+        plan_id = self.proposal_id(request["request_id"])
+        try:
+            return self.store.reserve(plan_id, "project_" + UUID(plan_id).hex, 0, model, origin, rotation, {},
+                                      "load_project", kind="project", project_name=name, source_project=name)
+        except ValueError as error:
+            raise ProjectError(str(error)) from error
 
     def local_edit(self, request, intent):
         visible = request.get("draft") or request.get("job")
@@ -464,7 +553,7 @@ class Runtime:
         return self.store.reserve(self.proposal_id(request["request_id"]), plan["building_id"], plan["building_version"],
                                   model, plan["origin"], plan["rotation"], prior["parameters"], intent["action"],
                                   kind=prior["kind"], footing=prior.get("footing"),
-                                  edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}])
+                                  source_project=plan.get("source_project"), edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}])
 
     def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message=""):
         with timed("bridge_review"):
@@ -485,8 +574,15 @@ class Runtime:
                    "terrain_effect_outside_scope": "会覆盖区域外的草方块"}
         conflicts = [str(tuple(row["world"])) + reasons.get(row.get("reason"), "")
                      for row in report["changes"] if row["category"] == "conflict"][:3]
-        if "supply" in report:
-            details = describe_supply(report["supply"], approval=True)
+        supply = report.get("supply")
+        if supply:
+            details = describe_supply(supply, approval=True)
+        project = version.get("source_project") or (plan or {}).get("source_project")
+        material_lines = project_material_lines(supply, materials) if project and len(details) > 235 else ()
+        if material_lines:
+            details = "明细见下方"
+            if supply and not supply.get("warehouse_approved"):
+                details += "。把材料放进附近箱子，再告诉我「材料齐了」"
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         if grass := report.get("covered_grass"):
             reason += f"。建筑覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
@@ -504,7 +600,11 @@ class Runtime:
         reply = safe_message(prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
                              f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
                              f"保护对象 {counts['conflict']}。材料 {details.rstrip('。')}{reason}。", self.redactions)
-        self.client.answer(request_id, reply, review=True)
+        if material_lines:
+            self.client.answer(request_id, reply, review=True,
+                               material_lines=[safe_message(line, self.redactions)[:300] for line in material_lines])
+        else:
+            self.client.answer(request_id, reply, review=True)
         self.queue_preview(report, player_id)
         return reply
 
@@ -531,7 +631,11 @@ class Runtime:
                 folder = self.store.directory(plan_id)
                 report_file = folder / "review.json"
                 write_json(report_file, report)
-                if self.blender is not None:
+                spec = self.store.design(plan_id)
+                project = spec.get("project_name") if spec else None
+                if project is not None:
+                    self.render_archived(plan_id, project, player_id)
+                elif self.blender is not None:
                     with self.trace.bind(plan_id=plan_id), timed("blender_review"):
                         if not (folder / "proposed.png").is_file():
                             self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
@@ -540,13 +644,41 @@ class Runtime:
             except Exception as error:
                 self.trace.emit("preview_background_failure", plan_id=plan_id, error_type=type(error).__name__)
 
+    def render_archived(self, plan_id, name, player_id):
+        _, model, data, output = self.projects.load_building_project(name)
+        snapshot = Building.read(self.store.directory(plan_id) / "building.json")
+        if model != snapshot or output.resolve() != output:
+            return
+        preview = preview_for(name, model, name=name)
+        verification = output / "verification.json"
+        try:
+            ready = (json.loads(verification.read_text(encoding="utf-8")).get("building_sha256")
+                     == sha256(data.read_bytes()).hexdigest() and all((output / file).is_file() for file in preview.files))
+        except (OSError, ValueError, AttributeError):
+            ready = False
+        if not ready and self.blender is not None:
+            with self.trace.bind(plan_id=plan_id), timed("blender_project"):
+                self.project_render(self.blender, data, output, name, quality="draft", instance=self.instance, timeout=300)
+            ready = all((output / file).is_file() for file in preview.files)
+        if ready and player_id is not None:
+            self.client.preview_ready(plan_id, player_id, project={
+                "name": name, "image": preview.views[0].image, "scene": preview.scene_file,
+            })
+
     def dispatch(self, request, intent, prepared):
         request_id = request["request_id"]
         action = intent["action"]
         if action in DESIGN:
             spec = prepared or self.design(request, intent)
-            return self.review(request_id, "new" if action == "create_design" else "revise", spec["plan"],
-                               player_id=request["player_id"], proposal_message=intent.get("message", ""))
+            message = intent.get("message", "")
+            if action == "load_project":
+                name = spec["project_name"]
+                project = self.projects.resolve(name)
+                title = project.title if project else name
+                message = (f"已载入《{title}》（共 {len(spec['plan']['actions'])} 个方块）。"
+                           f"全息虚影就在施工区，预览工程位于 previews/{name}/。")
+            return self.review(request_id, "new" if action in {"create_design", "load_project"} else "revise",
+                               spec["plan"], player_id=request["player_id"], proposal_message=message)
         elif action in PREVIEW_ACTIONS:
             return self.review(request_id, "review", player_id=request["player_id"])
         if action in STATUS_ACTIONS:
@@ -558,6 +690,12 @@ class Runtime:
                 text += " " + diagnose(job["reason"]).recovery
             elif job and job.get("supply", {}).get("phase") == "processing":
                 text += " 我在准备下一批方块，手头有合成和烧炼的活。"
+        elif action == "list_projects":
+            projects = self.projects.catalog() if self.projects is not None else ()
+            entries = "、".join(f"{project.title}（{project.name}）" for project in projects[:8])
+            more = f"一共 {len(projects)} 份。" if len(projects) > 8 else ""
+            text = (f"现成项目有 {entries}。{more}报个名字，我就能在施工区投影给你看。"
+                    if projects else "项目库里还没有可用的建筑。你可以先告诉我想设计什么。")
         elif action == "get_capabilities":
             text = "我能和你选址、设计建筑、盘点附近的材料，等你批准后动手施工。也可以边聊边改图。"
         elif action == "get_material_status":

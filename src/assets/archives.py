@@ -11,7 +11,7 @@ from zipfile import BadZipFile, ZipFile
 from src.core.building import resource_id
 
 
-MODS = ("chipped", "handcrafted", "quark", "supplementaries", "twigs", "decorative_blocks")
+MODS = ("chipped", "handcrafted", "quark", "supplementaries", "twigs", "decorative_blocks", "biomesoplenty")
 
 
 class AssetError(ValueError):
@@ -63,7 +63,7 @@ class Archives(ExitStack):
         super().__init__()
         self.instance = instance.resolve(strict=True)
         self.vanilla_only = vanilla_only
-        self.mod_ids = MODS + extra_mods
+        self.mod_ids = tuple(dict.fromkeys((*MODS, *extra_mods)))
         self.sources: dict[str, Source] = {}
         self.mod_issues: dict[str, str] = {}
         self._embedded_sources: dict[tuple[Path, str], Source] = {}

@@ -37,7 +37,7 @@ MAX_RESPONSE_BYTES = 32768
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
     "ground_near_anchor", "fixed_site", "construction", "design", "supply", "available_mod_blocks",
-    "phase", "event", "sites", "gaze",
+    "phase", "event", "sites", "gaze", "workspace_projects",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 
@@ -88,6 +88,7 @@ EDIT_FIELDS = {
 }
 FIELDS = {
     "action": {"type": "string", "enum": sorted(ACTIONS)},
+    "project_name": {"type": ["string", "null"]},
     "kind": {"type": ["string", "null"], "enum": [*DESIGNS, None]},
     "changes": {
         "type": ["object", "null"], "properties": INTENT_DESIGN_FIELDS,
@@ -121,9 +122,12 @@ def context_message(context: dict) -> str:
         encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         if len(encoded.encode("utf-8")) <= MAX_CONTEXT_BYTES:
             return encoded
-        if not payload["recent"]:
+        if payload["recent"]:
+            payload["recent"].pop(0)
+        elif payload.get("workspace_projects"):
+            payload["workspace_projects"] = payload["workspace_projects"][:-1]
+        else:
             raise ModelError("Codex Architect context exceeds the input limit")
-        payload["recent"].pop(0)
 
 
 def decode_intent(output: str) -> dict:

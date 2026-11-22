@@ -111,7 +111,7 @@ def stage_runtime(source: Path) -> tuple[dict, str]:
 
 
 def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
-                    architect: bool = False, survival: bool = False) -> Path:
+                    architect: bool = False, survival: bool = False, copy_pack_defaults: bool = True) -> Path:
     if not 1024 <= port <= 65535:
         raise ValueError("Bridge port must be in 1024–65535.")
     game = game.resolve()
@@ -134,8 +134,9 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
     legacy_bridges = [mods / f"mcaibuilder-bridge-{version}.jar" for version in ("0.1.0", "0.2.0")]
     expected = {BRIDGE_JAR.name, PLAYERS_JAR.name, *(jar.name for jar in legacy_bridges)}
     pack_jars = sorted((pack_source / "mods").glob("*.jar")) if pack_source else []
-    if (pack_source and pack_source.resolve().is_relative_to(TEST_ROOT.resolve())
-            and (pack_source / ".mcaibuilder-test").is_file()):
+    isolated_pack = (pack_source is not None and pack_source.resolve().is_relative_to(TEST_ROOT.resolve())
+                     and (pack_source / ".mcaibuilder-test").is_file())
+    if isolated_pack:
         pack_jars = [jar for jar in pack_jars if jar.name not in expected]
     if pack_source and not pack_jars:
         raise ValueError("The BMC4 instance has no enabled mod JARs.")
@@ -146,6 +147,8 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
         raise ValueError(f"Unexpected JAR in the test mods directory: {mods}")
     for jar in pack_jars:
         _copy(jar, mods / jar.name)
+    if isolated_pack and (pack_source / "mods/.connector").is_dir() and not (mods / ".connector").exists():
+        shutil.copytree(pack_source / "mods/.connector", mods / ".connector")
     for jar in (BRIDGE_JAR, PLAYERS_JAR):
         source_hash = sha1(jar.read_bytes()).hexdigest()
         _copy(jar, mods / jar.name, digest=source_hash)
@@ -187,7 +190,7 @@ def configure_world(game: Path, port: int, *, pack_source: Path | None = None,
             write_json(scoped, scope)
     if pack_source and not (game / "saves" / "m1-construction" / "level.dat").is_file():
         defaults = pack_source / "defaultconfigs"
-        if defaults.is_dir():
+        if copy_pack_defaults and defaults.is_dir():
             shutil.copytree(defaults, game / "defaultconfigs", dirs_exist_ok=True)
         (game / "config" / "fml.toml").write_text("versionCheck = false\n", encoding="utf-8")
         if any(jar.name.lower().startswith("packanalytics-") for jar in pack_jars):
@@ -225,7 +228,7 @@ def launch_client(
     survival: bool = False, m4_smoke: bool = False, managed: bool = False,
     m5_smoke: bool = False, hide_console: bool = False,
     world_copy: bool = False, copy_smoke: bool = False, camera_smoke: bool = False,
-    terrain_fixture: bool = False,
+    terrain_fixture: bool = False, project_root: Path = ROOT, copy_pack_defaults: bool = True,
 ) -> subprocess.Popen:
     game = game.resolve()
     if terrain_fixture and (world_copy or not game.is_relative_to(TEST_ROOT.resolve()) or not smoke):
@@ -239,7 +242,8 @@ def launch_client(
         copy, _ = configure_copy(game, port)
     else:
         configure_world(game, port, pack_source=(pack_source or source) if bmc4 else None,
-                        architect=architect or m3_smoke or survival, survival=survival)
+                        architect=architect or m3_smoke or survival, survival=survival,
+                        copy_pack_defaults=copy_pack_defaults)
     profile, classpath = stage_runtime(source)
     native_dir = game / "natives"
     temp = game / "tmp"
@@ -267,6 +271,7 @@ def launch_client(
     }
     arguments = [
         "-Xms512M", "-Xmx8G" if bmc4 else "-Xmx3G", f"-Djava.io.tmpdir={temp.as_posix()}", f"-Duser.home={home_dir.as_posix()}",
+        f"-Dmcaibuilder.projectPreviews={(project_root.resolve() / 'previews').as_posix()}",
         f"-Dmcaibuilder.localTest={str(not world_copy).lower()}", f"-Dmcaibuilder.smoke={str(smoke).lower()}",
         f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke or m5_smoke).lower()}",
         f"-Dmcaibuilder.m4Smoke={str(m4_smoke).lower()}",
@@ -285,6 +290,9 @@ def launch_client(
     logs = game / "console.log"
     environment = dict(os.environ, TEMP=str(temp), TMP=str(temp))
     environment.pop("MC_ARCHITECT_API_KEY", None)
+    if smoke and bmc4:
+        # The launch helper opens a detached JVM and can retain its JAR after an isolated test exits.
+        environment["DisableEntirelyCrashAssistantModOnSystem"] = "true"
     with logs.open("wb") as log:
         return subprocess.Popen([str(java), f"@{argument_file}"], cwd=game, env=environment,
                                 stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,

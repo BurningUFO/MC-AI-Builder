@@ -18,7 +18,8 @@ LIGHT_BLOCKS = {"minecraft:torch", "minecraft:wall_torch", "minecraft:lantern"}
 GRAMMAR_PROMPT = """For a house, prefer a roof module and a framing module over hand-writing stairs.
 A roof module has mode "roof", style "gable", "hip", or "parapet", from/to the two corners of the
 wall footprint at the roof's eave Y, block a plank or masonry block, optional overhang (default 1),
-and optional ridge_axis "x" or "z". The generator seals the ceiling, orients the stairs and makes
+and optional ridge_axis "x" or "z". A modded roof material needs its companion stairs and slabs in
+available_mod_blocks. The generator seals the ceiling, orients the stairs and makes
 the ridge and corners symmetric. To add a chimney, place it after the roof module.
 A framing module has mode "framing", from/to the diagonal corners of the frame, block an overworld
 log, optional spacing (default 4). It creates corner posts, repeated bays, and overhead beams.
@@ -27,9 +28,20 @@ Cut doors/windows with later erase modules before adding glazing. Set changes.li
 sections of floors and roofs. Lighting is included in the material list."""
 
 
-def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks", ridge_axis=None):
+def roof_family(material, available_mod_blocks=()):
+    if material in ROOF_MATERIALS:
+        return ROOF_MATERIALS[material]
+    if material in available_mod_blocks:
+        for prefix in dict.fromkeys((material.removesuffix("_planks"), material, material.removesuffix("s"))):
+            if {prefix + "_stairs", prefix + "_slab"} <= set(available_mod_blocks):
+                return prefix
+    return None
+
+
+def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks", ridge_axis=None, *, available_mod_blocks=()):
     """Return block states for a sealed roof with one continuous ceiling deck."""
-    if style not in ROOF_STYLES or material not in ROOF_MATERIALS or type(overhang) is not int or not 0 <= overhang <= 2:
+    prefix = roof_family(material, available_mod_blocks)
+    if style not in ROOF_STYLES or prefix is None or type(overhang) is not int or not 0 <= overhang <= 2:
         raise ValueError("屋顶需要人字顶、四面坡或女儿墙，以及一种受支持的木板或石材。")
     (x0, y, z0), (x1, upper, z1) = bounds
     if y != upper or x1 - x0 < 2 or z1 - z0 < 2:
@@ -40,7 +52,6 @@ def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks",
     x0, x1, z0, z1 = x0 - overhang, x1 + overhang, z0 - overhang, z1 + overhang
     if (x1 - x0 + 1) * (z1 - z0 + 1) > MAX_ACTIONS:
         raise ValueError("屋顶出檐后的占地太大，请缩小屋顶。")
-    prefix = ROOF_MATERIALS[material]
     full, slab = (material, {}), (prefix + "_slab", {"type": "top", "waterlogged": "false"})
     cells = {}
     for x, z in product(range(x0, x1 + 1), range(z0, z1 + 1)):
@@ -81,8 +92,10 @@ def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks",
     return cells
 
 
-def generate_framing(bounds, log_type, spacing=4):
-    if log_type not in {f"minecraft:{wood}_log" for wood in WOOD_FAMILIES} or type(spacing) is not int or not 2 <= spacing <= 8:
+def generate_framing(bounds, log_type, spacing=4, *, available_mod_blocks=()):
+    supported = log_type in {f"minecraft:{wood}_log" for wood in WOOD_FAMILIES}
+    supported |= log_type in available_mod_blocks and log_type.endswith(("_log", "_beam", "_stem"))
+    if not supported or type(spacing) is not int or not 2 <= spacing <= 8:
         raise ValueError("立柱需要原木，柱距可设为 2–8 格。")
     (x0, y0, z0), (x1, y1, z1) = bounds
     if x1 - x0 < 2 or z1 - z0 < 2 or y1 <= y0:

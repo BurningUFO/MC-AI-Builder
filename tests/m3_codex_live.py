@@ -26,6 +26,7 @@ REVISION = "先暂停施工，把窗户换成蓝色染色玻璃，其他已经�
 def runtime_process(run, source, ledger):
     args = [sys.executable, "-B", "-m", "src.architect",
             "--config", str(run / "config" / "mcaibuilder-architect.json"),
+            "--project-root", str(run),
             "--instance", str(source), "--provider", "codex", "--timeout", "50",
             "--codex-model", DEFAULT_MODEL, "--codex-effort", DEFAULT_EFFORT,
             "--codex-max-turns", "10", "--codex-max-tokens", "150000",
@@ -117,7 +118,7 @@ def exercise(run, options, trace):
 
     def start_game():
         return launch_client(options.java_home, options.source_instance, run, options.port, smoke=True,
-                             m3_smoke=True, bmc4=bmc4, pack_source=options.bmc4_pack)
+                             m3_smoke=True, bmc4=bmc4, pack_source=options.bmc4_pack, project_root=run)
 
     runtime = None
     child = None

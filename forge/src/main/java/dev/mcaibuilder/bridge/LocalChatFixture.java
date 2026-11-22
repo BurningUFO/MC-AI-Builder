@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.event.TickEvent;
@@ -62,6 +64,7 @@ final class LocalChatFixture {
                 reply.add("request", request.get("request"));
                 reply.addProperty("ghost_cells", GhostPreviewClient.size());
                 reply.add("block", Wire.state(state));
+                reply.add("projection", Wire.state(GhostPreviewClient.stateAt(pos)));
                 reply.addProperty("collides", !state.getCollisionShape(client.level, pos).isEmpty());
                 Files.writeString(root.resolve(".mcaibuilder-preview-result"), reply.toString());
             } else {
@@ -69,6 +72,28 @@ final class LocalChatFixture {
             }
         } catch (IOException | RuntimeException error) {
             ForgeBridge.LOGGER.warn("Isolated chat fixture input failed", error);
+        }
+    }
+
+    static void recordProjectLinks(Component message) {
+        Path root = root();
+        if (root == null) {
+            return;
+        }
+        JsonObject data = new JsonObject();
+        data.addProperty("message", message.getString());
+        var files = new com.google.gson.JsonArray();
+        for (Component child : message.getSiblings()) {
+            var event = child.getStyle().getClickEvent();
+            if (event != null && event.getAction() == ClickEvent.Action.OPEN_FILE) {
+                files.add(event.getValue());
+            }
+        }
+        data.add("files", files);
+        try {
+            Files.writeString(root.resolve("project-links.jsonl"), data + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException error) {
+            ForgeBridge.LOGGER.warn("Could not record isolated Blender links", error);
         }
     }
 

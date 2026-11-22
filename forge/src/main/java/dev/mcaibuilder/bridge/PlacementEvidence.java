@@ -47,9 +47,16 @@ final class PlacementEvidence {
             return;
         }
         attempt.placeEvents++;
-        if (event instanceof BlockEvent.EntityMultiPlaceEvent
-                || !event.getPos().equals(attempt.target.world())
-                || !ConstructionService.matches(event.getPlacedBlock(), attempt.target.state())) {
+        var target = attempt.target;
+        boolean scoped = event.getPos().equals(target.world());
+        if (target.replica() && event instanceof BlockEvent.EntityMultiPlaceEvent multiple) {
+            scoped = multiple.getReplacedBlockSnapshots().stream().allMatch(snapshot -> snapshot.getPos().equals(target.world())
+                    || target.paired() && snapshot.getPos().equals(target.world().above()));
+        } else if (event instanceof BlockEvent.EntityMultiPlaceEvent) {
+            scoped = false;
+        }
+        if (!scoped || !ProjectBlocks.nativePlacement(event.getLevel().getBlockState(target.world()), target)
+                || target.paired() && event.getLevel().getBlockState(target.world().above()) != ProjectBlocks.otherHalf(target.state())) {
             event.setCanceled(true);
             attempt.rejected = true;
         }

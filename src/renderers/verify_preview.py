@@ -4,6 +4,7 @@ from array import array
 from hashlib import sha256
 from pathlib import Path
 import sys
+import json
 
 import bpy
 
@@ -11,7 +12,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.core.building import Building, write_json
-from src.renderers.views import PREVIEWS, VERIFICATION_FILE
+from src.renderers.views import preview_for, VERIFICATION_FILE
 
 
 def require(condition, message):
@@ -41,8 +42,8 @@ def png_report(path: Path) -> dict:
 def main():
     data_argument, folder_argument, sample = sys.argv[sys.argv.index("--") + 1:]
     data_path, folder = Path(data_argument), Path(folder_argument)
-    preview = PREVIEWS[sample]
     building = Building.read(data_path)
+    preview = preview_for(sample, building, name=data_path.parent.name)
     digest = sha256(data_path.read_bytes()).hexdigest()
     require(Path(bpy.data.filepath) == folder / preview.scene_file, "Blender did not reopen the saved file")
     geometry, images = {}, {}
@@ -65,6 +66,11 @@ def main():
     require(textures and all(img.packed_file is not None for img in textures), "A Minecraft texture is not packed")
     report = {"blender_version": bpy.app.version_string, "building_sha256": digest,
               "geometry": geometry, "packed_minecraft_textures": len(textures), "images": images}
+    index = data_path.with_name("material-index.json")
+    if index.is_file():
+        fallbacks = json.loads(index.read_text(encoding="utf-8")).get("render_fallbacks")
+        if fallbacks:
+            report["render_fallbacks"] = fallbacks
     write_json(folder / VERIFICATION_FILE, report)
     print(f"Reopened {preview.scene_file}: {len(building.blocks)} blocks, {len(textures)} packed textures, {len(images)} decoded PNGs.")
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 from zipfile import ZipFile
 
@@ -73,6 +74,41 @@ class AssetTests(unittest.TestCase):
                 self.assertEqual(index["states"], {})
                 with self.assertRaises(AssetError):
                     build_index(root, scene, library, {})
+
+    def test_project_fallback_bakes_original_key_and_caches_replacement_texture(self):
+        class Library:
+            def __init__(self):
+                self.archives = SimpleNamespace(
+                    installation={}, mod_summary=lambda: {},
+                    block_info=self.block_info,
+                    source_for=lambda *_: SimpleNamespace(path=Path("client.jar")),
+                )
+
+            @staticmethod
+            def block_info(block_id):
+                raise AssetError("No static blockstate")
+
+            def bake(self, state):
+                if state.block_id != "minecraft:oak_stairs":
+                    raise AssetError("No static model")
+                return {"full_cube": False, "faces": [{"texture": "minecraft:block/oak_planks"}]}
+
+            def texture(self, reference):
+                return b"isolated oak texture"
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            building = Building("Dynamic chair")
+            building.place((0, 0, 0), "handcrafted:dynamic_chair", facing="east", color="red")
+            state = building.blocks[0, 0, 0].state
+            index = build_index(root, building, Library(), {}, fallback_mods=True)
+            self.assertIn(state.key, index["states"])
+            self.assertEqual(index["states"][state.key]["block_id"], state.block_id)
+            self.assertIn("minecraft:oak_stairs", index["render_fallbacks"][state.key]["rendered_as"])
+            path = Path(index["textures"]["minecraft:block/oak_planks"]["file"])
+            self.assertEqual(path.parts[:2], (".cache", "assets"))
+            self.assertEqual((root / path).read_bytes(), b"isolated oak texture")
+            self.assertEqual(building.blocks[0, 0, 0].state, state)
 
     def test_missing_mod_falls_back_to_known_vanilla_blocks(self):
         class MissingLibrary:

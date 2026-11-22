@@ -150,7 +150,12 @@ final class FakePlayersWorker implements ConstructionWorker {
     private void preparePreset(List<BuildPlan.Target> targets, boolean removals) {
         Map<Item, Integer> totals = new LinkedHashMap<>();
         for (BuildPlan.Target target : targets) {
-            totals.merge(target.item(), 1, Integer::sum);
+            if (!target.upper()) {
+                totals.merge(target.item(), target.units(), Integer::sum);
+            }
+            if (target.potPlant() != Items.AIR) {
+                totals.merge(target.potPlant(), 1, Integer::sum);
+            }
         }
         List<ItemStack> supplied = new ArrayList<>();
         for (Map.Entry<Item, Integer> total : totals.entrySet()) {
@@ -864,7 +869,14 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public boolean hasSupply(WorkStep step) {
         Item item = Warehouse.item(step);
-        return available() && (item == Items.AIR || Warehouse.optionalTool(step) || supplySlot(step) >= 0);
+        if (!available()) {
+            return false;
+        }
+        if (!step.remove() && step.target().replica() && !step.target().upper()) {
+            return count(item) >= step.target().units()
+                    && (step.target().potPlant() == Items.AIR || supplySlot(step.target().potPlant()) >= 0);
+        }
+        return item == Items.AIR || Warehouse.optionalTool(step) || supplySlot(step) >= 0;
     }
 
     private int supplySlot(WorkStep step) {
@@ -888,7 +900,12 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!scaffolds.isEmpty() && !cleanScaffolds()) {
             return null;
         }
-        Item item = Warehouse.item(steps.get(cursor));
+        WorkStep step = steps.get(cursor);
+        Item item = Warehouse.item(step);
+        if (!step.remove() && step.target().potPlant() != Items.AIR && supplySlot(step.target().potPlant()) < 0
+                && supplySlot(item) >= 0) {
+            item = step.target().potPlant();
+        }
         List<Warehouse.Stock> stocks = null;
         if (fabrication == null) {
             stocks = availableStock.get();
@@ -1567,10 +1584,11 @@ final class FakePlayersWorker implements ConstructionWorker {
                     }
                 }
                 BlockPlaceContext context = new BlockPlaceContext(actor, InteractionHand.MAIN_HAND, stack, hit);
-                BlockState placed = target.state().getBlock().getStateForPlacement(context);
+                BlockState desired = target.replica() ? ProjectBlocks.primaryState(target.state()) : target.state();
+                BlockState placed = desired.getBlock().getStateForPlacement(context);
                 if (context.canPlace() && context.getClickedPos().equals(target.world())
-                        && placed != null && ConstructionService.matches(placed, target.state())
-                        && target.state().canSurvive(level, target.world())) {
+                        && placed != null && (target.replica() || target.matches(placed))
+                        && desired.canSurvive(level, target.world())) {
                     return aim;
                 }
             }
@@ -1701,16 +1719,26 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private Result useItem(BuildPlan.Target target, int slot, Aim aim) {
+        if (target.potPlant() != Items.AIR) {
+            return placePotted(target, slot, aim);
+        }
         BlockPos clicked = aim.hit().getBlockPos();
         if (!level.mayInteract(actor, clicked) || !level.mayInteract(actor, target.world())
-                || !level.getBlockState(target.world()).isAir()) {
+                || !level.getBlockState(target.world()).isAir()
+                || target.paired() && (!site.canWorkAt(level, target.world().above())
+                || !level.mayInteract(actor, target.world().above()) || !level.getBlockState(target.world().above()).isAir())) {
             return failure("interaction_forbidden");
         }
         lookAndSwing(aim);
         SimpleContainer inventory = npc.getInventory();
-        ItemStack stack = inventory.getItem(slot);
+        ItemStack stock = inventory.getItem(slot);
+        ItemStack stack = target.replica() ? ProjectBlocks.placementStack(stock, target.state()) : stock;
         int before = count(target.item());
+        if (before < target.units()) {
+            return failure("out_of_material");
+        }
         actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        actor.setShiftKeyDown(target.replica());
         PlacementEvidence attempt = PlacementEvidence.begin(actor, target);
         InteractionResult result;
         long placementStarted = BuildPerformance.clock();
@@ -1719,11 +1747,27 @@ final class FakePlayersWorker implements ConstructionWorker {
         } finally {
             performance.span(BuildPerformance.Span.PLACE, placementStarted);
             PlacementEvidence.end();
-            inventory.setItem(slot, actor.getMainHandItem());
+            if (target.replica()) {
+                if (!attempt.rejected && actor.getMainHandItem().isEmpty()
+                        && ProjectBlocks.nativePlacement(level.getBlockState(target.world()), target)) {
+                    inventory.removeItemType(target.item(), target.units());
+                }
+            } else {
+                inventory.setItem(slot, actor.getMainHandItem());
+            }
+            actor.setShiftKeyDown(false);
             actor.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+        BlockState nativeState = level.getBlockState(target.world());
+        BlockState replica = ProjectBlocks.restoreSourceBlock(nativeState, target);
+        if (!attempt.rejected && result.consumesAction() && replica != nativeState) {
+            level.setBlock(target.world(), replica, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
         }
         int after = count(target.item());
         JsonObject evidence = new JsonObject();
+        if (replica != nativeState) {
+            evidence.add("native_variant", Wire.state(nativeState));
+        }
         evidence.addProperty("method", "ServerPlayerGameMode.useItemOn");
         evidence.addProperty("right_click_events", attempt.rightClicks);
         evidence.addProperty("place_events", attempt.placeEvents);
@@ -1737,10 +1781,39 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         evidence.addProperty("face", aim.hit().getDirection().getName());
         String reason = attempt.rejected || !result.consumesAction() ? "placement_rejected"
-                : !ConstructionService.matches(level.getBlockState(target.world()), target.state())
-                        ? "unexpected_block_state" : null;
+                : !target.matches(level.getBlockState(target.world())) ? "unexpected_block_state" : null;
         haltAction();
         return new Result(reason == null ? "placed" : "failed", reason, evidence);
+    }
+
+    private Result placePotted(BuildPlan.Target target, int slot, Aim aim) {
+        int plant = supplySlot(target.potPlant());
+        if (plant < 0) {
+            return failure("out_of_material");
+        }
+        var pot = new BuildPlan.Target(target.local(), target.world(), Blocks.FLOWER_POT.defaultBlockState(), Items.FLOWER_POT);
+        Result first = useItem(pot, slot, aim);
+        if (!first.status().equals("placed")) {
+            return first;
+        }
+        Aim fill = chestAim(target.world(), npc.position());
+        if (fill == null || !level.mayInteract(actor, target.world())) {
+            return failure("interaction_forbidden");
+        }
+        lookAndSwing(fill);
+        var inventory = npc.getInventory();
+        ItemStack stack = inventory.getItem(plant);
+        actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
+        InteractionResult result;
+        try {
+            result = actor.gameMode.useItemOn(actor, level, stack, InteractionHand.MAIN_HAND, fill.hit());
+        } finally {
+            inventory.setItem(plant, actor.getMainHandItem());
+            actor.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+        first.evidence().addProperty("potted_item", Warehouse.id(target.potPlant()));
+        return result.consumesAction() && target.matches(level.getBlockState(target.world()))
+                ? first : new Result("failed", "placement_rejected", first.evidence());
     }
 
     private int count(Item item) {

@@ -86,7 +86,7 @@ def main():
     run = Path(mkdtemp(prefix="m6-terrain-source-companion-", dir=TEST_ROOT))
     print(f"Companion fixture {run}", flush=True)
     child = launch_client(options.java_home, options.source_instance, run, options.port,
-                          smoke=True, m4_smoke=True, m5_smoke=True, hide_console=True)
+                          smoke=True, m4_smoke=True, m5_smoke=True, project_root=run, hide_console=True)
     runtime = None
     try:
         config = run / "config"
@@ -96,6 +96,7 @@ def main():
             runtime = subprocess.Popen([sys.executable, "-B", "-m", "src.architect",
                                         "--provider", "fixture", "--instance", str(options.source_instance),
                                         "--config", str(config / "mcaibuilder-architect.json"),
+                                        "--project-root", str(run),
                                         "--blender", str(run / "missing-blender.exe")],
                                        cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)

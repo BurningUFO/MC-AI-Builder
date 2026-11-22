@@ -219,8 +219,9 @@ class VoxelDesign:
     generate_roof = staticmethod(generate_roof)
     generate_framing = staticmethod(generate_framing)
 
-    def building(self) -> Building:
+    def building(self, available_mod_blocks=()) -> Building:
         model = Building(self.name)
+        materials = VANILLA_BLOCKS | set(available_mod_blocks)
         for raw in self.modules:
             module = {key: value for key, value in raw.items() if value is not None} if isinstance(raw, dict) else {}
             if set(module) - {"mode", "from", "to", "block", "properties", "style", "overhang", "ridge_axis", "spacing"}:
@@ -238,14 +239,16 @@ class VoxelDesign:
                 raise DesignError("请缩小单个填充区域。")
             block = module.get("block")
             properties = module.get("properties") or {}
-            if mode != "erase" and (not isinstance(block, str) or block not in VANILLA_BLOCKS | {
-                    CHIPPED_WOOD, QUARK_ROOF, QUARK_STAIR} or not isinstance(properties, dict)):
-                raise DesignError(f"这个模块的材料或方块状态不可用。")
+            if mode != "erase" and (not isinstance(block, str) or block not in materials or not isinstance(properties, dict)):
+                raise DesignError(f"当前实例没有提供这个模块使用的材料或状态 {block}。")
             if mode in ("roof", "framing"):
                 try:
-                    pieces = self.generate_roof(module.get("style"), (low, high), module.get("overhang", 1),
-                                                block, module.get("ridge_axis")) if mode == "roof" else self.generate_framing(
-                                                    (low, high), block, module.get("spacing", 4))
+                    if mode == "roof":
+                        pieces = self.generate_roof(module.get("style"), (low, high), module.get("overhang", 1),
+                                                    block, module.get("ridge_axis"), available_mod_blocks=materials)
+                    else:
+                        pieces = self.generate_framing((low, high), block, module.get("spacing", 4),
+                                                       available_mod_blocks=materials)
                 except ValueError as error:
                     raise DesignError(str(error)) from error
                 for point, (material, state) in pieces.items():
@@ -253,6 +256,8 @@ class VoxelDesign:
             else:
                 if mode != "erase":
                     properties = self.block_properties(block, properties)
+                    if isinstance(available_mod_blocks, dict) and block in available_mod_blocks:
+                        properties = {**available_mod_blocks[block].get("properties", {}), **properties}
                 for point in product(*(range(a, b + 1) for a, b in zip(low, high))):
                     if mode == "erase":
                         model.blocks.pop(point, None)
@@ -268,17 +273,22 @@ class VoxelDesign:
     @staticmethod
     def block_properties(block, supplied):
         choices = {}
-        if block.endswith("_log"):
+        if block.endswith(("_log", "_wood", "_beam", "_stem", "_hyphae")):
             choices["axis"] = ("y", "x", "z")
         if block.endswith("_stairs"):
             choices.update(facing=("north", "east", "south", "west"),
                            half=("bottom", "top"), shape=("straight",), waterlogged=("false",))
         if block == "minecraft:wall_torch":
             choices["facing"] = ("north", "east", "south", "west")
-        if block == "minecraft:lantern":
+        if block.endswith((":lantern", "_lantern")):
             choices.update(hanging=("false", "true"), waterlogged=("false",))
         if block.endswith("_slab"):
             choices.update(type=("bottom", "top"), waterlogged=("false",))
+        if not block.startswith("minecraft:"):
+            # The installed registry remains authoritative for optional mod properties.
+            optional = {"axis": ("y", "x", "z"), "facing": ("north", "east", "south", "west"),
+                        "half": ("bottom", "top"), "type": ("bottom", "top"), "hanging": ("false", "true")}
+            choices.update({key: optional[key] for key in supplied.keys() & optional.keys() if key not in choices})
         if set(supplied) - choices.keys() or any(value not in choices[key] for key, value in supplied.items()):
             raise DesignError(f"{block} 的朝向或方块状态超出支持范围。")
         return {key: supplied.get(key, values[0]) for key, values in choices.items()}

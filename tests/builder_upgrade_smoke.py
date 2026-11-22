@@ -65,7 +65,7 @@ def main():
     run = Path(mkdtemp(prefix="builder-workshop-ghost-", dir=TEST_ROOT))
     print(f"Upgrade fixture {run}", flush=True)
     child = launch_client(args.java_home, args.source_instance, run, args.port,
-                          smoke=True, m4_smoke=True, m5_smoke=True, hide_console=True)
+                          smoke=True, m4_smoke=True, m5_smoke=True, project_root=run, hide_console=True)
     runtime = None
     try:
         config = run / "config"
@@ -75,6 +75,7 @@ def main():
             runtime = subprocess.Popen([sys.executable, "-B", "-m", "src.architect",
                                         "--provider", "fixture", "--instance", str(args.source_instance),
                                         "--config", str(config / "mcaibuilder-architect.json"),
+                                        "--project-root", str(run),
                                         "--blender", str(run / "missing-blender.exe")],
                                        cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)

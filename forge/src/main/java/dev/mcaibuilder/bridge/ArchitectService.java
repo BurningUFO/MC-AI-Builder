@@ -18,10 +18,12 @@ import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -690,6 +692,20 @@ final class ArchitectService {
         if (message.isEmpty() || message.length() > 600 || message.chars().anyMatch(Character::isISOControl)) {
             throw Wire.invalid("Reply must be 1–600 printable characters");
         }
+        List<String> materialLines = new ArrayList<>();
+        if (body.has("material_lines")) {
+            var rows = Wire.array(body.get("material_lines"), "material_lines");
+            if (rows.size() > 16) {
+                throw Wire.invalid("Too many material lines");
+            }
+            for (var row : rows) {
+                String line = Wire.string(row, "material_line");
+                if (line.isBlank() || line.length() > 300 || line.chars().anyMatch(Character::isISOControl)) {
+                    throw Wire.invalid("Invalid material line");
+                }
+                materialLines.add(line);
+            }
+        }
         if (body.has("visual_answer")) {
             Request request = session.request;
             if (!request.input.has("feedback") || survey == null || !survey.matches(request.id, player.getUUID())) {
@@ -709,6 +725,9 @@ final class ArchitectService {
             session.reviewStarted = BuildPerformance.clock();
             persist();
             tell(player, message);
+            for (String line : materialLines) {
+                tell(player, line);
+            }
             if (session.draft.autonomous && session.request.input.has("worksite")) {
                 stopSurvey();
                 try {
@@ -743,11 +762,20 @@ final class ArchitectService {
         ServerPlayer player = level.getServer().getPlayerList().getPlayer(owner);
         if (session != null && permitted(player)
                 && (id.equals(session.active) || session.draft != null && id.equals(session.draft.id()))) {
-            String file = FMLPaths.GAMEDIR.get().resolve("architect-previews").resolve(id.toString())
-                    .resolve("proposed.png").toAbsolutePath().toString();
-            tell(player, Component.literal("预览图已生成 ")
-                    .append(Component.literal("[打开图片]").withStyle(style -> style.withUnderlined(true)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file)))));
+            if (body.has("project")) {
+                JsonObject project = Wire.object(body.get("project"), "project");
+                var links = new GhostPreview.ProjectLinks(Wire.string(project.get("name"), "project.name"),
+                        Wire.string(project.get("image"), "project.image"), Wire.string(project.get("scene"), "project.scene"));
+                if (!GhostPreview.sendLinks(player, links)) {
+                    tell(player, "Blender 工程已归档 previews/" + links.name() + "/");
+                }
+            } else {
+                String file = FMLPaths.GAMEDIR.get().resolve("architect-previews").resolve(id.toString())
+                        .resolve("proposed.png").toAbsolutePath().toString();
+                tell(player, Component.literal("预览图已生成 ")
+                        .append(Component.literal("[打开图片]").withStyle(style -> style.withUnderlined(true)
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file)))));
+            }
         }
         return ok();
     }

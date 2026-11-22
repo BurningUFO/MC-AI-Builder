@@ -1,6 +1,6 @@
 # Minecraft AI Builder
 
-MC Builder 是 Minecraft Java 1.20.1 Forge 的建筑伙伴。它能根据附近地形提出体素方案，跟玩家商量改图和材料，并由 Fake Players NPC 在游戏里施工。Blender 预览可选，完成时会把图片链接发到游戏聊天。
+MC Builder 是 Minecraft Java 1.20.1 Forge 的建筑伙伴。它能根据附近地形提出体素方案，跟玩家商量改图和材料，并由 Fake Players NPC 在游戏里施工。游戏内可以直接查看全息虚影。Blender 也可在后台生成工程和多角度预览。
 
 ## 在游戏里使用
 
@@ -8,6 +8,12 @@ MC Builder 是 Minecraft Java 1.20.1 Forge 的建筑伙伴。它能根据附近�
 2. 说 `@Builder 帮我在眼前这块地盖一个带烟囱的小木屋，用深色橡木风格`。Builder 会给出方案和耗材。可以继续讨论改图，也可以回复「建吧」「可以」「批准」或点击批准。
 3. 把材料放进附近的箱子、大箱子或木桶，再说「材料齐了」，也可使用 `/architect supply`。Builder 会盘点施工区及共享位置周围 16 格，按需搬运。缺料时会列出缺口，补齐后告诉它即可继续。
 4. Builder 可以在批准区域内清理普通地形、回收掉落物和拆除自己的临时垫脚块。容器、红石、床、传送门和用 `/architect site protect` 标记的位置受保护。施工中可用 `/architect pause`、`/architect resume` 或 `/architect cancel`。
+
+## 工作区建筑项目
+
+用 `@Builder 你有哪些现成的建筑？` 查看项目库。可以直接说 `@Builder 帮我建一下 medieval_house`、`@Builder 复现附魔图书馆` 或 `@Builder 把仓库拱桥朝东盖在这`。Builder 会读取工程原有的方块和状态，在批准施工区内投影并列出材料。可以穿过虚影检查布局，再回复「建吧」。已安装的模组材料按 Forge 注册表核对，供料支持 Quark 箱子。
+
+新设计会归档到 `projects/<工程名>/building.json`，以后可直接报工程名复现。启动器配置了 Blender 时，后台会写入 `previews/<工程名>/`，并把打开图片和 .blend 的链接发给审阅者。缺少 Blender 时仍可在游戏内审阅和施工。动态模组模型缺少可用贴图时，材质索引会记录预览使用的原版替代素材，工程蓝图保留原方块。
 
 ## Windows 双击启动
 
@@ -38,9 +44,10 @@ $java = '<Java 17 JDK 目录>'
 & .\tools\m1.ps1 Build -JavaHome $java
 & .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
 & .\.venv\Scripts\python.exe -m tests.companion_smoke --java-home $java --source-instance $instance
+& .\.venv\Scripts\python.exe -m tests.m4_bmc4_smoke --java-home $java --source-instance $instance
 ~~~
 
-Forge 实测会创建隔离的生存测试世界，覆盖公屏审批、多容器取料、缺料后继续、保护资产、临时脚手架和完工验收。首次构建需要 Gradle、Forge 开发依赖和 Fake Players 3.0.0。
+Forge 实测会在 mc-test 创建隔离世界。BMC4 项目库烟测从 PCL 只读提取建筑模组及其依赖，验证两份经典工程的虚影、真实 Blender 归档和 Quark 箱子取料施工。用 `--bmc4-pack` 可以改用已有的隔离整合包目录。首次构建需要 Gradle、Forge 开发依赖和 Fake Players 3.0.0。
 
 早期里程碑的 [运行说明和历史验证记录](docs/README.md) 保留了各版本当时使用的命令和验收方式。
 
