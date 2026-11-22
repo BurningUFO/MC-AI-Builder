@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--codex-max-tokens", type=int, default=150_000, help="Token limit for the Codex budget ledger")
     parser.add_argument("--codex-max-turns", type=int, default=12, help="Maximum Codex turns per ledger, or per process without a ledger")
     parser.add_argument("--share-observations", action="store_true",
-                        help="Permit explicitly requested NPC site surveys to send their local images to Codex")
+                        help="Permit explicit NPC surveys and supervised builds to send their local images to Codex")
     options = parser.parse_args()
     if options.share_observations and options.provider != "codex":
         parser.error("--share-observations requires the Codex provider")

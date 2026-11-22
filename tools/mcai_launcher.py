@@ -20,7 +20,7 @@ from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL
 from src.construction.client import BridgeClient, BridgeError
 from src.core.building import write_json
 from tools.m1_client import BRIDGE_JAR, PLAYERS_HASH, PLAYERS_JAR, ROOT, TEST_ROOT, launch_client
-from tools.world_copy import copy_root, create_copy, existing_copies, read_copy, world_choices
+from tools.world_copy import MARKER, copy_root, create_copy, existing_copies, read_copy, world_choices
 
 
 HOME = ROOT / ".cache" / "m5-launcher"
@@ -329,6 +329,7 @@ class Launcher:
         self.live_site = None
 
     def start_agent(self, runtime_polls):
+        share = self.settings.get("share_observations") is True and (self.game_dir / MARKER).is_file()
         self.agent_start_poll = runtime_polls
         self.stop_agent.unlink(missing_ok=True)
         self.agent = self.spawn([
@@ -338,6 +339,7 @@ class Launcher:
             "--codex-effort", DEFAULT_EFFORT, "--codex-max-turns", str(MAX_TURNS),
             "--codex-max-tokens", str(MAX_TOKENS), "--codex-budget-log", str(self.budget),
             "--stop-file", str(self.stop_agent),
+            *(["--share-observations"] if share else []),
         ], "agent.log", "ab")
         self.agent_deadline = monotonic() + 30
 
@@ -532,9 +534,14 @@ def window(app):
         ttk.Checkbutton(dialog, text="下次启动使用独立的生存供料练习世界", variable=survival).grid(
             row=3, column=0, columnspan=3, sticky="w", padx=8, pady=8)
 
+        share_observations = tk.BooleanVar(value=app.settings.get("share_observations") is True)
+        ttk.Checkbutton(dialog, text="允许副本中的主动观察与视觉监管将 NPC 图像发送给 Codex",
+                        variable=share_observations).grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=8)
+
         def save():
-            values = {key: field.get().strip() for key, field in fields.items()}
+            values = {**app.settings, **{key: field.get().strip() for key, field in fields.items()}}
             values["survival"] = survival.get()
+            values["share_observations"] = share_observations.get()
             try:
                 write_json(SETUP, values)
                 app.settings = values
@@ -542,7 +549,7 @@ def window(app):
                 detail.set(str(error))
                 return
             dialog.destroy()
-        ttk.Button(dialog, text="保存", command=save).grid(row=4, column=2, padx=8, pady=8)
+        ttk.Button(dialog, text="保存", command=save).grid(row=5, column=2, padx=8, pady=8)
 
     button(shortcuts, "最新预览", previews)
     button(shortcuts, "Agent / 启动日志", lambda: open_local(app.home))

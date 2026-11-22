@@ -164,7 +164,7 @@ final class BridgeHttp implements AutoCloseable {
                 yield onGameThread(() -> switch (path) {
                     case "/architect/stage" -> architect().stage(body, observations);
                     case "/architect/survey" -> architect().survey(body, observations);
-                    case "/architect/answer" -> architect().answer(body);
+                    case "/architect/answer" -> architect().answer(body, observations);
                     default -> architect().pauseRequest(body);
                 });
             }

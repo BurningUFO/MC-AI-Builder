@@ -32,11 +32,22 @@ final class ArchitectService {
     private static final long RUNTIME_HEARTBEAT = Duration.ofSeconds(6).toNanos();
     private static final long APPROVAL_LIFETIME = Duration.ofMinutes(10).toMillis();
 
-    private record Draft(JsonObject plan, UUID base, boolean surveyed) {
+    private record Draft(JsonObject plan, UUID base, boolean surveyed, String visualGoal) {
         UUID id() { return BuildPlan.id(plan, "plan_id"); }
     }
 
     private record Ticket(UUID code, String hash, long expires) {}
+
+    private record VisualWatch(String goal, boolean checkpoint, boolean failure, boolean finalReview) {
+        VisualWatch(String goal, boolean checkpoint) {
+            this(goal, checkpoint, false, false);
+        }
+
+        VisualWatch observed(String event) {
+            return new VisualWatch(goal, checkpoint || event.equals("checkpoint"),
+                    failure || event.equals("failure"), finalReview || event.equals("final"));
+        }
+    }
 
     private static final class Request {
         final UUID id = UUID.randomUUID();
@@ -54,6 +65,7 @@ final class ArchitectService {
 
     private static final class Session {
         UUID active;
+        VisualWatch watch;
         Draft draft;
         Ticket ticket;
         Request request;
@@ -135,12 +147,12 @@ final class ArchitectService {
     }
 
     void request(ServerPlayer player, String message) {
-        request(player, message, false);
+        request(player, message, false, false, false);
     }
 
-    void request(ServerPlayer player, String message, boolean surveyed) {
+    void request(ServerPlayer player, String message, boolean surveyed, boolean watch, boolean inspect) {
         requirePlayer(player);
-        if (surveyed && !site.worldCopy()) {
+        if ((surveyed || watch || inspect) && !site.worldCopy()) {
             throw Wire.conflict("survey_requires_copy", "主动观察需要使用获准的世界副本。");
         }
         String input = message.strip();
@@ -149,8 +161,12 @@ final class ArchitectService {
         }
         Session session = sessions.computeIfAbsent(player.getUUID(), ignored -> new Session());
         UUID job = currentJob();
-        if (session.active != null && session.active.equals(job)
-                && input.matches("(?is)^(?:pause\\b|(?:先\\s*)?暂停(?:\\s*施工)?)(?:$|[\\s,，。;；：:、].*)")) {
+        boolean pause = input.matches("(?is)^(?:pause\\b|(?:先\\s*)?暂停(?:\\s*施工)?)(?:$|[\\s,，。;；：:、].*)");
+        boolean owned = session.active != null && session.active.equals(job);
+        if (inspect && (!owned || session.watch == null)) {
+            throw Wire.conflict("visual_job_required", "请先用 /architect supervise 批准一个视觉监管任务。");
+        }
+        if (owned && (pause || inspect)) {
             JsonObject current = ownedJob(session);
             if (current != null && current.get("state").getAsString().equals("running")) {
                 construction.control("pause", job);
@@ -165,7 +181,15 @@ final class ArchitectService {
             session.ticket = null;
             persist();
         }
-        session.request = null;
+        String feedback = owned && session.watch != null && !surveyed
+                && (inspect || pause && !input.matches("(?i)^(?:pause|(?:先\\s*)?暂停(?:\\s*施工)?)[。.!！]?$"))
+                ? "requested" : null;
+        queue(player, session, input, surveyed, watch, feedback);
+        tell(player, "收到，正在处理。");
+    }
+
+    private void queue(ServerPlayer player, Session session, String input,
+                       boolean surveyed, boolean watch, String feedback) {
         JsonObject context = worldContext(player);
         context.addProperty("player_id", player.getUUID().toString());
         context.addProperty("message", input);
@@ -188,8 +212,17 @@ final class ArchitectService {
         if (surveyed) {
             context.addProperty("survey", true);
         }
-        session.request = new Request(context, job);
-        tell(player, "收到，正在处理。");
+        if (watch) {
+            context.addProperty("watch_build", true);
+        }
+        if (feedback != null) {
+            context.addProperty("feedback", feedback);
+            context.addProperty("visual_goal", session.watch.goal);
+            if (feedback.equals("final")) {
+                context.addProperty("final_verified", construction.verifiedFinishedSite(session.active));
+            }
+        }
+        session.request = new Request(context, currentJob());
     }
 
     private JsonObject supplyContext(Session session, UUID owner) {
@@ -272,18 +305,52 @@ final class ArchitectService {
     JsonObject survey(JsonObject body, NpcObservations observations) {
         Pending pending = requireRequest(body);
         Request request = pending.session.request;
-        if (observations == null || !request.input.has("survey") || request.staged) {
+        boolean passive = request.input.has("feedback");
+        if (observations == null || !(request.input.has("survey") || passive) || request.staged
+                || passive && !construction.observationCheckpoint(request.siteJob)) {
             throw Wire.conflict("survey_not_requested", "这条游戏内需求没有请求主动观察。");
         }
         UUID owner = pending.player.getUUID();
         if (survey == null || !survey.matches(request.id, owner)) {
             stopSurvey();
-            survey = new SiteSurvey(construction, request.id, owner);
+            survey = new SiteSurvey(construction, request.id, owner, passive);
         }
         return survey.handle(body, pending.player);
     }
 
     void tick(NpcObservations observations) {
+        tickSurvey(observations);
+        if (observations == null || !runtimeOnline() || !writable || currentJob() == null) {
+            return;
+        }
+        for (var entry : sessions.entrySet()) {
+            Session session = entry.getValue();
+            if (session.watch == null || !currentJob().equals(session.active)
+                    || session.request != null || session.draft != null) {
+                continue;
+            }
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+            if (!permitted(player)) {
+                continue;
+            }
+            try {
+                VisualWatch watch = session.watch;
+                String event = construction.visualEvent(session.active, watch.checkpoint, watch.failure, watch.finalReview);
+                if (event != null) {
+                    session.watch = watch.observed(event);
+                    persist();
+                    queue(player, session, "", false, false, event);
+                    tell(player, event.equals("checkpoint") ? "已暂停在施工检查点。正在获取 NPC 观测。"
+                            : "正在复查施工现场。");
+                }
+            } catch (Wire.Problem problem) {
+                ForgeBridge.LOGGER.warn("Could not record the visual checkpoint: {}", problem.code);
+            }
+            return;
+        }
+    }
+
+    private void tickSurvey(NpcObservations observations) {
         if (survey == null) {
             return;
         }
@@ -313,6 +380,10 @@ final class ArchitectService {
         Session session = pending.session;
         Request request = session.request;
         String mode = Wire.string(body.get("mode"), "mode");
+        if (request.input.has("feedback") && (!mode.equals("revise")
+                || request.input.get("feedback").getAsString().equals("final"))) {
+            throw Wire.conflict("visual_revision_only", "施工观测只能提出当前版本的修改。");
+        }
         if (mode.equals("review")) {
             if (session.draft == null) {
                 throw Wire.conflict("no_draft", "没有待审阅的设计。");
@@ -354,13 +425,20 @@ final class ArchitectService {
         }
         boolean surveyed = request.input.has("survey")
                 || mode.equals("revise") && session.draft != null && session.draft.surveyed;
-        if (request.input.has("survey")) {
+        if (request.input.has("survey") || request.input.has("feedback")) {
             if (survey == null || !survey.matches(request.id, pending.player.getUUID())) {
                 throw Wire.conflict("survey_frame_stale", "没有此需求的新鲜配对观察。");
             }
             survey.requireFresh(observations, this);
         }
-        Draft next = new Draft(plan.deepCopy(), base, surveyed);
+        String visualGoal = base != null && session.watch != null ? session.watch.goal : null;
+        if (mode.equals("revise") && session.draft != null) {
+            visualGoal = session.draft.visualGoal;
+        }
+        if (request.input.has("watch_build")) {
+            visualGoal = request.input.get("message").getAsString();
+        }
+        Draft next = new Draft(plan.deepCopy(), base, surveyed, visualGoal);
         if (base == null) {
             construction.inspectInitial(plan, pending.player.getUUID(), surveyed);
         } else {
@@ -393,13 +471,24 @@ final class ArchitectService {
         return ok();
     }
 
-    JsonObject answer(JsonObject body) {
+    JsonObject answer(JsonObject body, NpcObservations observations) {
         Pending pending = requireRequest(body);
         Session session = pending.session;
         ServerPlayer player = pending.player;
         String message = Wire.string(body.get("message"), "message").strip();
         if (message.isEmpty() || message.length() > 600 || message.chars().anyMatch(Character::isISOControl)) {
             throw Wire.invalid("Reply must be 1–600 printable characters");
+        }
+        if (body.has("visual_answer")) {
+            Request request = session.request;
+            if (!request.input.has("feedback") || survey == null || !survey.matches(request.id, player.getUUID())) {
+                throw Wire.conflict("survey_frame_stale", "本次视觉回复需要新鲜的配对观测。");
+            }
+            survey.requireFresh(observations, this);
+            if (request.input.get("feedback").getAsString().equals("final")) {
+                boolean passed = Boolean.TRUE.equals(construction.verifiedFinishedSite(request.siteJob));
+                message = "完工复查。" + (passed ? "Forge 逐格核验已通过。 " : "Forge 未确认逐格一致。 ") + message;
+            }
         }
         if (body.has("review_sha256")) {
             if (!session.request.staged || session.draft == null) {
@@ -473,8 +562,11 @@ final class ArchitectService {
         session.draft = null;
         session.request = null;
         UUID previous = session.active;
+        VisualWatch previousWatch = session.watch;
         if (approve) {
             session.active = draft.id();
+            session.watch = draft.visualGoal == null ? null : new VisualWatch(draft.visualGoal,
+                    draft.base != null && previousWatch != null && previousWatch.checkpoint);
         }
         persist();
         try {
@@ -487,6 +579,7 @@ final class ArchitectService {
             }
         } catch (Wire.Problem error) {
             session.active = previous;
+            session.watch = previousWatch;
             session.draft = draft;
             persist();
             throw error;
@@ -504,6 +597,7 @@ final class ArchitectService {
         if (action.equals("resume") && session.draft != null) {
             throw Wire.conflict("change_pending", "请先批准或拒绝待审阅设计。");
         }
+        stopSurvey();
         construction.control(action, id, player.getUUID());
         session.request = null;
         if (action.equals("cancel")) {
@@ -618,8 +712,7 @@ final class ArchitectService {
     }
 
     private UUID currentJob() {
-        JsonObject job = currentJobState();
-        return job == null ? null : BuildPlan.id(job, "job_id");
+        return construction.currentJobId();
     }
 
     private JsonObject ownedJob(Session session) {
@@ -641,11 +734,18 @@ final class ArchitectService {
             if (data.has("active")) {
                 session.active = BuildPlan.id(data, "active");
             }
+            if (data.has("visual_watch") && session.active != null) {
+                JsonObject watch = Wire.object(data.get("visual_watch"), "visual_watch");
+                session.watch = new VisualWatch(Wire.string(watch.get("goal"), "visual goal"),
+                        watch.get("checkpoint").getAsBoolean(), watch.get("failure").getAsBoolean(),
+                        watch.get("final").getAsBoolean());
+            }
             if (data.has("plan")) {
                 JsonObject plan = Wire.object(data.get("plan"), "plan");
                 boolean surveyed = data.has("surveyed") && data.get("surveyed").getAsBoolean();
                 BuildPlan.read(plan, site, BuildPlan.palette(), surveyed || data.has("base"));
-                session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null, surveyed);
+                String goal = data.has("visual_goal") ? Wire.string(data.get("visual_goal"), "visual goal") : null;
+                session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null, surveyed, goal);
                 if (data.has("code")) {
                     session.ticket = new Ticket(BuildPlan.id(data, "code"), Wire.string(data.get("hash"), "hash"),
                             data.get("expires").getAsLong());
@@ -664,8 +764,19 @@ final class ArchitectService {
             if (session.active != null) {
                 row.addProperty("active", session.active.toString());
             }
+            if (session.watch != null) {
+                JsonObject watch = new JsonObject();
+                watch.addProperty("goal", session.watch.goal);
+                watch.addProperty("checkpoint", session.watch.checkpoint);
+                watch.addProperty("failure", session.watch.failure);
+                watch.addProperty("final", session.watch.finalReview);
+                row.add("visual_watch", watch);
+            }
             if (session.draft != null) {
                 row.add("plan", session.draft.plan);
+                if (session.draft.visualGoal != null) {
+                    row.addProperty("visual_goal", session.draft.visualGoal);
+                }
                 if (session.draft.surveyed) {
                     row.addProperty("surveyed", true);
                 }

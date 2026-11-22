@@ -23,7 +23,7 @@ from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudget
                                      ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
-from src.architect import survey
+from src.architect import feedback, survey
 
 DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "medium"
@@ -147,6 +147,12 @@ class CodexProvider:
             raise ValueError("Survey prompt exceeds its input limit")
         return self._vision_decision(message, image, observation_id, allow_upload, self._survey_turn, "survey")
 
+    def feedback_with_metrics(self, payload, image, *, observation_id, allow_upload=False):
+        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        if len(message.encode("utf-8")) > 7600:
+            raise ValueError("Feedback prompt exceeds its input limit")
+        return self._vision_decision(message, image, observation_id, allow_upload, self._feedback_turn, "feedback")
+
     def _vision_decision(self, payload, image, observation_id, allow_upload, invoke, kind):
         if allow_upload is not True:
             raise ValueError("Explicit image-sharing approval is required.")
@@ -209,6 +215,10 @@ class CodexProvider:
     async def _survey_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), survey.PROMPT, survey.schema(WALL_FIELDS),
                                     lambda output: survey.decode(output, WALL_FIELDS), metrics)
+
+    async def _feedback_turn(self, payload, image, metrics):
+        return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(WALL_FIELDS),
+                                    lambda output: feedback.decode(output, WALL_FIELDS), metrics)
 
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread

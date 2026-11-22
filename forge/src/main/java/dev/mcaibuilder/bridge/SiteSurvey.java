@@ -16,6 +16,7 @@ final class SiteSurvey {
     private final ConstructionService construction;
     private final UUID request;
     private final UUID owner;
+    private final boolean passive;
     private JsonObject operation;
     private JsonObject status = NpcObservations.state("idle");
     private ConstructionWorker worker;
@@ -23,11 +24,14 @@ final class SiteSurvey {
     private long settleUntil;
     private boolean walking;
     private UUID frame;
+    private boolean recaptured;
+    private ConstructionService.CheckpointView checkpointView;
 
-    SiteSurvey(ConstructionService construction, UUID request, UUID owner) {
+    SiteSurvey(ConstructionService construction, UUID request, UUID owner, boolean passive) {
         this.construction = construction;
         this.request = request;
         this.owner = owner;
+        this.passive = passive;
     }
 
     boolean matches(UUID requestId, UUID ownerId) {
@@ -42,13 +46,17 @@ final class SiteSurvey {
         if (step == steps && body.equals(operation)) {
             return status.deepCopy();
         }
-        if (step != steps + 1 || step > LIMIT || pending()) {
+        if (step != steps + 1 || step > (passive ? 2 : LIMIT) || pending()) {
             throw Wire.conflict("survey_step_invalid", "此观察步骤已用完、仍在运行或已过期。");
         }
         String action = Wire.string(body.get("action"), "action");
+        if (passive && !STATIONARY.contains(action)) {
+            throw Wire.conflict("visual_movement_forbidden", "施工复查的位置由 Forge 按实际目标和安全站位确定。");
+        }
         steps = step;
         operation = body.deepCopy();
         frame = null;
+        recaptured = false;
         status = NpcObservations.state("pending");
         status.addProperty("step", step);
         status.addProperty("action", action);
@@ -56,8 +64,30 @@ final class SiteSurvey {
             if (!STATIONARY.contains(action) && !AIMED.contains(action)) {
                 throw Wire.invalid("Unknown survey action");
             }
+            var npc = passive ? construction.observationTarget() : null;
+            if (passive) {
+                status.add("from", Wire.position(npc.blockPosition()));
+                settleUntil = player.serverLevel().getGameTime() + 2;
+                if (action.equals("inspect_build_site")) {
+                    var viewpoint = construction.checkpointView(checkpointView);
+                    if (viewpoint == null && step > 1) {
+                        throw Wire.conflict("visual_viewpoint_unavailable", "没有其他安全的新视角。");
+                    }
+                    if (viewpoint != null) {
+                        checkpointView = viewpoint;
+                        worker = construction.checkpointWorker();
+                        if (npc.blockPosition().equals(viewpoint.feet())) {
+                            worker.lookForSurvey(viewpoint.focus());
+                        } else {
+                            worker.moveForSurvey(viewpoint.feet());
+                            walking = true;
+                        }
+                    }
+                }
+                return status.deepCopy();
+            }
             worker = construction.beginSurvey();
-            var npc = construction.observationTarget();
+            npc = construction.observationTarget();
             status.add("from", Wire.position(npc.blockPosition()));
             if (step == 1 && STATIONARY.contains(action)) {
                 BlockPos focus = construction.surveyFocus();
@@ -103,7 +133,7 @@ final class SiteSurvey {
                 settleUntil = owner.serverLevel().getGameTime() + 2;
                 var npc = construction.observationTarget();
                 status.add("to", Wire.position(npc.blockPosition()));
-                BlockPos focus = construction.surveyFocus();
+                BlockPos focus = passive ? checkpointView.focus() : construction.surveyFocus();
                 if (npc.blockPosition().closerThan(focus, 12)) {
                     worker.lookForSurvey(focus);
                 }
@@ -123,13 +153,29 @@ final class SiteSurvey {
             String outcome = result.get("capture_status").getAsString();
             if (!outcome.equals("pending")) {
                 if (!outcome.equals("captured") || !result.has("world")) {
-                    fail(result.has("capture_error") ? result.get("capture_error").getAsString() : "survey_unpaired");
+                    String reason = result.has("capture_error") ? result.get("capture_error").getAsString()
+                            : result.has("world_error") ? result.get("world_error").getAsString() : "survey_unpaired";
+                    if (passive && !recaptured && reason.equals("tick_skew")) {
+                        // A slow first render in a large pack can arrive outside the pairing window.
+                        // Re-sample once at the same settled pose instead of using an expired frame.
+                        recaptured = true;
+                        status.addProperty("recaptured", true);
+                        frame = null;
+                        settleUntil = owner.serverLevel().getGameTime() + 8;
+                        return;
+                    }
+                    fail(reason);
                     return;
                 }
                 status.addProperty("capture_status", outcome);
                 status.addProperty("observation_id", frame.toString());
                 status.add("to", Wire.position(construction.observationTarget().blockPosition()));
-                status.add("pads", construction.surveyPads());
+                if (!passive) {
+                    status.add("pads", construction.surveyPads());
+                } else if (checkpointView != null) {
+                    status.add("focus", Wire.position(checkpointView.focus()
+                            .subtract(construction.observationTarget().blockPosition())));
+                }
             }
         } catch (Wire.Problem problem) {
             fail(problem.code);

@@ -47,8 +47,13 @@ final class LocalCameraFixture {
         var server = client.getSingleplayerServer();
         Path root = client.gameDirectory.toPath();
         Path file = root.resolve(".mcaibuilder-camera-fixture.json");
-        if (server == null || client.player == null || client.level == null || !Files.isRegularFile(root.resolve(".mcaibuilder-test"))
-                || !Files.isRegularFile(file) || !server.getWorldData().getLevelName().equals("M1 Construction Lab")) {
+        if (server == null || client.player == null || client.level == null || !Files.isRegularFile(file)) {
+            return;
+        }
+        boolean lab = Files.isRegularFile(root.resolve(".mcaibuilder-test"))
+                && server.getWorldData().getLevelName().equals("M1 Construction Lab");
+        boolean syntheticCopy = CopyProfile.fixture(root) && client.player.getGameProfile().getName().equals("BuilderTester");
+        if (!lab && !syntheticCopy) {
             return;
         }
         try {
@@ -59,6 +64,9 @@ final class LocalCameraFixture {
             result.add("request", request.get("request"));
             switch (action) {
                 case "pose", "world", "panels" -> {
+                    if (!lab) {
+                        throw Wire.invalid("This action needs the synthetic camera lab");
+                    }
                     UUID owner = client.player.getUUID();
                     server.execute(() -> sample(root, server.getPlayerList().getPlayer(owner), request, action, result));
                     return;

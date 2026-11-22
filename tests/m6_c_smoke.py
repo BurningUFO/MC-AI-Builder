@@ -38,16 +38,18 @@ class CopyGame:
         if self.child is not None:
             raise ValueError("Already opened the isolated client")
         settings = self.settings
+        proof = self.world / ".mcaibuilder-copy-player-proof.json"
+        previous = proof.stat().st_mtime_ns if proof.is_file() else 0
         self.child = launch_client(settings["java"], settings["instance"], self.world, self.port, bmc4=True,
-                                   world_copy=True, copy_smoke=True, managed=True, hide_console=True)
+                                   world_copy=True, copy_smoke=True, managed=True, camera_smoke=True, hide_console=True)
         self.child.session = self
         self.bridge = BridgeClient(self.world / "config" / "mcaibuilder-copy.json", timeout=4)
         self.client = ArchitectClient(self.world / "config" / "mcaibuilder-architect.json", timeout=4)
         self.chat = PlayerChat(self.world)
         try:
             wait_for(self.child, self.bridge.health, "the isolated BMC4 copy server", seconds=570)
-            wait_for(self.child, lambda: read_object(self.world / ".mcaibuilder-copy-player-proof.json"),
-                     "the synthetic saved owner", seconds=65)
+            wait_for(self.child, lambda: read_object(proof) if proof.is_file() and proof.stat().st_mtime_ns > previous else None,
+                     "the synthetic saved owner after this login", seconds=75)
         except Exception:
             self.__exit__()
             raise
@@ -70,6 +72,17 @@ class CopyGame:
             fixture(self.child, "field", position=site["player"])
             return active
         fixture(self.child, "field", position=site["stance"])
+
+        def loaded():
+            try:
+                self.snapshot(site)
+            except AssertionError as error:
+                if "needs the loaded site" not in str(error):
+                    raise
+                return False
+            return True
+
+        wait_for(self.child, loaded, "the natural test area's cold chunks before marking", seconds=65)
         proof = {}
         scope(self.child, self.bridge, self.chat, site, proof, same_site=True)
         give_stock(self.child, site)

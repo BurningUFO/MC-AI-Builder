@@ -91,6 +91,7 @@ class SiteView:
     observation_id: str
     anchor: list
     pads: list
+    performance: dict
 
     @classmethod
     def read(cls, client, cache, result):
@@ -101,14 +102,16 @@ class SiteView:
         if context["unknown_unloaded"]:
             raise DesignError("视野内有未加载区块，请留在施工区附近后重新观察。")
         pads = []
-        for index, pad in enumerate(result["pads"]):
+        for index, pad in enumerate(result.get("pads", [])):
             if (index >= 8 or not point(pad["offset"], (4, 2, 4))
                     or pad["rotation"] not in (0, 90, 180, 270) or not 5 <= pad["span"] <= 12):
                 raise ValueError("Invalid Forge foundation options")
             pads.append({"id": index, "offset_from_mark": pad["offset"],
                          "rotation": pad["rotation"], "span": pad["span"]})
         return cls(context, observation_image(cache, metadata), metadata["observation_id"],
-                   metadata["world"]["anchor"], pads)
+                   metadata["world"]["anchor"], pads,
+                   {key: metadata[key] for key in ("fps", "frame_interval_ms", "readback_ms", "capture_ms", "encode_ms")
+                    if key in metadata})
 
     def choices(self, request, message, previous, remaining, failure):
         footing = self.context["terrain"]["connected_footing"]

@@ -10,6 +10,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
@@ -399,7 +402,8 @@ final class ConstructionService {
 
     private ChangeReview review() {
         site.requireLoaded(level);
-        ChangeReview check = ChangeReview.inspect(level, site, current.plan, candidate.plan(), current.snapshot);
+        ChangeReview check = ChangeReview.inspect(level, site, current.plan, candidate.plan(), current.snapshot,
+                step -> requireSafeMutation(step, true));
         if (current.supply != null) {
             if (site.worldCopy()) {
                 requireCheckpointWorker();
@@ -913,7 +917,11 @@ final class ConstructionService {
                 continue;
             }
             BlockState state = level.getBlockState(neighbor);
-            if (state.isAir() || borderBlocks.contains(state.getBlock())) {
+            // Short vanilla grass is supported from below. Changing an adjacent
+            // horizontal cell in the approved area leaves that support intact.
+            boolean sideGrass = site.worldCopy() && site.area().contains(neighbor)
+                    && direction.getAxis().isHorizontal() && state.is(Blocks.GRASS) && state.canSurvive(level, neighbor);
+            if (state.isAir() || borderBlocks.contains(state.getBlock()) || sideGrass) {
                 continue;
             }
             boolean stairsMayChange = direction.getAxis().isHorizontal() && state.getBlock() instanceof StairBlock
@@ -1095,6 +1103,86 @@ final class ConstructionService {
 
     BuildSite.Box observationArea() {
         return site.area();
+    }
+
+    UUID currentJobId() {
+        return current == null ? null : current.plan.id();
+    }
+
+    boolean observationCheckpoint(UUID id) {
+        return id != null && id.equals(currentJobId()) && current.state != State.RUNNING && current.intent < 0
+                && (current.supply == null || current.supply.intent == null);
+    }
+
+    record CheckpointView(BlockPos feet, BlockPos focus) {}
+
+    CheckpointView checkpointView(CheckpointView previous) {
+        var npc = observationTarget();
+        site.requireLoaded(level);
+        var built = current.plan.targets().stream()
+                .filter(target -> level.getBlockState(target.world()) == target.state()).toList();
+        var windows = built.stream().filter(target -> target.state().is(Blocks.GLASS)
+                || target.state().is(Blocks.BLUE_STAINED_GLASS)
+                || target.state().is(Blocks.LIGHT_BLUE_STAINED_GLASS)).toList();
+        var subjects = windows.isEmpty() ? built : windows;
+        BlockPos feet = npc.blockPosition();
+        for (BlockPos point : BlockPos.withinManhattan(feet, 4, 1, 4)) {
+            if (!feet.closerThan(point, 4.1) || !site.area().contains(point)
+                    || !site.area().contains(point.above()) || !BuildTerrain.canStand(level, point)) {
+                continue;
+            }
+            // The installed pane should have a direct line of sight and room in the frame.
+            Vec3 eye = point.equals(feet) ? npc.getEyePosition() : Vec3.atBottomCenterOf(point).add(0, npc.getEyeHeight(), 0);
+            for (BuildPlan.Target target : subjects) {
+                var view = new CheckpointView(point.immutable(), target.world());
+                Vec3 center = Vec3.atCenterOf(view.focus());
+                double distance = eye.distanceToSqr(center);
+                if (view.equals(previous) || distance < 2.8 || distance > 42) {
+                    continue;
+                }
+                var hit = level.clip(new ClipContext(eye, center, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, npc));
+                if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(view.focus())) {
+                    return view;
+                }
+            }
+        }
+        return null;
+    }
+
+    ConstructionWorker checkpointWorker() {
+        requireWritable();
+        if (!observationCheckpoint(currentJobId()) || !worker.attach(current.npc)) {
+            throw Wire.conflict("visual_checkpoint_changed", "施工观察已失效，原 NPC 无法安全复查。");
+        }
+        worker.startSurvey();
+        return worker;
+    }
+
+    Boolean verifiedFinishedSite(UUID id) {
+        if (!id.equals(currentJobId()) || current.state != State.COMPLETED) {
+            return null;
+        }
+        site.requireLoaded(level);
+        return verify().get("passed").getAsBoolean();
+    }
+
+    String visualEvent(UUID job, boolean checkpoint, boolean failure, boolean finalReview) {
+        if (!job.equals(currentJobId()) || journalBlocked || current.intent >= 0
+                || current.supply != null && current.supply.intent != null) {
+            return null;
+        }
+        if (!checkpoint && current.state == State.RUNNING && current.cursor * 2 >= current.steps.size()
+                && current.cursor < current.steps.size()) {
+            pause("visual_checkpoint");
+            persist();
+            return "checkpoint";
+        }
+        if (!failure && (current.state == State.FAILED || current.state == State.PAUSED
+                && current.reason != null && !Set.of("visual_checkpoint", "paused_by_request", "change_pending",
+                        "change_rejected", "server_stopping").contains(current.reason))) {
+            return "failure";
+        }
+        return !finalReview && current.state == State.COMPLETED ? "final" : null;
     }
 
     JsonObject observationJob() {

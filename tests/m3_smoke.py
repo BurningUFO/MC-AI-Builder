@@ -114,7 +114,10 @@ class Chat:
 
     def card(self, child, text, *, can_approve=True, timeout=95):
         replies = self.send(child, text, "[拒绝 ", timeout=timeout)
-        button = replies[-1]
+        return self.read_card(replies, can_approve=can_approve)
+
+    def read_card(self, replies, *, can_approve=True):
+        button = next(line for line in reversed(replies) if "[拒绝 " in line)
         matches = re.search(r"\[拒绝 (" + UUID_PATTERN + r")\]", button)
         preview = next((line.split("预览 ", 1)[1].split("（", 1)[0] for line in replies
                         if "预览 architect-previews/" in line), None)

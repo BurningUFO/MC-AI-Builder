@@ -20,7 +20,7 @@ from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
 from src.core.building import write_json
-from src.architect import survey
+from src.architect import feedback, survey
 
 PREVIEW_ACTIONS = {"preview_design", "review_changes", "request_approval"}
 STATUS_ACTIONS = {"get_build_status", "get_construction_progress"}
@@ -59,12 +59,14 @@ class ArchitectClient(BridgeClient):
             body["plan"] = plan
         return self._call("architect/stage", body)
 
-    def answer(self, request_id, message, *, review=None, control=None):
+    def answer(self, request_id, message, *, review=None, control=None, visual=False):
         body = {"request_id": request_id, "message": message}
         if review is not None:
             body["review_sha256"] = review
         if control is not None:
             body["control"] = control
+        if visual:
+            body["visual_answer"] = True
         return self._call("architect/answer", body)
 
     def pause(self, request_id):
@@ -223,7 +225,10 @@ class Runtime:
         action = "error"
         try:
             prepared = self.store.design(self.proposal_id(request_id))
-            if request.get("survey"):
+            if request.get("feedback"):
+                action = feedback.check(self, request, message, prepared=prepared,
+                                        safe=lambda value: safe_message(value, self.redactions))
+            elif request.get("survey"):
                 if prepared is None:
                     intent, reason = survey.suggest(self, request, message)
                     if intent is None:
@@ -243,7 +248,7 @@ class Runtime:
             else:
                 action = prepared["action"]
                 intent = {"action": action}
-            if not request.get("survey"):
+            if not request.get("survey") and not request.get("feedback"):
                 self.dispatch(request, intent, prepared)
         except BridgeError as error:
             code = error.body.get("error")
@@ -364,7 +369,7 @@ class Runtime:
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         if grass := report.get("covered_grass"):
             reason += f"。墙体覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
-        observed = safe_message(observation_reason, self.redactions)[:160]
+        observed = safe_message(observation_reason, self.redactions)[:160].rstrip("。.!！")
         prefix = f"现场判断 {observed}。 " if observed else ""
         self.client.answer(request_id, prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
                            f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"

@@ -69,8 +69,12 @@ public final class ForgeBridge {
         if (service == null) {
             throw new Wire.Problem(503, "architect_disabled", "这个世界未启用建筑师。");
         }
-        if (!natural && message.strip().startsWith("survey ")) {
-            service.request(player, message.strip().substring("survey ".length()), true);
+        if (!natural && message.strip().startsWith("supervise ")) {
+            service.request(player, message.strip().substring("supervise ".length()), true, true, false);
+        } else if (!natural && message.strip().startsWith("inspect ")) {
+            service.request(player, message.strip().substring("inspect ".length()), false, false, true);
+        } else if (!natural && message.strip().startsWith("survey ")) {
+            service.request(player, message.strip().substring("survey ".length()), true, false, false);
         } else if (!natural && message.strip().equals("observe")) {
             service.requirePlayer(player);
             if (observations == null) {

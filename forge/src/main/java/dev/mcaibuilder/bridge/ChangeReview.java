@@ -14,11 +14,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
 record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 
-    static ChangeReview inspect(ServerLevel level, BuildSite site, BuildPlan old, BuildPlan next, SiteSnapshot snapshot) {
+    static ChangeReview inspect(ServerLevel level, BuildSite site, BuildPlan old, BuildPlan next,
+                                SiteSnapshot snapshot, Consumer<WorkStep> checkSafety) {
         Set<BlockPos> positions = new TreeSet<>(BuildPlan.BUILD_ORDER);
         positions.addAll(snapshot.footprint());
         positions.addAll(next.byPosition().keySet());
@@ -46,19 +48,39 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
                     && BuildTerrain.coversGrass(level, pos, desired, level.getBlockState(pos.below()))) {
                 reason = "terrain_effect_outside_scope";
             }
+            WorkStep removal = null;
+            WorkStep placement = null;
+            if (reason == null && actual != desired) {
+                if (!actual.isAir()) {
+                    var previous = new BuildPlan.Target(next.localPosition(pos), pos, actual, actual.getBlock().asItem());
+                    removal = new WorkStep(previous, actual, true);
+                }
+                if (wanted != null) {
+                    placement = new WorkStep(wanted, AIR, false);
+                }
+                try {
+                    if (removal != null) {
+                        checkSafety.accept(removal);
+                    }
+                    if (placement != null) {
+                        checkSafety.accept(placement);
+                    }
+                } catch (Wire.Problem problem) {
+                    reason = problem.code;
+                }
+            }
             if (reason != null) {
                 category = "conflict";
             } else if (actual == desired || (wanted == null && actual.isAir())) {
                 category = "keep";
             } else if (actual.isAir()) {
                 category = "add";
-                placements.add(new WorkStep(wanted, actual, false));
+                placements.add(placement);
             } else {
                 category = wanted == null ? "remove" : "replace";
-                BuildPlan.Target previous = new BuildPlan.Target(next.localPosition(pos), pos, actual, actual.getBlock().asItem());
-                removals.add(new WorkStep(previous, actual, true));
-                if (wanted != null) {
-                    placements.add(new WorkStep(wanted, AIR, false));
+                removals.add(removal);
+                if (placement != null) {
+                    placements.add(placement);
                 }
             }
             counts.merge(category, 1, Integer::sum);
