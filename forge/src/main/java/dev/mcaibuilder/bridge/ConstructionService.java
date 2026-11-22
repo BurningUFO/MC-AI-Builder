@@ -3,6 +3,7 @@ package dev.mcaibuilder.bridge;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import dev.duzo.players.entities.FakePlayerEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -1005,6 +1006,16 @@ final class ConstructionService {
         difference.add("expected", Wire.state(expected));
         difference.add("actual", Wire.state(actual));
         return difference;
+    }
+
+    FakePlayerEntity observationTarget() {
+        site.requireLoaded(level);
+        if (current == null || !(level.getEntity(current.npc) instanceof FakePlayerEntity target)
+                || !target.isAlive() || !target.getTags().contains(ForgeBridge.MOD_ID)
+                || !site.area().contains(target.blockPosition()) || !level.hasChunkAt(target.blockPosition())) {
+            throw Wire.conflict("observation_npc_unavailable", "没有可观察的已加载施工 NPC。");
+        }
+        return target;
     }
 
     private JsonObject cargo() {

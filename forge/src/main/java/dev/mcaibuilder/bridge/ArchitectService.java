@@ -496,13 +496,13 @@ final class ArchitectService {
         throw Wire.conflict("stale_request", "该需求已完成、过期或被后续需求取代。");
     }
 
-    private boolean permitted(ServerPlayer player) {
+    boolean permitted(ServerPlayer player) {
         return player != null && !(player instanceof FakePlayer)
                 && site.architect().players().contains(player.getUUID())
                 && player.serverLevel() == level && site.area().contains(player.blockPosition());
     }
 
-    private void requirePlayer(ServerPlayer player) {
+    void requirePlayer(ServerPlayer player) {
         if (!permitted(player)) {
             throw new Wire.Problem(403, "architect_forbidden", "需要由授权玩家在批准施工区内操作。");
         }

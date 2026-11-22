@@ -28,6 +28,7 @@ public final class ForgeBridge {
     private ConstructionService construction;
     private ArchitectService architect;
     private CopySites copy;
+    private NpcObservations observations;
 
     public ForgeBridge() {
         MinecraftForge.EVENT_BUS.addListener(this::started);
@@ -68,7 +69,14 @@ public final class ForgeBridge {
         if (service == null) {
             throw new Wire.Problem(503, "architect_disabled", "这个世界未启用建筑师。");
         }
-        if (natural) {
+        if (!natural && message.strip().equals("observe")) {
+            service.requirePlayer(player);
+            if (observations == null) {
+                throw Wire.conflict("observation_unavailable", "此世界没有本地 NPC 相机。");
+            }
+            var id = observations.request(player, construction());
+            player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[Architect] 已请求 NPC 观测 " + id));
+        } else if (natural) {
             service.request(player, message);
         } else {
             service.receive(player, message);
@@ -84,8 +92,9 @@ public final class ForgeBridge {
                     return;
                 }
                 CopySites sites = new CopySites(game, profile);
+                observations = NpcObservations.open(game);
                 http = new BridgeHttp(game, profile.port(), profile.token(), profile.architect().token(),
-                        sites::construction, sites::architect, sites);
+                        sites::construction, sites::architect, sites, observations);
                 copy = sites;
                 server = game;
                 LOGGER.info("Isolated world-copy Bridge listening on 127.0.0.1:{}", profile.port());
@@ -111,8 +120,9 @@ public final class ForgeBridge {
                     LOGGER.error("Architect session storage could not be opened.", error);
                 }
             }
+            observations = NpcObservations.open(game);
             http = new BridgeHttp(game, site.port(), site.token(), chat == null ? null : site.architect().token(),
-                    this::construction, this::architect, null);
+                    this::construction, this::architect, null, observations);
             architect = chat;
             construction = service;
             server = game;
@@ -127,6 +137,9 @@ public final class ForgeBridge {
             ConstructionService current = construction();
             if (current != null) {
                 current.tick();
+            }
+            if (observations != null) {
+                observations.tick(current, architect());
             }
         }
     }
@@ -154,6 +167,10 @@ public final class ForgeBridge {
     private void stopping(ServerStoppingEvent event) {
         if (event.getServer() == server) {
             http.close();
+            if (observations != null) {
+                observations.close();
+                observations = null;
+            }
             if (copy != null) {
                 copy.deactivate();
             } else {

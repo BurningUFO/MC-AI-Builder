@@ -1,0 +1,249 @@
+{
+  "minecraft": "1.20.1",
+  "forge": "47.4.20",
+  "screenshot_model_calls": 0,
+  "profiles": {
+    "forge": {
+      "coordinates": "relative to the synthetic NPC station",
+      "same_worker": true,
+      "owner_used_in_game_command": true,
+      "world_and_inventories_unchanged": true,
+      "reference_placements_by_test_player": 42,
+      "native_npc_setup_placements": 1,
+      "native_save": true,
+      "token_scope_denied": {
+        "status": 401,
+        "error": "unauthorized"
+      },
+      "captures": [
+        {
+          "capture_status": "captured",
+          "observation_id": "251e9051-fe4e-42ca-bac8-778d9d132940",
+          "dimension": "minecraft:overworld",
+          "server_request_tick": 94,
+          "server_request_position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "server_request_yaw": 180.0,
+          "server_request_pitch": 0.0,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "eye_position": [
+            0.0,
+            1.5642,
+            0.0
+          ],
+          "yaw": -180.0,
+          "pitch": 0.0,
+          "fov": 69.999999076641,
+          "game_tick": 97,
+          "capture_time": "2026-11-22T05:52:43.398006300Z",
+          "camera_source": "npc_first_person",
+          "render_frame": 93,
+          "rendered_frames_after_switch": 5,
+          "fps": 37,
+          "frame_interval_ms": 27.801,
+          "readback_ms": 4.3653,
+          "capture_ms": 156.1323,
+          "camera_restored": true,
+          "width": 731,
+          "height": 432,
+          "source_width": 1100,
+          "source_height": 650,
+          "encode_ms": 179.0978,
+          "server_result_tick": 102,
+          "image_sha256": "e31a580d24d359d20983ad29caa085f591e6fbda31b655ffc43223a72f654ede",
+          "capture_file": "forge-blue.png",
+          "pixels": {
+            "center_distinct_colors": 492,
+            "warm_fraction": 0.0,
+            "cool_fraction": 0.9977448907681465
+          },
+          "rendered_player_camera_restored": true,
+          "restored_view_mode": "THIRD_PERSON_BACK"
+        },
+        {
+          "capture_status": "captured",
+          "observation_id": "4964dcc2-2ae1-44fe-a648-8eef8102f103",
+          "dimension": "minecraft:overworld",
+          "server_request_tick": 120,
+          "server_request_position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "server_request_yaw": 0.0,
+          "server_request_pitch": 0.0,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "eye_position": [
+            0.0,
+            1.56195,
+            0.0
+          ],
+          "yaw": -360.0,
+          "pitch": 0.0,
+          "fov": 69.999999076641,
+          "game_tick": 122,
+          "capture_time": "2026-11-22T05:52:44.701683100Z",
+          "camera_source": "npc_first_person",
+          "render_frame": 145,
+          "rendered_frames_after_switch": 6,
+          "fps": 40,
+          "frame_interval_ms": 21.9827,
+          "readback_ms": 5.7229,
+          "capture_ms": 168.1745,
+          "camera_restored": true,
+          "width": 731,
+          "height": 432,
+          "source_width": 1100,
+          "source_height": 650,
+          "encode_ms": 55.8283,
+          "server_result_tick": 125,
+          "image_sha256": "48562068b4b8b4cb549c46f10ac13e7782b0e15c0e387fe924d192104da96c69",
+          "capture_file": "forge-oak.png",
+          "pixels": {
+            "center_distinct_colors": 505,
+            "warm_fraction": 1.0,
+            "cool_fraction": 0.0
+          },
+          "rendered_player_camera_restored": true,
+          "restored_view_mode": "THIRD_PERSON_BACK"
+        }
+      ],
+      "failure_checks": {
+        "tracked_npc_lost_after_switch": "npc_not_visible",
+        "original_camera_restored": true,
+        "already_untracked": "npc_not_visible",
+        "other_dimension_denied": true,
+        "fresh_capture_after_native_reopen": true
+      }
+    },
+    "bmc4": {
+      "coordinates": "relative to the synthetic NPC station",
+      "same_worker": true,
+      "owner_used_in_game_command": true,
+      "world_and_inventories_unchanged": true,
+      "reference_placements_by_test_player": 42,
+      "native_npc_setup_placements": 1,
+      "native_save": true,
+      "token_scope_denied": {
+        "status": 401,
+        "error": "unauthorized"
+      },
+      "captures": [
+        {
+          "capture_status": "captured",
+          "observation_id": "f2a99f1b-b6f2-4716-93f9-0563e9830c11",
+          "dimension": "minecraft:overworld",
+          "server_request_tick": 102,
+          "server_request_position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "server_request_yaw": 180.0,
+          "server_request_pitch": 0.0,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "eye_position": [
+            0.0,
+            1.5606,
+            0.0
+          ],
+          "yaw": -180.0,
+          "pitch": 0.0,
+          "fov": 69.999999076641,
+          "game_tick": 104,
+          "capture_time": "2026-11-22T05:56:52.484887600Z",
+          "camera_source": "npc_first_person",
+          "render_frame": 149,
+          "rendered_frames_after_switch": 6,
+          "fps": 23,
+          "frame_interval_ms": 17.7345,
+          "readback_ms": 5.9574,
+          "capture_ms": 175.5081,
+          "camera_restored": true,
+          "width": 731,
+          "height": 432,
+          "source_width": 1100,
+          "source_height": 650,
+          "encode_ms": 668.7459,
+          "server_result_tick": 120,
+          "image_sha256": "92ade6d5dda1354deebc76f88d654eecc757b0e16e54a190a785d1da8bc5efc2",
+          "capture_file": "bmc4-blue.png",
+          "pixels": {
+            "center_distinct_colors": 455,
+            "warm_fraction": 0.0,
+            "cool_fraction": 1.0
+          },
+          "rendered_player_camera_restored": true,
+          "restored_view_mode": "THIRD_PERSON_BACK"
+        },
+        {
+          "capture_status": "captured",
+          "observation_id": "1afb5e6e-5cb5-46c1-9c0d-adcdff0966cd",
+          "dimension": "minecraft:overworld",
+          "server_request_tick": 140,
+          "server_request_position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "server_request_yaw": 0.0,
+          "server_request_pitch": 0.0,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "eye_position": [
+            0.0,
+            1.5606,
+            0.0
+          ],
+          "yaw": -360.0,
+          "pitch": 0.0,
+          "fov": 69.999999076641,
+          "game_tick": 142,
+          "capture_time": "2026-11-22T05:56:54.383523100Z",
+          "camera_source": "npc_first_person",
+          "render_frame": 225,
+          "rendered_frames_after_switch": 6,
+          "fps": 40,
+          "frame_interval_ms": 19.2206,
+          "readback_ms": 4.5564,
+          "capture_ms": 173.7411,
+          "camera_restored": true,
+          "width": 731,
+          "height": 432,
+          "source_width": 1100,
+          "source_height": 650,
+          "encode_ms": 79.3191,
+          "server_result_tick": 146,
+          "image_sha256": "bab39f09c256de16b097b148c4b41d88d1da0281b2e91da469ebab1f6f2adb08",
+          "capture_file": "bmc4-oak.png",
+          "pixels": {
+            "center_distinct_colors": 517,
+            "warm_fraction": 1.0,
+            "cool_fraction": 0.0
+          },
+          "rendered_player_camera_restored": true,
+          "restored_view_mode": "THIRD_PERSON_BACK"
+        }
+      ],
+      "bmc4_enabled_pack_jars": 387
+    }
+  }
+}

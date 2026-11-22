@@ -224,7 +224,7 @@ def launch_client(
     architect: bool = False, m3_smoke: bool = False, pack_source: Path | None = None,
     survival: bool = False, m4_smoke: bool = False, managed: bool = False,
     m5_smoke: bool = False, hide_console: bool = False,
-    world_copy: bool = False, copy_smoke: bool = False,
+    world_copy: bool = False, copy_smoke: bool = False, camera_smoke: bool = False,
 ) -> subprocess.Popen:
     game = game.resolve()
     if pack_source is not None and not bmc4:
@@ -268,7 +268,7 @@ def launch_client(
         f"-Dmcaibuilder.m2Smoke={str(m2_smoke).lower()}", f"-Dmcaibuilder.m3Smoke={str(m3_smoke or m4_smoke or m5_smoke).lower()}",
         f"-Dmcaibuilder.m4Smoke={str(m4_smoke).lower()}",
         f"-Dmcaibuilder.survival={str(survival).lower()}", f"-Dmcaibuilder.managed={str(managed).lower()}",
-        f"-Dmcaibuilder.m5Smoke={str(m5_smoke).lower()}",
+        f"-Dmcaibuilder.m5Smoke={str(m5_smoke).lower()}", f"-Dmcaibuilder.cameraSmoke={str(camera_smoke).lower()}",
         *([f"-Dmcaibuilder.worldCopy={copy['copy_id']}",
             f"-Dmcaibuilder.copySmoke={str(copy_smoke).lower()}"] if copy else []),
         *_arguments(profile["arguments"]["jvm"], values),

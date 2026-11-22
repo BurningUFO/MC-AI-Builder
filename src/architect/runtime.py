@@ -35,6 +35,9 @@ PRIVATE_TEXT = re.compile(
 
 
 class ArchitectClient(BridgeClient):
+    def observation(self):
+        return self._call("architect/observation")
+
     def inbox(self):
         return self._call("architect/inbox")["requests"]
 

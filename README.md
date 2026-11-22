@@ -12,6 +12,8 @@ M2 支持同一个 NPC 在施工中暂停并审阅新版本。批准后执行真
 
 在启动器点 **选择世界** 可复制现有 BMC4 单人存档。进入 D 盘副本后，用游戏命令批准施工区、NPC 出生点、建筑原点和供料箱。 [真实世界副本指南](docs/m5-b-guide.md) · [真实地形验收记录](docs/m5-b-validation.md)
 
+施工 NPC 可由授权玩家用 `/architect observe` 观察第一人称视角。图像与姿态元数据保存到本地缓存。 [NPC 观测说明](docs/m6-a-validation.md)
+
 ![M2 游戏内完工截图](docs/m2-evidence/wall-v2.png)
 
 ## 快速验证

@@ -29,6 +29,7 @@ final class BridgeHttp implements AutoCloseable {
     private final Supplier<ConstructionService> construction;
     private final Supplier<ArchitectService> architect;
     private final CopySites copy;
+    private final NpcObservations observations;
     private long runtimePoll;
     private long runtimePolls;
     private final byte[] authorization;
@@ -36,11 +37,12 @@ final class BridgeHttp implements AutoCloseable {
 
     BridgeHttp(MinecraftServer game, int port, String token, String architectToken,
                Supplier<ConstructionService> construction, Supplier<ArchitectService> architect,
-               CopySites copy) throws IOException {
+               CopySites copy, NpcObservations observations) throws IOException {
         this.game = game;
         this.construction = construction;
         this.architect = architect;
         this.copy = copy;
+        this.observations = observations;
         architectAuthorization = architectToken == null ? null : bearer(architectToken);
         authorization = bearer(token);
         InetAddress loopback = InetAddress.getByAddress(new byte[]{127, 0, 0, 1});
@@ -138,6 +140,11 @@ final class BridgeHttp implements AutoCloseable {
                     "World copies require approval through the saved local player in Minecraft");
         }
         return switch (path) {
+            case "/architect/observation" -> {
+                requireMethod(method, "GET");
+                yield onGameThread(() -> observations == null
+                        ? NpcObservations.state("unavailable") : observations.latest());
+            }
             case "/architect/inbox" -> {
                 requireMethod(method, "GET");
                 yield onGameThread(this::inbox);
