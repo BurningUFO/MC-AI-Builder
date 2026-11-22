@@ -3,6 +3,8 @@ package dev.mcaibuilder.bridge;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -23,11 +25,15 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Server authorization and a single in-process handoff to the saved owner's integrated client. */
 final class NpcObservations implements AutoCloseable {
     private static final long TIMEOUT = Duration.ofSeconds(5).toNanos();
+    private static final int MAX_PAIR_TICKS = 24;
+    private static final long MAX_PAIR_AGE = Duration.ofSeconds(60).toNanos();
+    private static final double MAX_DRIFT = 0.20;
     private static final long INTERVAL = Duration.ofMillis(350).toNanos();
     private static final AtomicReference<Request> QUEUED = new AtomicReference<>();
 
     record Request(MinecraftServer game, UUID id, UUID owner, UUID npc, int entityId, ResourceLocation dimension,
-                   long gameTick, Vec3 position, float yaw, float pitch, long started, CompletableFuture<Frame> result) {
+                   long gameTick, Vec3 position, float yaw, float pitch, WorldObservation.Window window,
+                   long started, CompletableFuture<Frame> result) {
         boolean expired() {
             return System.nanoTime() - started >= TIMEOUT;
         }
@@ -39,10 +45,14 @@ final class NpcObservations implements AutoCloseable {
 
     record Frame(String error, JsonObject view, byte[] png, byte[] original) {}
 
+    private record Binding(ConstructionService site, Request request, JsonObject job, String fingerprint) {}
+
     private final MinecraftServer game;
     private final Path directory;
     private Request active;
-    private ConstructionService authorizedSite;
+    private Binding binding;
+    private Binding published;
+    private long publishedAt;
     private CompletableFuture<JsonObject> saving;
     private long lastRequest;
     private JsonObject latest = state("idle");
@@ -105,14 +115,17 @@ final class NpcObservations implements AutoCloseable {
             throw Wire.conflict("observation_busy", "上一轮观察正在结束，请稍后再试。");
         }
         LivingEntity target = site.observationTarget();
+        var window = new WorldObservation.Window(target.blockPosition(), site.observationArea().halo());
+        var sample = window.read(target.level());
         Request request = new Request(game, UUID.randomUUID(), player.getUUID(), target.getUUID(), target.getId(),
                 target.level().dimension().location(), target.level().getGameTime(), target.position(),
-                target.getViewYRot(1), target.getViewXRot(1), now, new CompletableFuture<>());
+                target.getViewYRot(1), target.getViewXRot(1), window, now, new CompletableFuture<>());
         if (!QUEUED.compareAndSet(null, request)) {
             throw Wire.conflict("observation_busy", "客户端还有一轮观察等待处理。");
         }
         lastRequest = now;
-        authorizedSite = site;
+        binding = new Binding(site, request, site.observationJob(), sample.fingerprint());
+        published = null;
         active = request;
         latest = result(request, "pending");
         return request.id();
@@ -123,7 +136,7 @@ final class NpcObservations implements AutoCloseable {
             return;
         }
         ServerPlayer player = game.getPlayerList().getPlayer(active.owner());
-        if (site != authorizedSite || architect == null || !architect.permitted(player)) {
+        if (site != binding.site() || architect == null || !architect.permitted(player)) {
             fail("observation_scope_changed");
             return;
         }
@@ -145,8 +158,9 @@ final class NpcObservations implements AutoCloseable {
             fail(error);
             return;
         }
+        LivingEntity target;
         try {
-            LivingEntity target = site.observationTarget();
+            target = site.observationTarget();
             if (!active.npc().equals(target.getUUID()) || !active.dimension().equals(target.level().dimension().location())) {
                 fail("observation_target_changed");
                 return;
@@ -157,7 +171,9 @@ final class NpcObservations implements AutoCloseable {
         }
         JsonObject data = result(active, "captured");
         frame.view().entrySet().forEach(entry -> data.add(entry.getKey(), entry.getValue()));
-        data.addProperty("server_result_tick", player.serverLevel().getGameTime());
+        long serverTick = player.serverLevel().getGameTime();
+        data.addProperty("server_result_tick", serverTick);
+        pair(data, target, serverTick);
         saving = CompletableFuture.supplyAsync(() -> {
             try {
                 return ObservationFiles.save(directory, data, frame);
@@ -166,9 +182,76 @@ final class NpcObservations implements AutoCloseable {
                 JsonObject failed = data.deepCopy();
                 failed.addProperty("capture_status", "failed");
                 failed.addProperty("capture_error", "observation_storage");
+                failed.remove("image_path");
+                failed.remove("image_sha256");
+                failed.remove("world");
                 return failed;
             }
         }, Util.ioPool());
+    }
+
+    private void pair(JsonObject data, LivingEntity target, long serverTick) {
+        long frameTick = data.get("game_tick").getAsLong();
+        var sample = active.window().read(target.level());
+        String fingerprint = sample.fingerprint();
+        JsonArray feet = data.getAsJsonArray("position");
+        Vec3 framePosition = new Vec3(feet.get(0).getAsDouble(), feet.get(1).getAsDouble(), feet.get(2).getAsDouble());
+        if (frameTick < active.gameTick() - 2 || frameTick > serverTick + 2
+                || serverTick - active.gameTick() > MAX_PAIR_TICKS || active.expired()) {
+            data.addProperty("world_error", "tick_skew");
+        } else if (!poseMatches(active, target) || framePosition.distanceTo(active.position()) > MAX_DRIFT) {
+            data.addProperty("world_error", "pose_changed");
+        } else if (!fingerprint.equals(binding.fingerprint()) || !fingerprint.equals(data.get("world_fingerprint").getAsString())
+                || !binding.job().equals(binding.site().observationJob())) {
+            data.addProperty("world_error", "world_changed");
+        } else {
+            try {
+                var world = sample.describe(binding.site().observationArea(), active.window().origin());
+                world.addProperty("observation_id", active.id().toString());
+                world.addProperty("dimension", active.dimension().toString());
+                world.addProperty("game_tick", serverTick);
+                world.addProperty("frame_tick_delta", serverTick - frameTick);
+                world.addProperty("sample_span_ticks", serverTick - active.gameTick());
+                world.addProperty("sample_span_ms", (System.nanoTime() - active.started()) / 1_000_000.0);
+                world.addProperty("fingerprint", fingerprint);
+                world.add("sample_position", position(target.position()));
+                world.add("anchor", Wire.position(active.window().origin()));
+                world.add("job", binding.job().deepCopy());
+                data.add("world", world);
+            } catch (RuntimeException error) {
+                data.addProperty("world_error", "unsupported_block_shape");
+                ForgeBridge.LOGGER.warn("Could not describe the bounded NPC observation", error);
+            }
+        }
+    }
+
+    JsonObject observeWorld(ConstructionService site, ArchitectService architect) {
+        if (published == null) {
+            throw Wire.conflict("world_observation_required", "请重新观测，当前没有已对齐的图像与场地样本。");
+        }
+        Request request = published.request();
+        ServerPlayer player = game.getPlayerList().getPlayer(request.owner());
+        if (site == null || site != published.site() || architect == null || !architect.permitted(player)
+                || System.nanoTime() - publishedAt >= MAX_PAIR_AGE) {
+            throw stale();
+        }
+        LivingEntity target = site.observationTarget();
+        if (!poseMatches(request, target) || !published.job().equals(site.observationJob())
+                || !request.window().read(target.level()).fingerprint().equals(published.fingerprint())) {
+            throw stale();
+        }
+        return latest.deepCopy();
+    }
+
+    private static Wire.Problem stale() {
+        return Wire.conflict("world_observation_stale", "NPC、场地或观测时间已变化，请重新观测。");
+    }
+
+    private static boolean poseMatches(Request request, LivingEntity target) {
+        return request.npc().equals(target.getUUID()) && request.dimension().equals(target.level().dimension().location())
+                && target.position().distanceTo(request.position()) <= MAX_DRIFT
+                && Math.abs(Mth.wrapDegrees(target.getViewYRot(1) - request.yaw())) < 3.0
+                && Math.abs(target.getViewXRot(1) - request.pitch()) < 3.0;
     }
 
     private void fail(String reason) {
@@ -187,8 +270,10 @@ final class NpcObservations implements AutoCloseable {
         }
         latest = data;
         QUEUED.compareAndSet(active, null);
+        published = data.has("world") ? binding : null;
+        publishedAt = active.started();
         active = null;
-        authorizedSite = null;
+        binding = null;
         saving = null;
     }
 

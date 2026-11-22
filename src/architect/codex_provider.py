@@ -1,6 +1,7 @@
 """Interpret bounded Architect context through the official Codex SDK."""
 
 import asyncio
+from base64 import b64encode
 from contextlib import aclosing
 from hashlib import sha256
 from importlib.util import find_spec
@@ -9,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Lock
 from time import perf_counter
+from uuid import UUID
 
 from src.architect.codex_budget import CodexBudget
 from src.architect.codex_sdk import (
@@ -16,9 +18,11 @@ from src.architect.codex_sdk import (
     safety_options, sdk_config, summarize_config,
 )
 from src.architect.design import GLASS, MASONRY, ROOFS, STYLES, WOODS
+from src.architect.observations import rgb_png
 from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudgetExhausted, ModelError,
                                      ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
+from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
 
 DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "medium"
@@ -91,6 +95,15 @@ def decode_intent(output: str) -> dict:
         raise InvalidOutput("Invalid structured Codex intent") from None
 
 
+def scene_input(payload, image):
+    from openai_codex import ExternalMessage
+
+    return ExternalMessage(tool_name="architect_scene", content=[
+        {"type": "input_text", "text": payload},
+        {"type": "input_image", "image_url": "data:image/png;base64," + b64encode(image).decode("ascii"), "detail": "low"},
+    ])
+
+
 class CodexProvider:
     """One short-lived, read-only Codex thread per bounded M3 request."""
 
@@ -121,6 +134,24 @@ class CodexProvider:
             "context_bytes": len(payload.encode("utf-8")),
             "message_sha256": sha256(context["message"].encode("utf-8")).hexdigest(),
         }
+        return self._metered(metrics, lambda: self._turn(payload, metrics), "intent")
+
+    def analyze_scene_with_metrics(self, context, image, *, observation_id, allow_upload=False):
+        if allow_upload is not True:
+            raise ValueError("Explicit image-sharing approval is required.")
+        if type(observation_id) is not str or str(UUID(observation_id)) != observation_id:
+            raise ValueError("A selected observation ID is required for image sharing.")
+        payload = scene_context_message(context)
+        png, width, height = rgb_png(image)
+        metrics = {
+            "purpose": "vision", "requested_model": self.model, "requested_effort": self.effort,
+            "status": "reserved", "observation_id": observation_id,
+            "context_bytes": len(payload.encode("utf-8")), "context_sha256": sha256(payload.encode("utf-8")).hexdigest(),
+            "image_sha256": sha256(png).hexdigest(), "image_bytes": len(png), "image_size": [width, height],
+        }
+        return self._metered(metrics, lambda: self._scene_turn(payload, png, metrics), "scene")
+
+    def _metered(self, metrics, invoke, kind):
         with self._lock:
             if self.turns_started >= self.max_turns:
                 raise ModelBudgetExhausted("Codex turn budget exhausted")
@@ -128,8 +159,13 @@ class CodexProvider:
             self.turns_started += 1
         started = perf_counter()
         try:
-            intent = asyncio.run(self._turn(payload, metrics))
-            metrics["intent"] = {key: value for key, value in intent.items() if key != "message"}
+            result = asyncio.run(invoke())
+            if kind == "intent":
+                metrics["intent"] = {key: value for key, value in result.items() if key != "message"}
+            else:
+                metrics["scene"] = {"consistency": result["consistency"],
+                                    "center_color": result["focal_surface"]["color"],
+                                    "center_material": result["focal_surface"]["material"]}
             metrics["status"] = "completed"
         except TimeoutError:
             metrics.update(status="timeout", error={"kind": "timeout"})
@@ -144,10 +180,22 @@ class CodexProvider:
             metrics["elapsed_ms"] = round((perf_counter() - started) * 1000)
             if self.budget and not self.budget.finish(sequence, metrics):
                 raise ModelBudgetExhausted("Codex token budget exceeded")
-        return intent, metrics
+        return result, metrics
 
     async def _turn(self, payload: str, metrics: dict) -> dict:
-        from openai_codex import AsyncCodex, AsyncThread, ExternalMessage
+        from openai_codex import ExternalMessage
+
+        instructions = PROMPT + "\nThe only request data is the architect_context message. " \
+            "Return the intent without reading files, using tools or taking actions. " \
+            "Use JSON null for schema fields that are not part of this intent."
+        return await self._sdk_turn(ExternalMessage(tool_name="architect_context", content=payload),
+                                    instructions, INTENT_SCHEMA, decode_intent, metrics)
+
+    async def _scene_turn(self, payload, image, metrics):
+        return await self._sdk_turn(scene_input(payload, image), VISION_PROMPT, SCENE_SCHEMA, decode_scene, metrics)
+
+    async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
+        from openai_codex import AsyncCodex, AsyncThread
         from openai_codex._run import _collect_async_turn_result
         from openai_codex.generated.v2_all import ConfigReadResponse, ThreadStartParams
 
@@ -169,15 +217,12 @@ class CodexProvider:
                         cwd=folder, ephemeral=True, model=self.model, model_provider="openai",
                         config={"model_reasoning_effort": self.effort},
                         sandbox="read-only", approval_policy="never",
-                        base_instructions=PROMPT + "\nThe only request data is the architect_context message. "
-                        "Return the intent without reading files, using tools or taking actions. "
-                        "Use JSON null for schema fields that are not part of this intent.",
+                        base_instructions=instructions,
                     ))
                     self.verify_thread(started, metrics)
                     thread = AsyncThread(codex, started.thread.id)
                     turn = await thread.turn(
-                        ExternalMessage(tool_name="architect_context", content=payload),
-                        output_schema=INTENT_SCHEMA, model=self.model, effort=self.effort,
+                        inputs, output_schema=schema, model=self.model, effort=self.effort,
                         turn_service_tier="default", **safety_options(),
                     )
                     async with aclosing(turn.stream()) as stream:
@@ -190,8 +235,8 @@ class CodexProvider:
                     item_types = [getattr(getattr(item, "root", item), "type", "unknown") for item in result.items]
                     metrics["item_types"] = item_types
                     if status != "completed" or not result.final_response or set(item_types) - NON_TOOL_ITEMS:
-                        raise InvalidOutput("Codex did not return a text-only completed intent")
-                    return decode_intent(result.final_response)
+                        raise InvalidOutput("Codex did not return a text-only completed result")
+                    return decode(result.final_response)
 
     def verify_thread(self, started, metrics):
         sandbox = started.sandbox.root

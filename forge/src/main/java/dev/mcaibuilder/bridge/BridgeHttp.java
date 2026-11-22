@@ -145,6 +145,15 @@ final class BridgeHttp implements AutoCloseable {
                 yield onGameThread(() -> observations == null
                         ? NpcObservations.state("unavailable") : observations.latest());
             }
+            case "/architect/observe_world" -> {
+                requireMethod(method, "GET");
+                yield onGameThread(() -> {
+                    if (observations == null) {
+                        throw Wire.conflict("observation_unavailable", "此世界没有本地 NPC 相机。");
+                    }
+                    return observations.observeWorld(construction.get(), architect.get());
+                });
+            }
             case "/architect/inbox" -> {
                 requireMethod(method, "GET");
                 yield onGameThread(this::inbox);

@@ -1,0 +1,2985 @@
+{
+  "provider": "Codex SDK 0.171.0 via the existing ChatGPT login",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "turn_limit": 3,
+  "token_limit": 84000,
+  "charged_tokens": 39992,
+  "approved_scope": "Three RGB images from an isolated synthetic Forge fixture",
+  "same_text_control": true,
+  "cases": {
+    "blue": {
+      "capture": {
+        "observation_id": "1f688799-aaec-4ed4-9aed-960479b8609a",
+        "image_sha256": "ae2acffd096c51d9c251a22ca74ff20925f3eae9c87eacf8f5d618159bc4a591",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "62cbaff19fbd7f42c8d18dcc9fc021b98f78aa24ba504713e07287ab24f37ee4",
+        "frame_tick": 89,
+        "forge_tick": 94,
+        "frame_tick_delta": 5,
+        "sample_span_ticks": 8,
+        "sample_span_ms": 360.994,
+        "yaw": 180.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 182.4854,
+        "readback_ms": 9.7683,
+        "frame_interval_ms": 22.5611,
+        "fps": 40
+      },
+      "approved_frame": "forge-blue.png",
+      "input": {
+        "approved_bounds": {
+          "max": [
+            19,
+            10,
+            13
+          ],
+          "min": [
+            -13,
+            0,
+            -11
+          ]
+        },
+        "cells": [
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              -3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          }
+        ],
+        "construction": {
+          "building_version": 1,
+          "processed": 1,
+          "state": "completed",
+          "total": 1
+        },
+        "dimension": "minecraft:overworld",
+        "terrain": {
+          "connected_footing": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -1
+            ],
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              -1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -2
+            ],
+            [
+              1,
+              0,
+              -1
+            ],
+            [
+              -1,
+              0,
+              -1
+            ],
+            [
+              2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              0,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              1
+            ],
+            [
+              -2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              -2
+            ],
+            [
+              -1,
+              0,
+              -2
+            ],
+            [
+              2,
+              0,
+              -1
+            ],
+            [
+              -2,
+              0,
+              -1
+            ],
+            [
+              3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              1
+            ],
+            [
+              -3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              -2
+            ],
+            [
+              -2,
+              0,
+              -2
+            ],
+            [
+              3,
+              0,
+              -1
+            ],
+            [
+              -3,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              1
+            ],
+            [
+              2,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              1
+            ],
+            [
+              -4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              -2
+            ],
+            [
+              -3,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              -1
+            ],
+            [
+              -4,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              1
+            ],
+            [
+              3,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              1
+            ],
+            [
+              4,
+              0,
+              -2
+            ],
+            [
+              -4,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              2
+            ],
+            [
+              4,
+              0,
+              -3
+            ],
+            [
+              -4,
+              0,
+              -3
+            ],
+            [
+              4,
+              0,
+              3
+            ],
+            [
+              -4,
+              0,
+              3
+            ],
+            [
+              4,
+              0,
+              -4
+            ],
+            [
+              -4,
+              0,
+              -4
+            ],
+            [
+              4,
+              0,
+              4
+            ],
+            [
+              -4,
+              0,
+              4
+            ],
+            [
+              3,
+              0,
+              -4
+            ],
+            [
+              -3,
+              0,
+              -4
+            ],
+            [
+              3,
+              0,
+              4
+            ],
+            [
+              -3,
+              0,
+              4
+            ],
+            [
+              2,
+              0,
+              -4
+            ],
+            [
+              -2,
+              0,
+              -4
+            ],
+            [
+              2,
+              0,
+              4
+            ],
+            [
+              -2,
+              0,
+              4
+            ],
+            [
+              1,
+              0,
+              -4
+            ],
+            [
+              -1,
+              0,
+              -4
+            ],
+            [
+              1,
+              0,
+              4
+            ],
+            [
+              -1,
+              0,
+              4
+            ],
+            [
+              0,
+              0,
+              -4
+            ],
+            [
+              0,
+              0,
+              4
+            ]
+          ],
+          "connected_relief": 0,
+          "footing_y_rows_z_then_x": [
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "unknown_outside_scope": 81,
+        "unknown_unloaded": 0
+      },
+      "result": {
+        "observation_id": "1f688799-aaec-4ed4-9aed-960479b8609a",
+        "source_image_sha256": "ae2acffd096c51d9c251a22ca74ff20925f3eae9c87eacf8f5d618159bc4a591",
+        "image_sha256": "ae2acffd096c51d9c251a22ca74ff20925f3eae9c87eacf8f5d618159bc4a591",
+        "scene": {
+          "scene_summary": "画面中央是一面蓝色半透明玻璃墙，透过墙面可见草地和天空。Forge 样本显示附近相连的落脚点等高，另记录了两道墙体障碍。",
+          "focal_surface": {
+            "color": "blue",
+            "material": "glass",
+            "evidence": "中央方格有深蓝边框和斜向像素高光，后方草地与天空透过面板可见。"
+          },
+          "visible_objects": [
+            {
+              "label": "蓝色玻璃墙",
+              "source": "both"
+            },
+            {
+              "label": "草地",
+              "source": "both"
+            },
+            {
+              "label": "天空",
+              "source": "rgb"
+            },
+            {
+              "label": "橡木木板墙",
+              "source": "forge"
+            }
+          ],
+          "terrain_assessment": {
+            "kind": "flat",
+            "note": "connected_relief 为 0，样本中的相连落脚点均在相对 y=0；这只是邻接估计，不代表实际可通行。"
+          },
+          "possible_obstacles": [
+            "相对 z=-3 的蓝色玻璃墙和 z=3 的橡木木板墙；两排均有明确标为 blocked 的位置。"
+          ],
+          "suggested_observations": [
+            "可从现有图像对照中央面板的透光性和方格边框。"
+          ],
+          "uncertainties": [
+            "Forge 未提供 focus_sample，无法将画面中心精确对应到某个方块偏移。",
+            "明确标为 blocked 的位置不是未知位置；范围外未知与稀疏列表中未列出的方块也不等同。"
+          ],
+          "evidence": [
+            {
+              "source": "rgb",
+              "detail": "蓝色格状面板覆盖画面中央，地平线与草地纹理透过面板可见。"
+            },
+            {
+              "source": "forge",
+              "detail": "z=-3 采得蓝色染色玻璃，z=3 采得橡木木板；两排均有阻挡标记，而相连落脚点的高差为 0。"
+            }
+          ],
+          "block_claims": [
+            {
+              "offset": [
+                0,
+                1,
+                -3
+              ],
+              "id": "minecraft:blue_stained_glass",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                1,
+                3
+              ],
+              "id": "minecraft:oak_planks",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                -1,
+                0
+              ],
+              "id": "minecraft:grass_block",
+              "properties": [
+                {
+                  "key": "snowy",
+                  "value": "false"
+                }
+              ]
+            }
+          ],
+          "consistency": "consistent"
+        },
+        "forge_checks": {
+          "block_checks": [
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": [
+                  {
+                    "key": "snowy",
+                    "value": "false"
+                  }
+                ]
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": {
+                  "snowy": "false"
+                },
+                "solid": true
+              }
+            }
+          ],
+          "terrain_matches_connected_footing": true,
+          "consistency": "consistent"
+        },
+        "model": {
+          "purpose": "vision",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "status": "completed",
+          "observation_id": "1f688799-aaec-4ed4-9aed-960479b8609a",
+          "context_bytes": 3130,
+          "context_sha256": "e81c31b8bfc44fea121314b498d8a71d3b115590cbbb96d37f73e798d82fc4b1",
+          "image_sha256": "ae2acffd096c51d9c251a22ca74ff20925f3eae9c87eacf8f5d618159bc4a591",
+          "image_bytes": 143607,
+          "image_size": [
+            731,
+            432
+          ],
+          "tools": {
+            "shell_disabled": true,
+            "active_mcp_servers": 0,
+            "notification_commands": 0,
+            "expected_disabled_features": true,
+            "web_search_disabled": true,
+            "project_instructions_disabled": true,
+            "official_chatgpt_endpoint": true,
+            "chatgpt_login_required": true
+          },
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 12649,
+            "output_tokens": 620,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 13269
+          },
+          "sdk_duration_ms": 16993,
+          "item_types": [
+            "functionCallOutput",
+            "agentMessage"
+          ],
+          "scene": {
+            "consistency": "consistent",
+            "center_color": "blue",
+            "center_material": "glass"
+          },
+          "elapsed_ms": 21787
+        }
+      }
+    },
+    "oak": {
+      "capture": {
+        "observation_id": "b41404f3-274e-48da-8c85-e4ef7ccff90f",
+        "image_sha256": "186d3214dd5fc6b1849437d749204bef161e878438e002e2d1ce61abb1ccc449",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "62cbaff19fbd7f42c8d18dcc9fc021b98f78aa24ba504713e07287ab24f37ee4",
+        "frame_tick": 115,
+        "forge_tick": 118,
+        "frame_tick_delta": 3,
+        "sample_span_ticks": 5,
+        "sample_span_ms": 247.7321,
+        "yaw": 0.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 166.9457,
+        "readback_ms": 5.578,
+        "frame_interval_ms": 22.6042,
+        "fps": 40
+      },
+      "approved_frame": "forge-oak.png",
+      "input": {
+        "approved_bounds": {
+          "max": [
+            19,
+            10,
+            13
+          ],
+          "min": [
+            -13,
+            0,
+            -11
+          ]
+        },
+        "cells": [
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              -3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          }
+        ],
+        "construction": {
+          "building_version": 1,
+          "processed": 1,
+          "state": "completed",
+          "total": 1
+        },
+        "dimension": "minecraft:overworld",
+        "terrain": {
+          "connected_footing": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -1
+            ],
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              -1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -2
+            ],
+            [
+              1,
+              0,
+              -1
+            ],
+            [
+              -1,
+              0,
+              -1
+            ],
+            [
+              2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              0,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              1
+            ],
+            [
+              -2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              -2
+            ],
+            [
+              -1,
+              0,
+              -2
+            ],
+            [
+              2,
+              0,
+              -1
+            ],
+            [
+              -2,
+              0,
+              -1
+            ],
+            [
+              3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              1
+            ],
+            [
+              -3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              -2
+            ],
+            [
+              -2,
+              0,
+              -2
+            ],
+            [
+              3,
+              0,
+              -1
+            ],
+            [
+              -3,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              1
+            ],
+            [
+              2,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              1
+            ],
+            [
+              -4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              -2
+            ],
+            [
+              -3,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              -1
+            ],
+            [
+              -4,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              1
+            ],
+            [
+              3,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              1
+            ],
+            [
+              4,
+              0,
+              -2
+            ],
+            [
+              -4,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              2
+            ],
+            [
+              4,
+              0,
+              -3
+            ],
+            [
+              -4,
+              0,
+              -3
+            ],
+            [
+              4,
+              0,
+              3
+            ],
+            [
+              -4,
+              0,
+              3
+            ],
+            [
+              4,
+              0,
+              -4
+            ],
+            [
+              -4,
+              0,
+              -4
+            ],
+            [
+              4,
+              0,
+              4
+            ],
+            [
+              -4,
+              0,
+              4
+            ],
+            [
+              3,
+              0,
+              -4
+            ],
+            [
+              -3,
+              0,
+              -4
+            ],
+            [
+              3,
+              0,
+              4
+            ],
+            [
+              -3,
+              0,
+              4
+            ],
+            [
+              2,
+              0,
+              -4
+            ],
+            [
+              -2,
+              0,
+              -4
+            ],
+            [
+              2,
+              0,
+              4
+            ],
+            [
+              -2,
+              0,
+              4
+            ],
+            [
+              1,
+              0,
+              -4
+            ],
+            [
+              -1,
+              0,
+              -4
+            ],
+            [
+              1,
+              0,
+              4
+            ],
+            [
+              -1,
+              0,
+              4
+            ],
+            [
+              0,
+              0,
+              -4
+            ],
+            [
+              0,
+              0,
+              4
+            ]
+          ],
+          "connected_relief": 0,
+          "footing_y_rows_z_then_x": [
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "unknown_outside_scope": 81,
+        "unknown_unloaded": 0
+      },
+      "result": {
+        "observation_id": "b41404f3-274e-48da-8c85-e4ef7ccff90f",
+        "source_image_sha256": "186d3214dd5fc6b1849437d749204bef161e878438e002e2d1ce61abb1ccc449",
+        "image_sha256": "186d3214dd5fc6b1849437d749204bef161e878438e002e2d1ce61abb1ccc449",
+        "scene": {
+          "scene_summary": "画面中央是一面棕色木板墙，墙下露出一条草地，墙顶上方可见天空。Forge 样本还记录了另一侧的蓝色染色玻璃墙。",
+          "focal_surface": {
+            "color": "brown",
+            "material": "wood",
+            "evidence": "中央表面有重复的横向木纹和错开的板缝，呈不透明的棕色。"
+          },
+          "visible_objects": [
+            {
+              "label": "木板墙",
+              "source": "both"
+            },
+            {
+              "label": "草地",
+              "source": "both"
+            },
+            {
+              "label": "天空",
+              "source": "rgb"
+            },
+            {
+              "label": "蓝色染色玻璃墙（仅样本记录）",
+              "source": "forge"
+            }
+          ],
+          "terrain_assessment": {
+            "kind": "flat",
+            "note": "Forge 的 connected_relief 为 0，连通落脚点均在相对 y=0。此连通性仅是邻接估计，不代表实际可通行。"
+          },
+          "possible_obstacles": [
+            "相对 z=3 的橡木板墙和 z=-3 的蓝色染色玻璃墙；落脚点网格在这两行各有一段标为 blocked。"
+          ],
+          "suggested_observations": [
+            "可对照画面中央的木板纹理与样本中的橡木板记录，并将仅由 Forge 记录的玻璃墙单独标注。"
+          ],
+          "uncertainties": [
+            "未提供 focus_sample，无法确认画面中央对应的确切方块坐标。",
+            "范围外有 81 处未知，不能视为阻挡或可通行。"
+          ],
+          "evidence": [
+            {
+              "source": "rgb",
+              "detail": "中央棕色墙面有横向纹理和错缝，底部可见绿色草地。"
+            },
+            {
+              "source": "forge",
+              "detail": "橡木板采样位于相对 z=3，蓝色染色玻璃采样位于 z=-3；连通落脚点无高差。"
+            }
+          ],
+          "block_claims": [
+            {
+              "offset": [
+                0,
+                1,
+                3
+              ],
+              "id": "minecraft:oak_planks",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                1,
+                -3
+              ],
+              "id": "minecraft:blue_stained_glass",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                -1,
+                0
+              ],
+              "id": "minecraft:grass_block",
+              "properties": [
+                {
+                  "key": "snowy",
+                  "value": "false"
+                }
+              ]
+            }
+          ],
+          "consistency": "consistent"
+        },
+        "forge_checks": {
+          "block_checks": [
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": [
+                  {
+                    "key": "snowy",
+                    "value": "false"
+                  }
+                ]
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": {
+                  "snowy": "false"
+                },
+                "solid": true
+              }
+            }
+          ],
+          "terrain_matches_connected_footing": true,
+          "consistency": "consistent"
+        },
+        "model": {
+          "purpose": "vision",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "status": "completed",
+          "observation_id": "b41404f3-274e-48da-8c85-e4ef7ccff90f",
+          "context_bytes": 3130,
+          "context_sha256": "e81c31b8bfc44fea121314b498d8a71d3b115590cbbb96d37f73e798d82fc4b1",
+          "image_sha256": "186d3214dd5fc6b1849437d749204bef161e878438e002e2d1ce61abb1ccc449",
+          "image_bytes": 81826,
+          "image_size": [
+            731,
+            432
+          ],
+          "tools": {
+            "shell_disabled": true,
+            "active_mcp_servers": 0,
+            "notification_commands": 0,
+            "expected_disabled_features": true,
+            "web_search_disabled": true,
+            "project_instructions_disabled": true,
+            "official_chatgpt_endpoint": true,
+            "chatgpt_login_required": true
+          },
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 12645,
+            "output_tokens": 662,
+            "reasoning_output_tokens": 42,
+            "total_tokens": 13307
+          },
+          "sdk_duration_ms": 17977,
+          "item_types": [
+            "functionCallOutput",
+            "reasoning",
+            "agentMessage"
+          ],
+          "scene": {
+            "consistency": "consistent",
+            "center_color": "brown",
+            "center_material": "wood"
+          },
+          "elapsed_ms": 19606
+        }
+      }
+    },
+    "conflict": {
+      "capture": {
+        "observation_id": "f80b110c-67b1-45d7-8602-1d60093585a7",
+        "image_sha256": "8c47e2368f2f0ec29ab93dcf408b06eb7ba6f24e632b41749089acf1f5ff4e9a",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "0cbaa4fbdf18c179958d53a2823dc3e8fb64058933758f98e163e0e73014152c",
+        "frame_tick": 161,
+        "forge_tick": 164,
+        "frame_tick_delta": 3,
+        "sample_span_ticks": 6,
+        "sample_span_ms": 253.6986,
+        "yaw": 180.0,
+        "relief": 1,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 178.4459,
+        "readback_ms": 5.2936,
+        "frame_interval_ms": 21.8519,
+        "fps": 40
+      },
+      "approved_frame": "forge-raised.png",
+      "input": {
+        "approved_bounds": {
+          "max": [
+            19,
+            10,
+            13
+          ],
+          "min": [
+            -13,
+            0,
+            -11
+          ]
+        },
+        "cells": [
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              -3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:air",
+            "offset": [
+              3,
+              1,
+              0
+            ],
+            "properties": {},
+            "solid": false
+          },
+          {
+            "id": "minecraft:cobblestone",
+            "offset": [
+              0,
+              0,
+              -1
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              0,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              1,
+              1,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              0,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              1,
+              1,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              0,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:blue_stained_glass",
+            "offset": [
+              -1,
+              2,
+              -3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              0,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:oak_planks",
+            "offset": [
+              -1,
+              2,
+              3
+            ],
+            "properties": {},
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              0
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              0,
+              -1,
+              1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              -1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          },
+          {
+            "id": "minecraft:grass_block",
+            "offset": [
+              1,
+              -1,
+              -1
+            ],
+            "properties": {
+              "snowy": "false"
+            },
+            "solid": true
+          }
+        ],
+        "construction": {
+          "building_version": 1,
+          "processed": 1,
+          "state": "completed",
+          "total": 1
+        },
+        "dimension": "minecraft:overworld",
+        "focus_sample": {
+          "id": "minecraft:oak_planks",
+          "offset": [
+            0,
+            1,
+            -3
+          ]
+        },
+        "terrain": {
+          "connected_footing": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              -1
+            ],
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              -1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              -2
+            ],
+            [
+              1,
+              0,
+              -1
+            ],
+            [
+              -1,
+              0,
+              -1
+            ],
+            [
+              2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              0,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              1
+            ],
+            [
+              -2,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              -2
+            ],
+            [
+              -1,
+              0,
+              -2
+            ],
+            [
+              2,
+              0,
+              -1
+            ],
+            [
+              -2,
+              0,
+              -1
+            ],
+            [
+              3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              2
+            ],
+            [
+              -1,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              1
+            ],
+            [
+              -3,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              -2
+            ],
+            [
+              -2,
+              0,
+              -2
+            ],
+            [
+              3,
+              0,
+              -1
+            ],
+            [
+              -3,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              1
+            ],
+            [
+              2,
+              0,
+              2
+            ],
+            [
+              -2,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              1
+            ],
+            [
+              -4,
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              -2
+            ],
+            [
+              -3,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              -1
+            ],
+            [
+              -4,
+              0,
+              -1
+            ],
+            [
+              4,
+              0,
+              1
+            ],
+            [
+              3,
+              0,
+              2
+            ],
+            [
+              -3,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              1
+            ],
+            [
+              4,
+              0,
+              -2
+            ],
+            [
+              -4,
+              0,
+              -2
+            ],
+            [
+              4,
+              0,
+              2
+            ],
+            [
+              -4,
+              0,
+              2
+            ],
+            [
+              4,
+              0,
+              -3
+            ],
+            [
+              -4,
+              0,
+              -3
+            ],
+            [
+              4,
+              0,
+              3
+            ],
+            [
+              -4,
+              0,
+              3
+            ],
+            [
+              4,
+              0,
+              -4
+            ],
+            [
+              -4,
+              0,
+              -4
+            ],
+            [
+              4,
+              0,
+              4
+            ],
+            [
+              -4,
+              0,
+              4
+            ],
+            [
+              3,
+              0,
+              -4
+            ],
+            [
+              -3,
+              0,
+              -4
+            ],
+            [
+              3,
+              0,
+              4
+            ],
+            [
+              -3,
+              0,
+              4
+            ],
+            [
+              2,
+              0,
+              -4
+            ],
+            [
+              -2,
+              0,
+              -4
+            ],
+            [
+              2,
+              0,
+              4
+            ],
+            [
+              -2,
+              0,
+              4
+            ],
+            [
+              1,
+              0,
+              -4
+            ],
+            [
+              -1,
+              0,
+              -4
+            ],
+            [
+              1,
+              0,
+              4
+            ],
+            [
+              -1,
+              0,
+              4
+            ],
+            [
+              0,
+              0,
+              -4
+            ],
+            [
+              0,
+              0,
+              4
+            ]
+          ],
+          "connected_relief": 1,
+          "footing_y_rows_z_then_x": [
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              "blocked",
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "unknown_outside_scope": 81,
+        "unknown_unloaded": 0,
+        "view": {
+          "pitch": 0.0,
+          "vertical_fov": 70.0,
+          "yaw": 180.0
+        }
+      },
+      "result": {
+        "observation_id": "f80b110c-67b1-45d7-8602-1d60093585a7",
+        "source_image_sha256": "8c47e2368f2f0ec29ab93dcf408b06eb7ba6f24e632b41749089acf1f5ff4e9a",
+        "image_sha256": "8c47e2368f2f0ec29ab93dcf408b06eb7ba6f24e632b41749089acf1f5ff4e9a",
+        "scene": {
+          "scene_summary": "画面中央是蓝色透光玻璃墙，前景有一块凸起的圆石，周围是草地。Forge 报告的中心面板是橡木木板，与画面不符。",
+          "focal_surface": {
+            "color": "blue",
+            "material": "glass",
+            "evidence": "中央面板有深蓝色方格边框和斜向像素亮纹，透过面板仍能看到天空和草地。"
+          },
+          "visible_objects": [
+            {
+              "label": "蓝色玻璃墙",
+              "source": "both"
+            },
+            {
+              "label": "前景凸起的圆石",
+              "source": "both"
+            },
+            {
+              "label": "草地",
+              "source": "both"
+            },
+            {
+              "label": "天空",
+              "source": "rgb"
+            },
+            {
+              "label": "橡木木板墙段",
+              "source": "forge"
+            }
+          ],
+          "terrain_assessment": {
+            "kind": "stepped",
+            "note": "采样落脚面大多位于相对高度 y=0，仅 [0,1,-1] 高一格，connected_relief 为 1。邻接估计不代表实际可通行。"
+          },
+          "possible_obstacles": [
+            "z=-3 和 z=3 的采样墙段被标记为阻塞。",
+            "[0,0,-1] 的圆石形成一格凸起。"
+          ],
+          "suggested_observations": [
+            "对照画面中心与 [0,1,-3] 的对应关系，确认两者是否指向同一面板。"
+          ],
+          "uncertainties": [
+            "画面中心呈蓝色玻璃，但 Forge 中心采样为橡木木板；差异原因无法确定。",
+            "范围外有 81 个未知位置，不应视为空气或已阻塞。"
+          ],
+          "evidence": [
+            {
+              "source": "rgb",
+              "detail": "中心可见透光的蓝色格面，下方可见灰色斑驳的凸起方块。"
+            },
+            {
+              "source": "forge",
+              "detail": "中心 [0,1,-3] 记录为橡木木板，相邻 [-1,1,-3] 记录为蓝色染色玻璃；落脚网格在 z=±3 各有一段阻塞。"
+            }
+          ],
+          "block_claims": [
+            {
+              "offset": [
+                0,
+                1,
+                -3
+              ],
+              "id": "minecraft:oak_planks",
+              "properties": []
+            },
+            {
+              "offset": [
+                -1,
+                1,
+                -3
+              ],
+              "id": "minecraft:blue_stained_glass",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                1,
+                3
+              ],
+              "id": "minecraft:oak_planks",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                0,
+                -1
+              ],
+              "id": "minecraft:cobblestone",
+              "properties": []
+            },
+            {
+              "offset": [
+                0,
+                -1,
+                0
+              ],
+              "id": "minecraft:grass_block",
+              "properties": [
+                {
+                  "key": "snowy",
+                  "value": "false"
+                }
+              ]
+            }
+          ],
+          "consistency": "conflict"
+        },
+        "forge_checks": {
+          "block_checks": [
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": []
+              },
+              "status": "mismatch",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  -1,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  -1,
+                  1,
+                  -3
+                ],
+                "id": "minecraft:blue_stained_glass",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  1,
+                  3
+                ],
+                "id": "minecraft:oak_planks",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  0,
+                  -1
+                ],
+                "id": "minecraft:cobblestone",
+                "properties": []
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  0,
+                  -1
+                ],
+                "id": "minecraft:cobblestone",
+                "properties": {},
+                "solid": true
+              }
+            },
+            {
+              "claim": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": [
+                  {
+                    "key": "snowy",
+                    "value": "false"
+                  }
+                ]
+              },
+              "status": "verified",
+              "observed": {
+                "offset": [
+                  0,
+                  -1,
+                  0
+                ],
+                "id": "minecraft:grass_block",
+                "properties": {
+                  "snowy": "false"
+                },
+                "solid": true
+              }
+            }
+          ],
+          "terrain_matches_connected_footing": true,
+          "consistency": "conflict"
+        },
+        "model": {
+          "purpose": "vision",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "status": "completed",
+          "observation_id": "f80b110c-67b1-45d7-8602-1d60093585a7",
+          "context_bytes": 3316,
+          "context_sha256": "84f6945e0008daeb28f0b1a4cebc607dc0195458bc83509eaeebdc62af7fcf1d",
+          "image_sha256": "8c47e2368f2f0ec29ab93dcf408b06eb7ba6f24e632b41749089acf1f5ff4e9a",
+          "image_bytes": 139023,
+          "image_size": [
+            731,
+            432
+          ],
+          "tools": {
+            "shell_disabled": true,
+            "active_mcp_servers": 0,
+            "notification_commands": 0,
+            "expected_disabled_features": true,
+            "web_search_disabled": true,
+            "project_instructions_disabled": true,
+            "official_chatgpt_endpoint": true,
+            "chatgpt_login_required": true
+          },
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 12709,
+            "output_tokens": 707,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 13416
+          },
+          "sdk_duration_ms": 18400,
+          "item_types": [
+            "functionCallOutput",
+            "agentMessage"
+          ],
+          "scene": {
+            "consistency": "conflict",
+            "center_color": "blue",
+            "center_material": "glass"
+          },
+          "elapsed_ms": 20017
+        },
+        "deliberately_conflicting_expected_cell": {
+          "offset": [
+            0,
+            1,
+            -3
+          ],
+          "id": "minecraft:oak_planks"
+        }
+      }
+    }
+  }
+}

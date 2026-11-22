@@ -1,0 +1,250 @@
+{
+  "forge": {
+    "model_mode": "local_fixture",
+    "observations": {
+      "blue": {
+        "observation_id": "2004404e-f302-4bb4-a2f7-82e94eb7bab2",
+        "image_sha256": "e1a8ea99397da4a442e16c4fb21e010d183839f05028c9d26832768832acf185",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "62cbaff19fbd7f42c8d18dcc9fc021b98f78aa24ba504713e07287ab24f37ee4",
+        "frame_tick": 87,
+        "forge_tick": 91,
+        "frame_tick_delta": 4,
+        "sample_span_ticks": 7,
+        "sample_span_ms": 324.8106,
+        "yaw": 180.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 179.8677,
+        "readback_ms": 6.6962,
+        "frame_interval_ms": 22.305,
+        "fps": 40
+      },
+      "oak": {
+        "observation_id": "4d701bde-f0f4-43fb-8acf-7dd78563b6f8",
+        "image_sha256": "6271c605b1038df3a09cc4f790de2e4b0900c403b731082d0ec8fac1577783c1",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "62cbaff19fbd7f42c8d18dcc9fc021b98f78aa24ba504713e07287ab24f37ee4",
+        "frame_tick": 113,
+        "forge_tick": 116,
+        "frame_tick_delta": 3,
+        "sample_span_ticks": 6,
+        "sample_span_ms": 266.8627,
+        "yaw": 0.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 179.4768,
+        "readback_ms": 5.1776,
+        "frame_interval_ms": 23.3129,
+        "fps": 40
+      },
+      "raised": {
+        "observation_id": "bd021961-f854-4c1d-8c95-5b169e51f291",
+        "image_sha256": "75688270ec32c63f1380f0a89984bd9c22dee9dae2e68fd346ab316650439735",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "0cbaa4fbdf18c179958d53a2823dc3e8fb64058933758f98e163e0e73014152c",
+        "frame_tick": 161,
+        "forge_tick": 165,
+        "frame_tick_delta": 4,
+        "sample_span_ticks": 7,
+        "sample_span_ms": 305.1174,
+        "yaw": 180.0,
+        "relief": 1,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 177.8221,
+        "readback_ms": 4.7905,
+        "frame_interval_ms": 23.1135,
+        "fps": 40
+      }
+    },
+    "idle_rejected": {
+      "status": 409,
+      "error": "world_observation_required"
+    },
+    "scope_rejected": {
+      "status": 401,
+      "error": "unauthorized"
+    },
+    "changed_scene_rejected": {
+      "status": 409,
+      "error": "world_observation_stale"
+    },
+    "unloaded_chunk": {
+      "client_unknown_cells": 108,
+      "reason": "world_changed",
+      "paired_read_rejected": {
+        "status": 409,
+        "error": "world_observation_required"
+      }
+    },
+    "same_text_control": true,
+    "native_save": true,
+    "fixture_versus_world_unchanged": true,
+    "fixture_reports": {
+      "blue": {
+        "surface": {
+          "color": "blue",
+          "material": "glass",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "flat",
+        "consistency": "consistent"
+      },
+      "oak": {
+        "surface": {
+          "color": "tan",
+          "material": "wood",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "flat",
+        "consistency": "consistent"
+      },
+      "conflict": {
+        "surface": {
+          "color": "blue",
+          "material": "glass",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "stepped",
+        "consistency": "conflict"
+      }
+    },
+    "isolated_pack_jars": 0
+  },
+  "bmc4": {
+    "model_mode": "local_fixture",
+    "observations": {
+      "blue": {
+        "observation_id": "827d596e-512a-46a6-be05-8016e55c082a",
+        "image_sha256": "9bba9903a709927c537507938aa8d88fd6ebb18eda4bc389240405cedcf17100",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "b5d39e623863f15e970c013bb424b04ebc0f0b6eecfd27f6fe80dc66d60a35dc",
+        "frame_tick": 83,
+        "forge_tick": 87,
+        "frame_tick_delta": 4,
+        "sample_span_ticks": 8,
+        "sample_span_ms": 381.3661,
+        "yaw": 180.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 225.9229,
+        "readback_ms": 4.8789,
+        "frame_interval_ms": 19.321,
+        "fps": 22
+      },
+      "oak": {
+        "observation_id": "813338e1-ecb0-42bc-981f-1e34e7917f35",
+        "image_sha256": "148bf319ac54a3de692c58fe132973d876c27a94d80a8ceda75db9eaf947459e",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "b5d39e623863f15e970c013bb424b04ebc0f0b6eecfd27f6fe80dc66d60a35dc",
+        "frame_tick": 108,
+        "forge_tick": 112,
+        "frame_tick_delta": 4,
+        "sample_span_ticks": 7,
+        "sample_span_ms": 323.887,
+        "yaw": 0.0,
+        "relief": 0,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 169.2411,
+        "readback_ms": 1.6759,
+        "frame_interval_ms": 18.7435,
+        "fps": 40
+      },
+      "raised": {
+        "observation_id": "ef448e87-43b3-4253-b209-6386f0558aa7",
+        "image_sha256": "92af8619a4edd369bb650624512dcd5b7c903084b273a47c352da8523cb939f9",
+        "size": [
+          731,
+          432
+        ],
+        "world_fingerprint": "5835ff88376fcd1b0f6d6b3638a3868abc8d08d20e889db43a15055e568c6895",
+        "frame_tick": 157,
+        "forge_tick": 160,
+        "frame_tick_delta": 3,
+        "sample_span_ticks": 6,
+        "sample_span_ms": 270.6695,
+        "yaw": 180.0,
+        "relief": 1,
+        "out_of_scope_cells": 81,
+        "unloaded_cells": 0,
+        "capture_ms": 170.8328,
+        "readback_ms": 1.402,
+        "frame_interval_ms": 18.5244,
+        "fps": 38
+      }
+    },
+    "idle_rejected": {
+      "status": 409,
+      "error": "world_observation_required"
+    },
+    "scope_rejected": {
+      "status": 401,
+      "error": "unauthorized"
+    },
+    "changed_scene_rejected": {
+      "status": 409,
+      "error": "world_observation_stale"
+    },
+    "unloaded_chunk": {
+      "client_unknown_cells": 108,
+      "reason": "world_changed",
+      "paired_read_rejected": {
+        "status": 409,
+        "error": "world_observation_required"
+      }
+    },
+    "same_text_control": true,
+    "native_save": true,
+    "fixture_versus_world_unchanged": true,
+    "fixture_reports": {
+      "blue": {
+        "surface": {
+          "color": "blue",
+          "material": "glass",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "flat",
+        "consistency": "consistent"
+      },
+      "oak": {
+        "surface": {
+          "color": "tan",
+          "material": "wood",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "flat",
+        "consistency": "consistent"
+      },
+      "conflict": {
+        "surface": {
+          "color": "blue",
+          "material": "glass",
+          "evidence": "本地像素中心颜色统计。"
+        },
+        "terrain": "stepped",
+        "consistency": "conflict"
+      }
+    },
+    "isolated_pack_jars": 387
+  }
+}

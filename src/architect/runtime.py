@@ -38,6 +38,9 @@ class ArchitectClient(BridgeClient):
     def observation(self):
         return self._call("architect/observation")
 
+    def observe_world(self):
+        return self._call("architect/observe_world")
+
     def inbox(self):
         return self._call("architect/inbox")["requests"]
 

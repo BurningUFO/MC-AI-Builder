@@ -148,7 +148,7 @@ def check_image(meta, directory, npc, expected, *, player):
     return pixels
 
 
-def test_observations(child, game, bridge, scoped, trace):
+def test_observations(child, game, bridge, scoped, trace, *, on_capture=None):
     chat = PlayerChat(game)
     directory = ROOT / ".cache" / "observations" / game.name
     geometry = fixture(child, game, "panels")
@@ -174,6 +174,8 @@ def test_observations(child, game, bridge, scoped, trace):
         expected = set_pose(child, game, npc, yaw)
         meta = reply(child, chat, scoped)
         metrics = check_image(meta, directory, npc, expected, player=PLAYER)
+        if on_capture is not None:
+            on_capture(direction, meta)
         restored = restore_camera(child, game)
         captures.append({"scene": direction, "observation": meta, "pixels": metrics, "restored": restored})
     blue, oak = captures

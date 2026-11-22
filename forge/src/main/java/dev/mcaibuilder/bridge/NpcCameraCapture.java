@@ -172,6 +172,7 @@ final class NpcCameraCapture {
             current.failure = "camera_framebuffer_unavailable";
             return;
         }
+        var worldSample = current.request.window().read(client.level);
         long start = System.nanoTime();
         int boundTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         try {
@@ -189,6 +190,8 @@ final class NpcCameraCapture {
         view.addProperty("pitch", camera.getXRot());
         view.addProperty("fov", fov);
         view.addProperty("game_tick", client.level.getGameTime());
+        view.addProperty("world_fingerprint", worldSample.fingerprint());
+        view.addProperty("client_unloaded_cells", worldSample.unloadedCells());
         view.addProperty("capture_time", Instant.now().toString());
         view.addProperty("camera_source", "npc_first_person");
         view.addProperty("render_frame", frame);

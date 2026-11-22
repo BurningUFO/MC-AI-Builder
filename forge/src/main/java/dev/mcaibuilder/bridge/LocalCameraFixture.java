@@ -32,6 +32,8 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = ForgeBridge.MOD_ID, value = Dist.CLIENT)
 final class LocalCameraFixture {
     private static UUID dropOnSwitch;
+    private static UUID dropChunkOnSwitch;
+    private static int chunkDrops;
     private static int dropped;
 
     private LocalCameraFixture() {}
@@ -63,6 +65,7 @@ final class LocalCameraFixture {
                 }
                 case "third_person" -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK);
                 case "drop_on_switch" -> dropOnSwitch = BuildPlan.id(request, "npc");
+                case "drop_chunk_on_switch" -> dropChunkOnSwitch = BuildPlan.id(request, "npc");
                 case "client" -> { }
                 default -> throw Wire.invalid("Unknown camera fixture action");
             }
@@ -72,6 +75,7 @@ final class LocalCameraFixture {
             result.addProperty("camera_type", client.options.getCameraType().name());
             result.addProperty("dimension", client.level.dimension().location().toString());
             result.addProperty("tracked_entity_drops", dropped);
+            result.addProperty("observed_chunk_drops", chunkDrops);
             if (request.has("entity_id") && client.level.getEntity(Wire.integer(request.get("entity_id"), "entity ID"))
                     instanceof FakePlayerEntity tracked) {
                 result.addProperty("tracked_yaw", tracked.getViewYRot(1));
@@ -86,12 +90,22 @@ final class LocalCameraFixture {
 
     @SubscribeEvent
     public static void render(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.START || dropOnSwitch == null) {
+        if (event.phase != TickEvent.Phase.START || dropOnSwitch == null && dropChunkOnSwitch == null) {
             return;
         }
         Minecraft client = Minecraft.getInstance();
-        if (client.level != null && client.getCameraEntity() instanceof FakePlayerEntity target
-                && dropOnSwitch.equals(target.getUUID())) {
+        if (client.level == null || !(client.getCameraEntity() instanceof FakePlayerEntity target)) {
+            return;
+        }
+        if (target.getUUID().equals(dropChunkOnSwitch)) {
+            dropChunkOnSwitch = null;
+            BlockPos adjacent = target.blockPosition().east(4);
+            if ((adjacent.getX() >> 4) != (target.getBlockX() >> 4) && client.level.hasChunkAt(adjacent)) {
+                client.level.getChunkSource().drop(adjacent.getX() >> 4, adjacent.getZ() >> 4);
+                chunkDrops++;
+            }
+        }
+        if (target.getUUID().equals(dropOnSwitch)) {
             dropOnSwitch = null;
             client.level.removeEntity(target.getId(), Entity.RemovalReason.DISCARDED);
             dropped++;

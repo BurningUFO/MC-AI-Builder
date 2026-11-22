@@ -1009,13 +1009,26 @@ final class ConstructionService {
     }
 
     FakePlayerEntity observationTarget() {
-        site.requireLoaded(level);
         if (current == null || !(level.getEntity(current.npc) instanceof FakePlayerEntity target)
                 || !target.isAlive() || !target.getTags().contains(ForgeBridge.MOD_ID)
                 || !site.area().contains(target.blockPosition()) || !level.hasChunkAt(target.blockPosition())) {
             throw Wire.conflict("observation_npc_unavailable", "没有可观察的已加载施工 NPC。");
         }
         return target;
+    }
+
+    BuildSite.Box observationArea() {
+        return site.area();
+    }
+
+    JsonObject observationJob() {
+        JsonObject info = new JsonObject();
+        info.addProperty("job_id", current.plan.id().toString());
+        info.addProperty("building_version", current.plan.version());
+        info.addProperty("state", current.state.wire());
+        info.addProperty("processed", current.cursor);
+        info.addProperty("total", current.steps.size());
+        return info;
     }
 
     private JsonObject cargo() {
