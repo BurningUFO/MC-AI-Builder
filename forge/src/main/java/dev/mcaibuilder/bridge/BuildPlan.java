@@ -34,6 +34,7 @@ import java.util.UUID;
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
                  List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds) {
     private static final int MAX_ACTIONS = 512;
+    static final boolean LEGACY_EXECUTION = "1".equals(System.getenv("MC_AI_BUILDER_LEGACY_EXECUTOR"));
     private static final String QUARK_STAIR = "quark:red_shingles_stairs";
     private static final Set<String> MODDED = Set.of(
             "chipped:stacked_spruce_planks", "quark:red_shingles", QUARK_STAIR);
@@ -81,6 +82,10 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
         return value;
     }
 
+    boolean optimizedCottage() {
+        return buildingId.startsWith("cottage_") && !LEGACY_EXECUTION;
+    }
+
     private static Comparator<Target> supportedLayers(List<Target> targets, Map<BlockPos, Target> cells) {
         var distance = new HashMap<BlockPos, Integer>();
         var frontier = new ArrayDeque<BlockPos>();
@@ -99,9 +104,11 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 }
             }
         }
+        Comparator<Target> adjacentRows = Comparator.<Target>comparingInt(target -> target.local().getZ())
+                .thenComparingInt(target -> (target.local().getZ() & 1) == 0 ? target.local().getX() : -target.local().getX());
         return Comparator.<Target>comparingInt(target -> target.world().getY())
                 .thenComparingInt(target -> distance.getOrDefault(target.world(), Integer.MAX_VALUE))
-                .thenComparing(PLACEMENT_ORDER);
+                .thenComparing(LEGACY_EXECUTION ? PLACEMENT_ORDER : adjacentRows);
     }
 
     Comparator<WorkStep> revisionPlacementOrder() {

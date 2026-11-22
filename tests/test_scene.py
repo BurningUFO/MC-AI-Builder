@@ -81,6 +81,18 @@ class SceneContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expired"):
             world_context(self.metadata, now=self.now + timedelta(seconds=61))
 
+    def test_moving_frame_is_bound_to_a_nearby_server_sample_and_cannot_be_a_design_pair(self):
+        sample = deepcopy(self.metadata)
+        sample["planning_capture"] = True
+        sample["world"].update(game_tick=1004, frame_tick_delta=0, sample_span_ticks=4,
+                               sample_position=[1300.38, -59., 72.])
+        self.assertEqual(world_context(sample, now=self.now, moving=True)["cells"][0]["id"], "minecraft:oak_stairs")
+        with self.assertRaises(ValueError):
+            world_context(sample, now=self.now)
+        sample["world"]["sample_position"] = [1300.42, -59., 72.]
+        with self.assertRaises(ValueError):
+            world_context(sample, now=self.now, moving=True)
+
     def test_block_state_claims_are_verified_mismatched_or_unknown(self):
         report = scene_report()
         matching = verify_scene(decode_scene(json.dumps(report)), self.context)

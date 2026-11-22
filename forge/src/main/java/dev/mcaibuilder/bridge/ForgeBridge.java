@@ -29,6 +29,7 @@ public final class ForgeBridge {
     private ArchitectService architect;
     private CopySites copy;
     private NpcObservations observations;
+    private long profilingTickStart;
 
     public ForgeBridge() {
         MinecraftForge.EVENT_BUS.addListener(this::started);
@@ -139,7 +140,12 @@ public final class ForgeBridge {
     }
 
     private void tick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END && event.getServer() == server) {
+        if (event.getServer() != server) {
+            return;
+        }
+        if (event.phase == TickEvent.Phase.START) {
+            profilingTickStart = BuildPerformance.clock();
+        } else {
             ArchitectService activeArchitect = architect();
             if (activeArchitect != null) {
                 activeArchitect.tick(observations);
@@ -150,6 +156,9 @@ public final class ForgeBridge {
             }
             if (observations != null) {
                 observations.tick(current, architect());
+            }
+            if (current != null) {
+                current.endPerformanceTick(profilingTickStart);
             }
         }
     }

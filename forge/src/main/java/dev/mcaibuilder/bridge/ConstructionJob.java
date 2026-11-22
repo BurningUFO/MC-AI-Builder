@@ -29,8 +29,10 @@ final class ConstructionJob {
     final UUID predecessor;
     final JsonObject approvedReview;
     final SiteSnapshot snapshot;
-    final List<WorkStep> steps;
+    List<WorkStep> steps;
+    final ConstructionPlanning planning = new ConstructionPlanning();
     final JsonArray records = new JsonArray();
+    final BuildPerformance performance = new BuildPerformance();
     State state = State.RUNNING;
     long nextTick;
     int cursor;
@@ -69,6 +71,9 @@ final class ConstructionJob {
         job.addProperty("skipped", cursor - placed - removed);
         job.addProperty("reopened", reopened);
         job.addProperty("in_flight", intent >= 0);
+        if (planning.hasRecord()) {
+            job.add("planning", planning.status());
+        }
         job.addProperty("checkpoint_npc", npc.toString());
         if (predecessor != null) {
             job.addProperty("previous_job_id", predecessor.toString());
@@ -80,6 +85,9 @@ final class ConstructionJob {
             job.add("supply", supply.status(detailed));
         }
         if (detailed) {
+            if (BuildPerformance.ENABLED) {
+                job.add("performance", performance.status());
+            }
             JsonArray actions = records.deepCopy();
             for (int i = cursor; i < steps.size(); i++) {
                 if (state == State.FAILED && i == cursor && !records.isEmpty()
@@ -148,6 +156,10 @@ final class ConstructionJob {
         job.conflicts = Wire.array(data.get("conflicts"), "conflicts");
         job.verification = optionalObject(data, "verification");
         job.reopened = true;
+        JsonObject planning = optionalObject(data, "planning");
+        if (planning != null) {
+            job.planning.restore(planning);
+        }
         JsonObject supply = optionalObject(data, "supply");
         if (site.survival() != (supply != null)) {
             throw Wire.invalid("Cannot switch the supply mode of a saved construction job");

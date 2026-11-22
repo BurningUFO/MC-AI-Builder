@@ -8,6 +8,7 @@ from src.__main__ import ROOT, run_blender
 from src.assets.archives import Archives
 from src.assets.catalog import build_index
 from src.assets.models import ModelLibrary
+from src.architect.telemetry import timed
 from src.core.building import Building, write_json
 
 
@@ -44,7 +45,7 @@ def preview_review(report_path: Path, instance: Path, output: Path, blender: Pat
     models = models_for_review(report)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    with Archives(instance, vanilla_only=False) as archives:
+    with timed("asset_models"), Archives(instance, vanilla_only=False) as archives:
         archives.discover()
         library = ModelLibrary(archives)
         indices = [build_index(ROOT, model, library, {}) if model.blocks else None for model in models]
@@ -52,8 +53,9 @@ def preview_review(report_path: Path, instance: Path, output: Path, blender: Pat
         stage = Path(name)
         manifest = stage / "review.json"
         write_json(manifest, {"review": report, "indices": indices, "multi_angle": multi_angle}, compact=True)
-        run_blender(blender.resolve(strict=True), ROOT / "src/renderers/revision_preview.py", manifest, ROOT, stage,
-                    timeout=120 if multi_angle else None)
+        with timed("blender_render"):
+            run_blender(blender.resolve(strict=True), ROOT / "src/renderers/revision_preview.py", manifest, ROOT, stage,
+                        timeout=120 if multi_angle else None)
         files = ("revision-review.blend", "current.png", "proposed.png")
         if multi_angle:
             files += ("proposed-rear.png",)

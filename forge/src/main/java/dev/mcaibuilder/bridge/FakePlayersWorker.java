@@ -51,8 +51,12 @@ import java.util.function.Predicate;
 
 final class FakePlayersWorker implements ConstructionWorker {
     private static final double REACH = 4.5;
+    private BuildPerformance performance = new BuildPerformance();
     private static final int MOVE_LIMIT_TICKS = 300;
     private static final int STANCE_RADIUS = 4;
+    private static final int OBSTRUCTION_WAIT_TICKS = 60;
+    private BlockPos obstruction;
+    private long obstructionSince;
     private static final double JUMP_AIM_RISE = 1.05;
     private static final double JUMP_CLEARANCE = 1.5;
     private static final Direction[] FACES = {Direction.UP, Direction.NORTH, Direction.SOUTH,
@@ -332,6 +336,27 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
+    public void profile(BuildPerformance performance) {
+        this.performance = performance;
+    }
+
+    @Override
+    public String activity() {
+        if (destination != null) {
+            return "navigating";
+        }
+        if (obstruction != null) {
+            return "placement_obstructed";
+        }
+        return mining != null ? "mining" : placementJumps > 0 ? "jumping" : "working";
+    }
+
+    @Override
+    public Vec3 position() {
+        return available() ? npc.position() : null;
+    }
+
+    @Override
     public Result act(WorkStep step, Runnable beforeInteraction) {
         if (!available()) {
             return failure("npc_unavailable");
@@ -347,9 +372,20 @@ final class FakePlayersWorker implements ConstructionWorker {
         Aim aim = chooseAim(step, stack, current);
         if (aim != null && !new AABB(step.pos()).intersects(npc.getBoundingBox())) {
             stopNavigation();
+            if (!BuildPlan.LEGACY_EXECUTION && !step.remove()
+                    && !level.isUnobstructed(step.after(), step.pos(), net.minecraft.world.phys.shapes.CollisionContext.of(actor))) {
+                long tick = level.getGameTime();
+                if (!step.pos().equals(obstruction)) {
+                    obstruction = step.pos();
+                    obstructionSince = tick;
+                }
+                return tick - obstructionSince >= OBSTRUCTION_WAIT_TICKS ? failure("placement_obstructed") : null;
+            }
+            obstruction = null;
             return step.remove() ? mine(step, slot, aim, beforeInteraction)
                     : useItem(step.target(), slot, aim, beforeInteraction);
         }
+        obstruction = null;
         stopMining();
 
         boolean jumpingPlacement = site.worldCopy() && !step.remove();
@@ -385,13 +421,18 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public JsonObject resupply(Warehouse.Source source, String stockHash, List<WorkStep> steps, int cursor,
-                               Consumer<JsonObject> beforeTransfer) {
+                               boolean batchNearbyWork, Consumer<JsonObject> beforeTransfer) {
         if (!available()) {
             throw Wire.conflict("npc_unavailable", "NPC 无法搬运物品。");
         }
         ChestBlockEntity chest = Warehouse.open(level, source);
-        // Check the next action before a trip, so unavailable stock is reported at once.
-        Warehouse.Transfer transfer = Warehouse.planTransfer(chest, npc.getInventory(), steps, cursor);
+        // Check the next item before departure. The optimized trip packs against live cargo at the chest.
+        Warehouse.Transfer transfer = null;
+        if (batchNearbyWork) {
+            Warehouse.requireNextItem(chest, npc.getInventory(), steps.get(cursor));
+        } else {
+            transfer = planTrip(chest, steps, cursor, Warehouse.TRIP_ITEMS);
+        }
         Vec3 current = trackPosition();
         Aim aim = chestAim(source.pos(), current);
         if (aim == null) {
@@ -403,10 +444,14 @@ final class FakePlayersWorker implements ConstructionWorker {
             return null;
         }
         haltAction();
+        if (batchNearbyWork) {
+            transfer = planTrip(chest, steps, cursor, Warehouse.COTTAGE_TRIP_ITEMS);
+        }
         if (!level.mayInteract(actor, source.pos()) || !chest.stillValid(actor)) {
             throw Wire.conflict("warehouse_interaction_denied", "供料箱拒绝交互。");
         }
         lookAndSwing(aim);
+        long transferStarted = BuildPerformance.clock();
         WarehouseEvidence interaction = WarehouseEvidence.begin(actor, source.pos());
         try {
             InteractionResult result = actor.gameMode.useItemOn(
@@ -427,10 +472,20 @@ final class FakePlayersWorker implements ConstructionWorker {
             transfer.apply(chest, npc.getInventory());
             return transfer.evidence;
         } finally {
+            performance.span(BuildPerformance.Span.TRANSFER, transferStarted);
             WarehouseEvidence.end();
             if (actor.containerMenu != actor.inventoryMenu) {
                 actor.closeContainer();
             }
+        }
+    }
+
+    private Warehouse.Transfer planTrip(ChestBlockEntity chest, List<WorkStep> steps, int cursor, int maximum) {
+        long started = BuildPerformance.clock();
+        try {
+            return Warehouse.planTransfer(chest, npc.getInventory(), steps, cursor, maximum);
+        } finally {
+            performance.span(BuildPerformance.Span.TRANSFER_PLAN, started);
         }
     }
 
@@ -468,16 +523,26 @@ final class FakePlayersWorker implements ConstructionWorker {
         int walkable = 0;
         int visible = 0;
         int reaches = 0;
-        for (BlockPos candidate : stances(pos, current)) {
-            if (!triedStances.add(candidate) || !canStand(candidate)) {
-                continue;
+        long searchStarted = BuildPerformance.clock();
+        List<BlockPos> options = stances(pos, current);
+        performance.span(BuildPerformance.Span.STANCE_SEARCH, searchStarted);
+        for (BlockPos candidate : options) {
+            long stanceStarted = BuildPerformance.clock();
+            try {
+                if (!triedStances.add(candidate) || !canStand(candidate)) {
+                    continue;
+                }
+                walkable++;
+                if (!canAim.test(Vec3.atBottomCenterOf(candidate))) {
+                    continue;
+                }
+                visible++;
+            } finally {
+                performance.span(BuildPerformance.Span.STANCE_SEARCH, stanceStarted);
             }
-            walkable++;
-            if (!canAim.test(Vec3.atBottomCenterOf(candidate))) {
-                continue;
-            }
-            visible++;
+            long pathStarted = BuildPerformance.clock();
             Path path = npc.getNavigation().createPath(candidate, 0);
+            performance.span(BuildPerformance.Span.PATH_SEARCH, pathStarted);
             if (path != null && path.canReach()) {
                 reaches++;
                 if (insideSite(path) && npc.getNavigation().moveTo(path, 1.15)) {
@@ -638,12 +703,14 @@ final class FakePlayersWorker implements ConstructionWorker {
             String tool = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
             RemovalEvidence attempt = RemovalEvidence.begin(actor, step);
             boolean destroyed;
+            long breakStarted = BuildPerformance.clock();
             try {
                 var click = ForgeHooks.onLeftClickBlock(actor, pos, aim.hit().getDirection(),
                         ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK);
                 destroyed = !click.isCanceled() && click.getResult() != Event.Result.DENY
                         && click.getUseItem() != Event.Result.DENY && actor.gameMode.destroyBlock(pos);
             } finally {
+                performance.span(BuildPerformance.Span.BREAK, breakStarted);
                 RemovalEvidence.end();
                 inventory.setItem(slot, actor.getMainHandItem());
             }
@@ -690,9 +757,11 @@ final class FakePlayersWorker implements ConstructionWorker {
         actor.setItemInHand(InteractionHand.MAIN_HAND, stack);
         PlacementEvidence attempt = PlacementEvidence.begin(actor, target);
         InteractionResult result;
+        long placementStarted = BuildPerformance.clock();
         try {
             result = actor.gameMode.useItemOn(actor, level, stack, InteractionHand.MAIN_HAND, aim.hit());
         } finally {
+            performance.span(BuildPerformance.Span.PLACE, placementStarted);
             PlacementEvidence.end();
             inventory.setItem(slot, actor.getMainHandItem());
             actor.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -768,6 +837,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         triedStances.clear();
         deadline = 0;
         placementJumps = 0;
+        obstruction = null;
     }
 
     @Override

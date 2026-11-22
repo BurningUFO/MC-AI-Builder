@@ -171,7 +171,7 @@ def _public_fields(source):
     return out
 
 
-def world_context(metadata: dict, *, now=None) -> dict:
+def world_context(metadata: dict, *, now=None, moving=False) -> dict:
     """Check the shared camera/world identity and retain only relative evidence."""
     try:
         world = metadata["world"]
@@ -185,9 +185,12 @@ def world_context(metadata: dict, *, now=None) -> dict:
         frame = _integer(metadata["game_tick"], 0, 2**63-1)
         sampled = _integer(world["game_tick"], 0, 2**63-1)
         requested = _integer(metadata["server_request_tick"], 0, sampled)
-        _check(sampled == metadata["server_result_tick"] and -2 <= sampled - frame <= 26
-               and sampled - frame == world["frame_tick_delta"]
-               and sampled - requested == world["sample_span_ticks"] <= 24 and frame >= requested - 2,
+        result_tick = _integer(metadata["server_result_tick"], sampled, 2**63-1)
+        paired = (metadata.get("planning_capture") is True and abs(sampled - frame) <= 2
+                  and result_tick - sampled <= 8) if moving else (
+            not metadata.get("planning_capture") and sampled == result_tick and -2 <= sampled - frame <= 26)
+        _check(paired and result_tick - requested <= 24 and sampled - frame == world["frame_tick_delta"]
+               and sampled - requested == world["sample_span_ticks"] and frame >= requested - 2,
                "The camera frame and Forge tick are out of sync.")
         capture_time = datetime.fromisoformat(metadata["capture_time"])
         age = ((now or datetime.now(timezone.utc)) - capture_time).total_seconds()

@@ -1,0 +1,813 @@
+{
+  "cases": {
+    "A": {
+      "equivalent_site_sha256": "e946deb96db780ff41a9924570a61214999b9d561c608170ec779b9f680ace1e",
+      "model_sha256": "254695d97a8c730c6689dba3acb9ca38d0e4156fbdf5da62aefc7cee99939d84",
+      "placed": 183,
+      "effective_execution_ms": 165278.8116,
+      "paused_ms": 0,
+      "approved_to_terminal_ms": 165278.8116,
+      "request_to_readback_ms": 171380.803,
+      "game_ticks": 3306,
+      "places_per_minute": 66.43319790181745,
+      "time_to_review_ms": 4921.924100000979,
+      "trips": 12,
+      "inventory": {
+        "initial_chest": {
+          "minecraft:spruce_planks": 192,
+          "minecraft:stone_bricks": 128,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 32,
+          "minecraft:oak_slab": 16,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "withdrawn": {
+          "minecraft:stone_bricks": 48,
+          "minecraft:spruce_planks": 117,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 2
+        },
+        "final_chest": {
+          "minecraft:spruce_planks": 75,
+          "minecraft:stone_bricks": 80,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 14,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "final_cargo": {}
+      },
+      "activity_ms": {
+        "jumping": 4153.8006,
+        "navigating": 55987.7648,
+        "ready": 20.2415,
+        "scheduled_wait": 55297.3879,
+        "to_warehouse": 21664.1074,
+        "warehouse_return": 22559.7827,
+        "working": 5595.7267
+      },
+      "spans": {
+        "approval": {
+          "samples": 1,
+          "total_ms": 32.9116,
+          "mean_ms": 32.9116,
+          "max_ms": 32.9116,
+          "p50_upper_ms": 32.9116,
+          "p95_upper_ms": 32.9116
+        },
+        "approval_wait": {
+          "samples": 1,
+          "total_ms": 1236.2917,
+          "mean_ms": 1236.2917,
+          "max_ms": 1236.2917,
+          "p50_upper_ms": 1236.2917,
+          "p95_upper_ms": 1236.2917
+        },
+        "server_tick": {
+          "samples": 3306,
+          "total_ms": 19865.0271,
+          "mean_ms": 6.008780127041742,
+          "max_ms": 365.1754,
+          "p50_upper_ms": 4.194304,
+          "p95_upper_ms": 33.554432
+        },
+        "construction_tick": {
+          "samples": 2331,
+          "total_ms": 7341.8511,
+          "mean_ms": 3.1496572715572717,
+          "max_ms": 359.656,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 33.554432
+        },
+        "inventory": {
+          "samples": 2331,
+          "total_ms": 434.298,
+          "mean_ms": 0.18631402831402832,
+          "max_ms": 62.558,
+          "p50_upper_ms": 0.131072,
+          "p95_upper_ms": 0.524288
+        },
+        "stance_search": {
+          "samples": 1976,
+          "total_ms": 40.2837,
+          "mean_ms": 0.020386487854251015,
+          "max_ms": 1.1934,
+          "p50_upper_ms": 0.001024,
+          "p95_upper_ms": 0.262144
+        },
+        "path_search": {
+          "samples": 155,
+          "total_ms": 350.7792,
+          "mean_ms": 2.2630916129032257,
+          "max_ms": 47.3153,
+          "p50_upper_ms": 1.048576,
+          "p95_upper_ms": 16.777216
+        },
+        "transfer_plan": {
+          "samples": 438,
+          "total_ms": 75.3148,
+          "mean_ms": 0.171951598173516,
+          "max_ms": 2.6082,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 0.524288
+        },
+        "transfer": {
+          "samples": 12,
+          "total_ms": 319.0248,
+          "mean_ms": 26.585400000000003,
+          "max_ms": 99.6326,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 99.6326
+        },
+        "place": {
+          "samples": 183,
+          "total_ms": 278.8635,
+          "mean_ms": 1.5238442622950819,
+          "max_ms": 4.6645,
+          "p50_upper_ms": 2.097152,
+          "p95_upper_ms": 4.194304
+        },
+        "action_wall": {
+          "samples": 183,
+          "total_ms": 165264.148,
+          "mean_ms": 903.0827759562841,
+          "max_ms": 9197.7984,
+          "p50_upper_ms": 536.870912,
+          "p95_upper_ms": 4294.967296
+        },
+        "checkpoint": {
+          "samples": 391,
+          "total_ms": 5801.6593,
+          "mean_ms": 14.838003324808184,
+          "max_ms": 347.5929,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 33.554432
+        },
+        "world_verify": {
+          "samples": 1,
+          "total_ms": 1.8069,
+          "mean_ms": 1.8069,
+          "max_ms": 1.8069,
+          "p50_upper_ms": 1.8069,
+          "p95_upper_ms": 1.8069
+        }
+      },
+      "outcomes": {
+        "placed": 183,
+        "warehouse_transfer": 12
+      },
+      "movement_blocks": 319.92089099240815,
+      "observed_tps": 20.002563958416072,
+      "observed_fps_mean": 39.95783132530121,
+      "fps_samples": 166,
+      "action_latency": {
+        "mean_ms": 903.0833158469945,
+        "p50_ms": 381.13240000000224,
+        "p95_ms": 3198.8261000000057
+      },
+      "verification": {
+        "passed": true,
+        "matched": 183,
+        "non_target_cells_checked": 5613,
+        "outside_approved_cells_checked": 1806,
+        "target_mismatches": [],
+        "retired_mismatches": [],
+        "non_target_changes": 0,
+        "outside_approved_changes": 0
+      },
+      "walkable_interior_cells": 33,
+      "native_save": true
+    },
+    "B": {
+      "equivalent_site_sha256": "e946deb96db780ff41a9924570a61214999b9d561c608170ec779b9f680ace1e",
+      "model_sha256": "254695d97a8c730c6689dba3acb9ca38d0e4156fbdf5da62aefc7cee99939d84",
+      "placed": 183,
+      "effective_execution_ms": 102904.5522,
+      "paused_ms": 0,
+      "approved_to_terminal_ms": 102904.5522,
+      "request_to_readback_ms": 108803.99550000038,
+      "game_ticks": 2059,
+      "places_per_minute": 106.70081901391336,
+      "time_to_review_ms": 4771.088800000143,
+      "trips": 4,
+      "inventory": {
+        "initial_chest": {
+          "minecraft:spruce_planks": 192,
+          "minecraft:stone_bricks": 128,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 32,
+          "minecraft:oak_slab": 16,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "withdrawn": {
+          "minecraft:stone_bricks": 48,
+          "minecraft:spruce_planks": 117,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 2
+        },
+        "final_chest": {
+          "minecraft:spruce_planks": 75,
+          "minecraft:stone_bricks": 80,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 14,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "final_cargo": {}
+      },
+      "activity_ms": {
+        "jumping": 3766.1649,
+        "navigating": 51157.3437,
+        "ready": 18.4421,
+        "scheduled_wait": 25431.4122,
+        "to_warehouse": 7378.8802,
+        "warehouse_return": 6205.0767,
+        "working": 8947.2324
+      },
+      "spans": {
+        "approval": {
+          "samples": 1,
+          "total_ms": 30.2587,
+          "mean_ms": 30.2587,
+          "max_ms": 30.2587,
+          "p50_upper_ms": 30.2587,
+          "p95_upper_ms": 30.2587
+        },
+        "approval_wait": {
+          "samples": 1,
+          "total_ms": 1174.6888,
+          "mean_ms": 1174.6888,
+          "max_ms": 1174.6888,
+          "p50_upper_ms": 1174.6888,
+          "p95_upper_ms": 1174.6888
+        },
+        "server_tick": {
+          "samples": 2059,
+          "total_ms": 13316.8037,
+          "mean_ms": 6.467607430791647,
+          "max_ms": 150.7308,
+          "p50_upper_ms": 4.194304,
+          "p95_upper_ms": 33.554432
+        },
+        "construction_tick": {
+          "samples": 1692,
+          "total_ms": 5456.5838,
+          "mean_ms": 3.224931323877069,
+          "max_ms": 147.7116,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 33.554432
+        },
+        "inventory": {
+          "samples": 1692,
+          "total_ms": 282.7254,
+          "mean_ms": 0.16709539007092197,
+          "max_ms": 0.7959,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 0.524288
+        },
+        "stance_search": {
+          "samples": 1405,
+          "total_ms": 34.069,
+          "mean_ms": 0.024248398576512457,
+          "max_ms": 1.0019,
+          "p50_upper_ms": 0.001024,
+          "p95_upper_ms": 0.262144
+        },
+        "path_search": {
+          "samples": 118,
+          "total_ms": 233.0704,
+          "mean_ms": 1.9751728813559322,
+          "max_ms": 44.0856,
+          "p50_upper_ms": 1.048576,
+          "p95_upper_ms": 16.777216
+        },
+        "transfer_plan": {
+          "samples": 4,
+          "total_ms": 4.0409,
+          "mean_ms": 1.010225,
+          "max_ms": 3.1523,
+          "p50_upper_ms": 0.524288,
+          "p95_upper_ms": 3.1523
+        },
+        "transfer": {
+          "samples": 4,
+          "total_ms": 104.5786,
+          "mean_ms": 26.14465,
+          "max_ms": 61.0036,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 61.0036
+        },
+        "place": {
+          "samples": 183,
+          "total_ms": 274.1648,
+          "mean_ms": 1.498168306010929,
+          "max_ms": 4.0814,
+          "p50_upper_ms": 2.097152,
+          "p95_upper_ms": 4.0814
+        },
+        "action_wall": {
+          "samples": 183,
+          "total_ms": 102886.8924,
+          "mean_ms": 562.2234557377049,
+          "max_ms": 9199.8367,
+          "p50_upper_ms": 536.870912,
+          "p95_upper_ms": 2147.483648
+        },
+        "checkpoint": {
+          "samples": 375,
+          "total_ms": 4339.4856,
+          "mean_ms": 11.5719616,
+          "max_ms": 82.1768,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 33.554432
+        },
+        "world_verify": {
+          "samples": 1,
+          "total_ms": 2.2845,
+          "mean_ms": 2.2845,
+          "max_ms": 2.2845,
+          "p50_upper_ms": 2.2845,
+          "p95_upper_ms": 2.2845
+        }
+      },
+      "outcomes": {
+        "placed": 183,
+        "warehouse_transfer": 4
+      },
+      "movement_blocks": 218.02517335404826,
+      "observed_tps": 20.008833000878653,
+      "observed_fps_mean": 39.980582524271846,
+      "fps_samples": 103,
+      "action_latency": {
+        "mean_ms": 562.2241224043715,
+        "p50_ms": 299.4814000000006,
+        "p95_ms": 1847.5336000000098
+      },
+      "verification": {
+        "passed": true,
+        "matched": 183,
+        "non_target_cells_checked": 5613,
+        "outside_approved_cells_checked": 1806,
+        "target_mismatches": [],
+        "retired_mismatches": [],
+        "non_target_changes": 0,
+        "outside_approved_changes": 0
+      },
+      "walkable_interior_cells": 33,
+      "native_save": true,
+      "wall_reduction_percent_vs_A": 37.7388116457149
+    },
+    "C": {
+      "equivalent_site_sha256": "e946deb96db780ff41a9924570a61214999b9d561c608170ec779b9f680ace1e",
+      "model_sha256": "254695d97a8c730c6689dba3acb9ca38d0e4156fbdf5da62aefc7cee99939d84",
+      "placed": 183,
+      "effective_execution_ms": 94949.6722,
+      "paused_ms": 0,
+      "approved_to_terminal_ms": 94949.6722,
+      "request_to_readback_ms": 102124.61620000067,
+      "game_ticks": 1900,
+      "places_per_minute": 115.64020965624776,
+      "time_to_review_ms": 5814.198699999906,
+      "trips": 4,
+      "inventory": {
+        "initial_chest": {
+          "minecraft:spruce_planks": 192,
+          "minecraft:stone_bricks": 128,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 32,
+          "minecraft:oak_slab": 16,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "withdrawn": {
+          "minecraft:stone_bricks": 48,
+          "minecraft:spruce_planks": 117,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 2
+        },
+        "final_chest": {
+          "minecraft:spruce_planks": 75,
+          "minecraft:stone_bricks": 80,
+          "minecraft:glass": 32,
+          "minecraft:blue_stained_glass": 16,
+          "minecraft:oak_slab": 14,
+          "minecraft:iron_pickaxe": 1,
+          "minecraft:iron_axe": 1
+        },
+        "final_cargo": {}
+      },
+      "activity_ms": {
+        "jumping": 3284.3303,
+        "navigating": 49685.0782,
+        "ready": 25.6729,
+        "scheduled_wait": 25684.9289,
+        "to_warehouse": 6155.9131,
+        "warehouse_return": 2243.6478,
+        "working": 7870.101
+      },
+      "spans": {
+        "approval": {
+          "samples": 1,
+          "total_ms": 44.3427,
+          "mean_ms": 44.3427,
+          "max_ms": 44.3427,
+          "p50_upper_ms": 44.3427,
+          "p95_upper_ms": 44.3427
+        },
+        "approval_wait": {
+          "samples": 1,
+          "total_ms": 1227.4227,
+          "mean_ms": 1227.4227,
+          "max_ms": 1227.4227,
+          "p50_upper_ms": 1227.4227,
+          "p95_upper_ms": 1227.4227
+        },
+        "server_tick": {
+          "samples": 1900,
+          "total_ms": 13329.0118,
+          "mean_ms": 7.015269368421053,
+          "max_ms": 186.5078,
+          "p50_upper_ms": 4.194304,
+          "p95_upper_ms": 33.554432
+        },
+        "construction_tick": {
+          "samples": 1529,
+          "total_ms": 5955.594,
+          "mean_ms": 3.895090909090909,
+          "max_ms": 182.9812,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 33.554432
+        },
+        "inventory": {
+          "samples": 1529,
+          "total_ms": 275.2446,
+          "mean_ms": 0.1800160889470242,
+          "max_ms": 1.2285,
+          "p50_upper_ms": 0.262144,
+          "p95_upper_ms": 0.524288
+        },
+        "stance_search": {
+          "samples": 1372,
+          "total_ms": 34.2353,
+          "mean_ms": 0.02495284256559767,
+          "max_ms": 1.005,
+          "p50_upper_ms": 0.001024,
+          "p95_upper_ms": 0.262144
+        },
+        "path_search": {
+          "samples": 112,
+          "total_ms": 266.8859,
+          "mean_ms": 2.3829098214285716,
+          "max_ms": 41.4466,
+          "p50_upper_ms": 1.048576,
+          "p95_upper_ms": 33.554432
+        },
+        "transfer_plan": {
+          "samples": 4,
+          "total_ms": 5.0141,
+          "mean_ms": 1.253525,
+          "max_ms": 3.9945,
+          "p50_upper_ms": 0.524288,
+          "p95_upper_ms": 3.9945
+        },
+        "transfer": {
+          "samples": 4,
+          "total_ms": 200.7863,
+          "mean_ms": 50.196575,
+          "max_ms": 103.9328,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 103.9328
+        },
+        "place": {
+          "samples": 183,
+          "total_ms": 268.6331,
+          "mean_ms": 1.4679404371584701,
+          "max_ms": 4.3133,
+          "p50_upper_ms": 2.097152,
+          "p95_upper_ms": 2.097152
+        },
+        "action_wall": {
+          "samples": 183,
+          "total_ms": 94937.1929,
+          "mean_ms": 518.782474863388,
+          "max_ms": 9544.0804,
+          "p50_upper_ms": 536.870912,
+          "p95_upper_ms": 2147.483648
+        },
+        "checkpoint": {
+          "samples": 377,
+          "total_ms": 4833.4804,
+          "mean_ms": 12.820902917771884,
+          "max_ms": 151.7995,
+          "p50_upper_ms": 16.777216,
+          "p95_upper_ms": 33.554432
+        },
+        "world_verify": {
+          "samples": 1,
+          "total_ms": 1.5258,
+          "mean_ms": 1.5258,
+          "max_ms": 1.5258,
+          "p50_upper_ms": 1.5258,
+          "p95_upper_ms": 1.5258
+        }
+      },
+      "outcomes": {
+        "placed": 183,
+        "warehouse_transfer": 4
+      },
+      "movement_blocks": 187.24837526073935,
+      "observed_tps": 20.010600942337955,
+      "observed_fps_mean": 39.96842105263158,
+      "fps_samples": 95,
+      "action_latency": {
+        "mean_ms": 518.7830901639344,
+        "p50_ms": 297.3510000000024,
+        "p95_ms": 1550.0606000000007
+      },
+      "verification": {
+        "passed": true,
+        "matched": 183,
+        "non_target_cells_checked": 5613,
+        "outside_approved_cells_checked": 1806,
+        "target_mismatches": [],
+        "retired_mismatches": [],
+        "non_target_changes": 0,
+        "outside_approved_changes": 0
+      },
+      "walkable_interior_cells": 33,
+      "native_save": true,
+      "planner": {
+        "state": "applied",
+        "group": "roof_rear",
+        "first_local": [
+          -3,
+          3,
+          0
+        ],
+        "reason": "按业主要求先做背侧，留前侧通行。坐标换算后，画面中的石砖在前侧；背侧有49个Forge已核对站位，未见明确阻碍，保留天然一级高差。",
+        "processed_at_start": 7,
+        "processed_at_result": 47,
+        "model_start_ms": 2770.1756,
+        "resolved_ms": 14791.9644,
+        "first_roof_step": 120,
+        "interval_ms": 12021.7888,
+        "observed_action_span_ms": 10747.5181,
+        "successful_placements": 40,
+        "deterministic_first_roof": [
+          -3,
+          3,
+          -4
+        ],
+        "model_first_roof": [
+          -3,
+          3,
+          0
+        ],
+        "first_placement_while_thinking_step": 7,
+        "last_placement_while_thinking_step": 46
+      },
+      "planner_denials": {
+        "invalid_group": "invalid_planning_group",
+        "duplicate_result": "stale_planning",
+        "after_reopen": "stale_planning",
+        "unloaded": "stale_planning"
+      },
+      "native_reopen": {
+        "world_matches_checkpoint": true,
+        "npc_reused": true,
+        "inventory_matches_checkpoint": true,
+        "conflicts": [],
+        "interaction_confirmed": true,
+        "warehouse_matches_checkpoint": true,
+        "warehouse_transfer_confirmed": true
+      },
+      "chunk_unload_recovered": true,
+      "bridge_reconnected": true,
+      "reused_survey_design": true,
+      "model_turns": [
+        {
+          "status": "completed",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "elapsed_ms": 22824,
+          "sdk_duration_ms": 14427,
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 13581,
+            "output_tokens": 485,
+            "reasoning_output_tokens": 211,
+            "total_tokens": 14066
+          },
+          "charged_tokens": 14066,
+          "image_sha256": "bb019dd9efda432e9198d5d780b932755bb69fc251d53e92f17e35e7521f8d84",
+          "image_size": [
+            731,
+            432
+          ],
+          "context_bytes": 4845,
+          "case": "C1",
+          "purpose": "survey",
+          "decision": null
+        },
+        {
+          "status": "completed",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "elapsed_ms": 11590,
+          "sdk_duration_ms": 9655,
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 12641,
+            "output_tokens": 207,
+            "reasoning_output_tokens": 132,
+            "total_tokens": 12848
+          },
+          "charged_tokens": 12848,
+          "image_sha256": "d29c32bb4d071c363fd9a437246a517e645358227b7e47ad82aa727d7e752f13",
+          "image_size": [
+            731,
+            432
+          ],
+          "context_bytes": 4531,
+          "case": "C1",
+          "purpose": "roof_planning",
+          "decision": "observe"
+        },
+        {
+          "status": "completed",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "elapsed_ms": 11714,
+          "sdk_duration_ms": 9870,
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 9600,
+            "input_tokens": 12497,
+            "output_tokens": 261,
+            "reasoning_output_tokens": 200,
+            "total_tokens": 12758
+          },
+          "charged_tokens": 12758,
+          "image_sha256": "dc4bb8efba2d22f8ed97d37111dd9c5c819aa3326979cc802bbf5ab4f7bde112",
+          "image_size": [
+            731,
+            432
+          ],
+          "context_bytes": 3956,
+          "case": "C1",
+          "purpose": "roof_planning",
+          "decision": "keep"
+        },
+        {
+          "status": "completed",
+          "requested_model": "gpt-6.2-sol",
+          "requested_effort": "medium",
+          "effective": {
+            "model": "gpt-6.2-sol",
+            "model_provider": "openai",
+            "effort": "medium",
+            "sandbox": "readOnly",
+            "sandbox_network": false,
+            "approval": "never",
+            "ephemeral": true,
+            "instruction_sources": 0
+          },
+          "elapsed_ms": 11984,
+          "sdk_duration_ms": 6924,
+          "tokens": {
+            "cache_write_input_tokens": 0,
+            "cached_input_tokens": 0,
+            "input_tokens": 12863,
+            "output_tokens": 123,
+            "reasoning_output_tokens": 41,
+            "total_tokens": 12986
+          },
+          "charged_tokens": 12986,
+          "image_sha256": "a2ebe8c9bd47c50b5750f91453115961fbc23257d8b11cbdb0c0f8908321c54f",
+          "image_size": [
+            731,
+            432
+          ],
+          "context_bytes": 4811,
+          "case": "C3",
+          "purpose": "roof_planning",
+          "decision": "prioritize"
+        }
+      ],
+      "on_route_frame": {
+        "paired_tick_delta": 0,
+        "sample_span_ticks": 3,
+        "capture_ms": 192.032,
+        "fps": 40,
+        "processed": 6,
+        "pose": "route_first_person"
+      },
+      "wall_reduction_percent_vs_A": 42.55181817873138
+    }
+  },
+  "initial_interrupted_A": {
+    "status": "failed",
+    "local": [
+      -3,
+      2,
+      4
+    ],
+    "reason": "placement_rejected",
+    "actual": {
+      "id": "minecraft:air",
+      "properties": {}
+    },
+    "profile_ms": 87745.1923,
+    "interaction": {
+      "method": "ServerPlayerGameMode.useItemOn",
+      "right_click_events": 1,
+      "place_events": 0,
+      "interaction": "FAIL",
+      "item_before": 13,
+      "item_after": 13,
+      "reach": 4.236027768446913
+    }
+  },
+  "prior_C1_kept_order_after_second_frame": {
+    "state": "kept",
+    "reason": "画面未能确认入口通行或后侧作业空间，后侧地面又低一格；无法再取景，暂维持前侧优先。",
+    "processed_at_start": 6,
+    "processed_at_result": 63,
+    "model_start_ms": 2061.1083,
+    "resolved_ms": 25852.4038,
+    "eligible_actions_during_thinking": 57,
+    "native_build_ms": 102963.511,
+    "native_placed": 183,
+    "first_roof_local": [
+      -3,
+      3,
+      -4
+    ],
+    "on_route_frames": [
+      {
+        "paired_tick_delta": 0,
+        "sample_span_ticks": 2,
+        "capture_ms": 167.2075,
+        "fps": 40,
+        "processed": 6,
+        "pose": "route_first_person"
+      },
+      {
+        "paired_tick_delta": 0,
+        "sample_span_ticks": 2,
+        "capture_ms": 149.7291,
+        "fps": 40,
+        "processed": 41,
+        "pose": "route_first_person"
+      }
+    ],
+    "model_requested_followup": true
+  },
+  "prior_C2_fell_back_on_frame_contract": {
+    "native_build_ms": 102928.3729,
+    "native_placed": 183,
+    "reason": "planning_frame_unregistered",
+    "remote_model_turns": 0,
+    "first_roof_local": [
+      -3,
+      3,
+      -4
+    ]
+  }
+}

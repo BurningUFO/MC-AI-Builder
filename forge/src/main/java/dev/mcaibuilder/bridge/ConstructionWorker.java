@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,9 +29,15 @@ interface ConstructionWorker {
     boolean hasSupply(WorkStep step);
 
     JsonObject resupply(Warehouse.Source source, String stockHash, List<WorkStep> steps, int cursor,
-                        Consumer<JsonObject> beforeTransfer);
+                        boolean batchNearbyWork, Consumer<JsonObject> beforeTransfer);
 
     JsonObject status();
+
+    void profile(BuildPerformance performance);
+
+    String activity();
+
+    Vec3 position();
 
     void startSurvey();
 

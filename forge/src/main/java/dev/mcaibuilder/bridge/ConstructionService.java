@@ -35,8 +35,9 @@ import dev.mcaibuilder.bridge.ConstructionJob.State;
 
 final class ConstructionService {
     private static final int ACTION_INTERVAL_TICKS = 6;
+    private static final int NEARBY_PLACEMENT_INTERVAL_TICKS = 2;
     private static final Set<String> RETRYABLE = Set.of("navigation_timeout",
-            "no_reachable_placement_stance", "no_reachable_break_stance");
+            "no_reachable_placement_stance", "no_reachable_break_stance", "placement_obstructed");
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 
     private record Registration(BuildPlan plan, JsonObject payload, String disposition) {
@@ -83,6 +84,7 @@ final class ConstructionService {
     }
 
     JsonObject submit(JsonObject payload, UUID owner, boolean surveyed) {
+        long approvalStarted = BuildPerformance.clock();
         requireWritable();
         Warehouse.Source source = requireWarehouse(owner);
         UUID id = BuildPlan.id(payload, "plan_id");
@@ -112,6 +114,7 @@ final class ConstructionService {
         registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
         current = new ConstructionJob(plan, worker.id(), null, null, snapshot, steps, cargo());
         current.supply = supply;
+        startPerformance(approvalStarted);
         schedule();
         persist();
         ForgeBridge.LOGGER.info("m1_submit {} {} targets={}", id, plan.buildingId(), plan.targets().size());
@@ -403,9 +406,7 @@ final class ConstructionService {
         }
         BuildPlan next = validateRevision(baseId, payload);
         requireWarehouseClear(current.supply == null ? null : current.supply.source, next);
-        worker.halt();
-        current.state = State.PAUSED;
-        current.reason = "change_pending";
+        pause("change_pending");
         if (current.supply != null) {
             current.supply.phase = "paused";
         }
@@ -451,6 +452,7 @@ final class ConstructionService {
     }
 
     JsonObject approve(UUID id, String reviewedHash, UUID owner) {
+        long approvalStarted = BuildPerformance.clock();
         requireWritable();
         if (site.survival()) {
             requireCurrentWarehouse(owner);
@@ -484,6 +486,7 @@ final class ConstructionService {
         archiveCurrent(next.id());
         current = new ConstructionJob(next, worker.id(), predecessor, check.report(), snapshot, check.steps(), cargo());
         current.supply = supply;
+        startPerformance(approvalStarted);
         registered.put(id, candidate.withDisposition("approved"));
         candidate = null;
         schedule();
@@ -660,7 +663,8 @@ final class ConstructionService {
     private void resupply() {
         SupplyCheckpoint supply = current.supply;
         supply.phase = "to_warehouse";
-        JsonObject transfer = worker.resupply(supply.source, supply.stockHash, current.steps, current.cursor, intent -> {
+        JsonObject transfer = worker.resupply(supply.source, supply.stockHash, current.steps, current.cursor,
+                current.plan.optimizedCottage(), intent -> {
             if (supply.intent != null || current.intent >= 0) {
                 throw Wire.conflict("warehouse_checkpoint_mismatch", "上一次交互尚未核对。");
             }
@@ -670,6 +674,7 @@ final class ConstructionService {
             persist();
         });
         if (transfer != null) {
+            current.performance.event("warehouse_transfer");
             finishTransfer(transfer, false);
             schedule();
             persist();
@@ -772,8 +777,63 @@ final class ConstructionService {
         worker.prepare(supplied, steps.stream().anyMatch(WorkStep::remove));
     }
 
+    private void startPerformance(long approvalStarted) {
+        if (BuildPerformance.ENABLED) {
+            worker.profile(current.performance);
+            current.performance.begin(level.getGameTime(), worker.position());
+            current.performance.span(BuildPerformance.Span.APPROVAL, approvalStarted);
+        }
+    }
+
+    void recordApprovalWait(long issued) {
+        if (current != null) {
+            current.performance.span(BuildPerformance.Span.APPROVAL_WAIT, issued);
+        }
+    }
+
+    void endPerformanceTick(long serverTickStarted) {
+        if (!BuildPerformance.ENABLED || current == null || !current.performance.measuring()) {
+            return;
+        }
+        current.performance.span(BuildPerformance.Span.SERVER_TICK, serverTickStarted);
+        current.performance.sample(level.getGameTime(), activity(), worker.position());
+        if (!current.state.active()) {
+            current.performance.stop();
+        }
+    }
+
+    String activity() {
+        if (current == null) {
+            return "idle";
+        }
+        if (current.state == State.PAUSED) {
+            return "paused:" + current.reason;
+        }
+        if (current.state != State.RUNNING) {
+            return current.state.wire();
+        }
+        if (level.getGameTime() < current.nextTick) {
+            return "scheduled_wait";
+        }
+        if (current.supply != null && current.supply.phase.equals("to_warehouse")) {
+            return "to_warehouse";
+        }
+        String workerActivity = worker.activity();
+        if (current.supply != null && current.supply.phase.equals("to_site") && workerActivity.equals("navigating")) {
+            return "warehouse_return";
+        }
+        return workerActivity;
+    }
+
     private void schedule() {
         current.nextTick = level.getGameTime() + ACTION_INTERVAL_TICKS;
+    }
+
+    private void scheduleAfter(WorkStep previous) {
+        WorkStep next = current.steps.get(current.cursor);
+        boolean adjacent = current.plan.optimizedCottage() && !previous.remove() && !next.remove()
+                && next.before().isAir() && previous.pos().distSqr(next.pos()) <= 2;
+        current.nextTick = level.getGameTime() + (adjacent ? NEARBY_PLACEMENT_INTERVAL_TICKS : ACTION_INTERVAL_TICKS);
     }
 
     JsonObject control(String operation, UUID id) {
@@ -805,6 +865,7 @@ final class ConstructionService {
                     if (candidate != null) {
                         throw Wire.conflict("change_pending", "Approve or reject the pending change first");
                     }
+                    long recoveryStarted = BuildPerformance.clock();
                     site.requireLoaded(level);
                     current.conflicts = checkpointConflicts();
                     if (!current.conflicts.isEmpty()) {
@@ -822,6 +883,8 @@ final class ConstructionService {
                     current.reason = null;
                     current.verification = null;
                     current.retries = 0;
+                    startPerformance(0);
+                    current.performance.span(BuildPerformance.Span.RECOVERY, recoveryStarted);
                     schedule();
                     persist();
                 }
@@ -861,6 +924,8 @@ final class ConstructionService {
         worker.halt();
         current.state = State.PAUSED;
         current.reason = reason;
+        current.performance.event(reason);
+        current.planning.invalidate(reason);
         if (current.supply != null) {
             current.supply.phase = "paused";
         }
@@ -882,13 +947,22 @@ final class ConstructionService {
     }
 
     void tick() {
+        if (current != null) {
+            current.planning.expire(current);
+        }
         if (journalBlocked || current == null || current.state != State.RUNNING || level.getGameTime() < current.nextTick) {
             return;
         }
+        long tickStarted = BuildPerformance.clock();
         try {
             site.requireLoaded(level);
             if (current.supply != null) {
-                checkLiveSupply();
+                long inventoryStarted = BuildPerformance.clock();
+                try {
+                    checkLiveSupply();
+                } finally {
+                    current.performance.span(BuildPerformance.Span.INVENTORY, inventoryStarted);
+                }
             }
             executeNext();
         } catch (Wire.Problem problem) {
@@ -901,6 +975,8 @@ final class ConstructionService {
             ForgeBridge.LOGGER.error("Construction worker failed for job {}", current.plan.id(), error);
             pause("worker_error");
             persistAfterFailure();
+        } finally {
+            current.performance.span(BuildPerformance.Span.CONSTRUCTION_TICK, tickStarted);
         }
     }
 
@@ -959,6 +1035,10 @@ final class ConstructionService {
         if (result.evidence() != null) {
             record.add("interaction_evidence", result.evidence());
         }
+        if (BuildPerformance.ENABLED) {
+            record.addProperty("profile_ms", current.performance.offsetMs());
+            current.performance.action(retry ? "retrying:" + result.reason() : result.status());
+        }
         current.records.add(record);
         ForgeBridge.LOGGER.info("construction_action {} {} {}", current.plan.id(), current.cursor, record);
         if (retry) {
@@ -967,6 +1047,7 @@ final class ConstructionService {
         } else if (site.worldCopy() && navigationFailure) {
             pause(result.reason());
             notifySupplyPause(Wire.conflict(result.reason(), switch (result.reason()) {
+                case "placement_obstructed" -> "有实体持续占用放置空间。请让出目标位置后确认继续。";
                 case "no_reachable_break_stance" -> "找不到区域内可达的拆除站位。";
                 case "no_reachable_placement_stance" -> "找不到区域内可达的放置站位。";
                 default -> "NPC 导航超时。请检查通道和地面高差。";
@@ -995,7 +1076,7 @@ final class ConstructionService {
             if (current.cursor == current.steps.size()) {
                 finish(State.COMPLETED, null);
             } else {
-                schedule();
+                scheduleAfter(step);
             }
         }
         persist();
@@ -1060,6 +1141,8 @@ final class ConstructionService {
         worker.halt();
         current.state = state;
         current.reason = reason;
+        current.planning.invalidate(reason == null ? state.wire() : reason);
+        long verificationStarted = BuildPerformance.clock();
         try {
             site.requireLoaded(level);
             current.verification = verify();
@@ -1079,6 +1162,7 @@ final class ConstructionService {
         if (current.supply != null) {
             current.supply.phase = current.state.wire();
         }
+        current.performance.span(BuildPerformance.Span.WORLD_VERIFY, verificationStarted);
         ForgeBridge.LOGGER.info("construction_finish {} state={} reason={} verification={}",
                 current.plan.id(), current.state.wire(), current.reason, current.verification);
     }
@@ -1290,6 +1374,116 @@ final class ConstructionService {
         return !finalReview && current.state == State.COMPLETED ? "final" : null;
     }
 
+    boolean offerPlanning(UUID job) {
+        return site.worldCopy() && !journalBlocked && candidate == null && job != null
+                && job.equals(currentJobId()) && current.state == State.RUNNING;
+    }
+
+    JsonObject executionState() {
+        JsonObject result = observationJob();
+        result.addProperty("activity", activity());
+        result.addProperty("awaiting_approval", candidate != null);
+        if (current != null) {
+            if (current.reason != null) {
+                result.addProperty("reason", current.reason);
+            }
+            if (current.planning.hasRecord()) {
+                result.add("planning", current.planning.status());
+            }
+        }
+        return result;
+    }
+
+    JsonObject planning(String operation, ServerPlayer player, JsonObject data, NpcObservations observations) {
+        UUID owner = player.getUUID();
+        if (operation.equals("claim")) {
+            if (!offerPlanning(currentJobId())) {
+                return new JsonObject();
+            }
+            requireCurrentWarehouse(owner);
+            JsonObject offer = current.planning.claim(current, owner, level.getGameTime(), this::safeRoofFeet);
+            if (!offer.entrySet().isEmpty()) {
+                if (current.supply != null) {
+                    JsonObject stock = Warehouse.summary(level, current.steps, offer.get("first_step").getAsInt(),
+                            worker.inventory(), Warehouse.open(level, current.supply.source), new JsonArray());
+                    offer.add("roof_supply", stock.getAsJsonObject("requirements"));
+                }
+                persist();
+            }
+            return offer;
+        }
+        requireWritable();
+        requireCurrent(BuildPlan.id(data, "job_id"));
+        UUID lease = BuildPlan.id(data, "lease");
+        if (!offerPlanning(currentJobId())) {
+            throw Wire.conflict("stale_planning", "施工已暂停或变更，策略已失效。");
+        }
+        requireCurrentWarehouse(owner);
+        current.planning.require(current, owner, lease);
+        if (operation.equals("capture")) {
+            if (observations == null) {
+                throw Wire.conflict("observation_unavailable", "此世界没有本地 NPC 相机。");
+            }
+            UUID id = current.planning.capture(() -> observations.request(player, this, true));
+            JsonObject response = new JsonObject();
+            response.addProperty("observation_id", id.toString());
+            return response;
+        }
+        if (operation.equals("thinking")) {
+            UUID id = data.has("observation_id") ? BuildPlan.id(data, "observation_id") : null;
+            if (id != null && (observations == null || !current.planning.ownsCapture(id)
+                    || !observations.pairedPlanning(id, this))) {
+                throw Wire.conflict("world_observation_stale", "规划图像和当前任务未成功配对。");
+            }
+            current.planning.thinking(current, level.getGameTime(), id == null ? null : id.toString());
+            return current.planning.status();
+        }
+        if (!operation.equals("resolve")) {
+            throw Wire.invalid("Unknown planning operation");
+        }
+        String group = data.has("group") ? Wire.string(data.get("group"), "group") : null;
+        String reason = Wire.string(data.get("reason"), "reason").strip();
+        if (reason.isEmpty() || reason.length() > 160 || reason.codePoints().anyMatch(Character::isISOControl)) {
+            throw Wire.invalid("Invalid planning reason");
+        }
+        if (current.intent >= 0 || current.supply != null && current.supply.intent != null) {
+            throw Wire.conflict("planning_interaction_in_flight", "当前交互仍在核账，保留原施工顺序。");
+        }
+        if (group != null) {
+            site.requireLoaded(level);
+            if (current.supply != null) {
+                checkLiveSupply();
+            }
+        }
+        current.planning.resolve(current, group, reason, level.getGameTime(), step -> {
+            BlockState state = level.getBlockState(step.pos());
+            if (state != step.before() || state != current.snapshot.expected(step.pos())
+                    || current.snapshot.modifiedByPlayer(step.pos())) {
+                throw Wire.conflict("planning_world_changed", "工作组内的方块已发生变化，保留原施工顺序。");
+            }
+            requireSafeMutation(step, current.predecessor != null);
+        }, this::safeRoofFeet);
+        persist();
+        return current.planning.status();
+    }
+
+    private boolean safeRoofFeet(BlockPos feet) {
+        return site.area().contains(feet) && site.area().contains(feet.above()) && level.hasChunkAt(feet)
+                && current.plan.at(feet) == null && current.plan.at(feet.above()) == null
+                && BuildTerrain.canStand(level, feet);
+    }
+
+    JsonObject planningFrame(BlockPos sampleOrigin) {
+        JsonObject frame = new JsonObject();
+        frame.add("origin_from_scene", Wire.position(current.plan.origin().subtract(sampleOrigin)));
+        frame.add("clockwise_degrees", current.plan.versionInfo().get("rotation"));
+        return frame;
+    }
+
+    boolean planningHint(String message) {
+        return current.planning.hint(message);
+    }
+
     JsonObject observationJob() {
         JsonObject info = new JsonObject();
         if (current == null) {
@@ -1354,6 +1548,7 @@ final class ConstructionService {
         response.addProperty("journal_available", !journalBlocked);
         response.addProperty("change_pending", candidate != null);
         response.addProperty("supply_mode", site.survival() ? "survival" : "preset");
+        response.addProperty("activity", activity());
         if (detailed) {
             response.add("modded_materials", moddedMaterials());
         }
@@ -1406,6 +1601,7 @@ final class ConstructionService {
     }
 
     private void persist() {
+        long checkpointStarted = BuildPerformance.clock();
         requireWritable();
         JsonObject state = new JsonObject();
         JsonArray plans = new JsonArray();
@@ -1440,6 +1636,10 @@ final class ConstructionService {
             }
             ForgeBridge.LOGGER.error("Could not commit the construction journal", error);
             throw new Wire.Problem(503, "journal_unavailable", "The construction journal could not be committed");
+        } finally {
+            if (current != null) {
+                current.performance.span(BuildPerformance.Span.CHECKPOINT, checkpointStarted);
+            }
         }
     }
 

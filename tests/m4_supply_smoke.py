@@ -64,12 +64,12 @@ def when_job(child, bridge, predicate, description, *, seconds=95):
     return wait_for(child, observe, description, seconds=seconds)
 
 
-def verify_receipts(receipts):
+def verify_receipts(receipts, *, max_items=16):
     moved = Counter()
     for trip in receipts:
         require(trip["right_click_events"] == trip["container_open_events"] == 1 and trip["reach"] <= 4.5,
                 "Each shipment used a reachable native chest interaction")
-        require(0 < sum(trip["moved"].values()) <= 16, "A trip carries at most the bounded batch size")
+        require(0 < sum(trip["moved"].values()) <= max_items, "A trip carries at most the bounded batch size")
         items = set().union(*(trip[key] for key in ("warehouse_before", "warehouse_after", "npc_before", "npc_after", "moved")))
         for kind in items:
             amount = trip["moved"].get(kind, 0)

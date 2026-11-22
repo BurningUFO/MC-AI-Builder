@@ -92,6 +92,15 @@ final class BridgeHttp implements AutoCloseable {
         if (copy != null) {
             health.add("site_authorization", copy.status());
         }
+        ConstructionService executor = construction.get();
+        JsonObject execution = executor == null ? new JsonObject() : executor.executionState();
+        if (service != null && service.awaitingApproval()) {
+            execution.addProperty("awaiting_approval", true);
+        }
+        if (observations != null) {
+            execution.addProperty("observation", observations.captureStatus());
+        }
+        health.add("execution", execution);
         return health;
     }
 
@@ -158,12 +167,13 @@ final class BridgeHttp implements AutoCloseable {
                 requireMethod(method, "GET");
                 yield onGameThread(this::inbox);
             }
-            case "/architect/stage", "/architect/answer", "/architect/pause", "/architect/survey" -> {
+            case "/architect/stage", "/architect/answer", "/architect/pause", "/architect/survey", "/architect/planning" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
                 yield onGameThread(() -> switch (path) {
                     case "/architect/stage" -> architect().stage(body, observations);
                     case "/architect/survey" -> architect().survey(body, observations);
+                    case "/architect/planning" -> architect().planning(body, observations);
                     case "/architect/answer" -> architect().answer(body, observations);
                     default -> architect().pauseRequest(body);
                 });

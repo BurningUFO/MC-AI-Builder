@@ -157,8 +157,8 @@ final class NpcCameraCapture {
                 || eye.distanceToSqr(current.target.getEyePosition(delta)) > 0.035 * 0.035
                 || Math.abs(Mth.wrapDegrees(camera.getYRot() - current.target.getViewYRot(delta))) > 0.1
                 || Math.abs(camera.getXRot() - current.target.getViewXRot(delta)) > 0.1
-                || Math.abs(Mth.wrapDegrees(camera.getYRot() - current.request.yaw())) > AIM_TOLERANCE
-                || Math.abs(camera.getXRot() - current.request.pitch()) > AIM_TOLERANCE) {
+                || !current.request.planning() && (Math.abs(Mth.wrapDegrees(camera.getYRot() - current.request.yaw())) > AIM_TOLERANCE
+                || Math.abs(camera.getXRot() - current.request.pitch()) > AIM_TOLERANCE)) {
             return;
         }
         double fov = Math.toDegrees(2 * Math.atan(1.0 / event.getProjectionMatrix().m11()));

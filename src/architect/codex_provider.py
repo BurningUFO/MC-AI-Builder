@@ -20,9 +20,11 @@ from src.architect.codex_sdk import (
 from src.architect.design import (COTTAGE_ROOFS, COTTAGE_SIZES, DESIGNS, ENTRIES, GLASS, INTERIORS,
                                   MASONRY, ROOFS, ROOF_FORMS, STYLES, WINDOW_LAYOUTS, WOODS)
 from src.architect.observations import rgb_png
+from src.architect.telemetry import model_turn
 from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudgetExhausted, ModelError,
                                      ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
+from src.architect import planning
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
 from src.architect import feedback, survey
 
@@ -161,6 +163,16 @@ class CodexProvider:
             raise ValueError("Feedback prompt exceeds its input limit")
         return self._vision_decision(message, image, observation_id, allow_upload, self._feedback_turn, "feedback")
 
+    def plan_with_metrics(self, payload, image=None, *, observation_id=None, allow_upload=False):
+        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        if len(message.encode("utf-8")) > 7600:
+            raise InvalidOutput("Planning prompt exceeds its input limit")
+        if image is not None:
+            return self._vision_decision(message, image, observation_id, allow_upload, self._planning_turn, "planning")
+        metrics = {"requested_model": self.model, "requested_effort": self.effort, "status": "reserved",
+                   "context_bytes": len(message.encode("utf-8"))}
+        return self._metered(metrics, lambda: self._planning_turn(message, None, metrics), "planning")
+
     def _vision_decision(self, payload, image, observation_id, allow_upload, invoke, kind):
         if allow_upload is not True:
             raise ValueError("Explicit image-sharing approval is required.")
@@ -204,6 +216,7 @@ class CodexProvider:
             raise ModelError(f"Codex {metrics['error']['kind']}") from None
         finally:
             metrics["elapsed_ms"] = round((perf_counter() - started) * 1000)
+            model_turn(kind, metrics)
             if self.budget and not self.budget.finish(sequence, metrics):
                 raise ModelBudgetExhausted("Codex token budget exceeded")
         return result, metrics
@@ -227,6 +240,13 @@ class CodexProvider:
     async def _feedback_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),
                                     lambda output: feedback.decode(output, DESIGN_FIELDS), metrics)
+
+    async def _planning_turn(self, payload, image, metrics):
+        from openai_codex import ExternalMessage
+
+        inputs = scene_input(payload, image) if image is not None else ExternalMessage(
+            tool_name="construction_context", content=payload)
+        return await self._sdk_turn(inputs, planning.PROMPT, planning.SCHEMA, planning.decode, metrics)
 
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread

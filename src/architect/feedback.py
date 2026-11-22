@@ -9,6 +9,7 @@ from src.architect.providers import InvalidOutput, ModelBudgetExhausted, _bad_co
 from src.architect.scene import scene_context_message
 from src.architect.survey import SiteView, collect
 from src.core.building import write_json
+from src.architect.telemetry import timed
 
 EVENTS = {"checkpoint", "failure", "requested", "final"}
 DECISIONS = ("continue", "observe_again", "report", "revise")
@@ -87,7 +88,8 @@ def check(runtime, request, message, *, safe, prepared=None):
     used = 0
     try:
         for step in (1, 2):
-            result = collect(runtime.client, request_id, step, action)
+            with timed("visual_capture", step=step):
+                result = collect(runtime.client, request_id, step, action)
             trace["steps"].append(result)
             if result["capture_status"] != "captured":
                 failure = result.get("capture_error", "visual_unavailable")
@@ -96,7 +98,8 @@ def check(runtime, request, message, *, safe, prepared=None):
                     action = "observe_here"
                     continue
                 raise DesignError(f"本次视觉复查失败（{failure}）。当前施工等待玩家操作。")
-            view = SiteView.read(runtime.client, cache, result)
+            with timed("world_sample", observation_id=result["observation_id"]):
+                view = SiteView.read(runtime.client, cache, result)
             if view.context["construction"]["building_version"] != current["building_version"]:
                 raise DesignError("观测版本已变化，请对当前版本重新复查。")
             trace["steps"][-1]["relative_scene"] = view.context

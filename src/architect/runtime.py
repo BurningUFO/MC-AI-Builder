@@ -1,7 +1,7 @@
 """Poll Forge, resolve structured intents and publish local review artifacts."""
 
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
+from contextlib import ExitStack, closing
 from dataclasses import asdict
 from functools import wraps
 import json
@@ -10,17 +10,19 @@ import re
 import sqlite3
 import subprocess
 from threading import Lock
-from time import monotonic, sleep
+from time import monotonic, perf_counter_ns, sleep
 from uuid import NAMESPACE_URL, UUID, uuid5
 from zipfile import BadZipFile
 
 from src.architect.design import DESIGNS, DesignError, placement
+from src.architect.diagnostics import diagnose
 from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
 from src.core.building import write_json
-from src.architect import feedback, survey
+from src.architect import feedback, planning, survey
+from src.architect.telemetry import Trace, timed
 
 PREVIEW_ACTIONS = {"preview_design", "review_changes", "request_approval"}
 STATUS_ACTIONS = {"get_build_status", "get_construction_progress"}
@@ -49,6 +51,9 @@ class ArchitectClient(BridgeClient):
         if offset is not None:
             body["offset"] = offset
         return self._call("architect/survey", body)
+
+    def planning(self, operation, **data):
+        return self._call("architect/planning", {"operation": operation, **data})
 
     def inbox(self):
         return self._call("architect/inbox")["requests"]
@@ -171,7 +176,8 @@ def describe_supply(supply, *, approval=False):
 
 
 class Runtime:
-    def __init__(self, client, provider, store, instance, blender, *, render=preview_review, share_observations=False):
+    def __init__(self, client, provider, store, instance, blender, *, render=preview_review,
+                 share_observations=False, parallel_planning=False):
         self.client = client
         self.provider = provider
         self.store = store
@@ -179,7 +185,12 @@ class Runtime:
         self.blender = blender
         self.render = render
         self.share_observations = share_observations
+        self.parallel_planning = parallel_planning
+        self.observation_cache = Path(__file__).resolve().parents[2] / ".cache" / "observations" / store.root.parent.name
+        if parallel_planning and not callable(getattr(provider, "plan_with_metrics", None)):
+            raise ValueError("Parallel planning requires a structured planning provider.")
         self.render_lock = Lock()
+        self.trace = Trace(store.root / "performance.jsonl")
         self.redactions = (client.token, getattr(provider, "key", None))
 
     @staticmethod
@@ -222,7 +233,17 @@ class Runtime:
                 context["design"]["origin"] = relative(context["design"]["origin"])
         return context
 
-    def handle(self, request):
+    def handle(self, request, queued=None):
+        job = request.get("job", {})
+        with self.trace.bind(request_id=request["request_id"], job_id=job.get("job_id"),
+                             building_version=job.get("building_version")):
+            if queued is not None:
+                self.trace.emit("runtime_queue", duration_ms=(perf_counter_ns() - queued) / 1e6,
+                                bridge_queue_ms=request.get("bridge_queue_ms"))
+            with timed("runtime_request"):
+                self._handle(request)
+
+    def _handle(self, request):
         request_id = request["request_id"]
         message = scrub(request["message"], self.redactions)
         action = "error"
@@ -246,7 +267,8 @@ class Runtime:
                     action = prepared["action"]
             elif prepared is None:
                 context = self.language_context(request, message)
-                intent = parse_intent(self.provider.decide(context))
+                with timed("intent_provider"):
+                    intent = parse_intent(self.provider.decide(context))
                 action = intent["action"]
             else:
                 action = prepared["action"]
@@ -254,51 +276,39 @@ class Runtime:
             if not request.get("survey") and not request.get("feedback"):
                 self.dispatch(request, intent, prepared)
         except BridgeError as error:
-            code = error.body.get("error")
+            code = error.body.get("error") or "bridge_error"
+            diagnostic = self.record_diagnostic(code)
             if code == "stale_request":
                 return
-            messages = {
-                "review_changed": "现场已变化。请重新审阅，生成的旧确认无法施工。",
-                "occupied_target": "目标位置已有不相符的方块。请指定空闲施工位置。",
-                "invalid_request": "方案无法通过施工范围或方块约束。请调整尺寸、坐标或材料。",
-                "job_active": "已有施工正在进行。请修改属于你的当前任务，或等待当前任务结束。",
-                "no_draft": "目前没有候选设计。请先描述要建的窗墙或住宅。",
-                "warehouse_not_approved": "请先到供料箱旁，用 /architect supply x y z 批准一个原版单箱。",
-                "warehouse_unavailable": "供料箱暂不可用。请核对获准的原版单箱。",
-                "warehouse_job_scope": "这项施工使用了另一份供料授权。",
-                "warehouse_player_approval": "需要由供料箱的授权玩家批准。",
-                "checkpoint_npc_unavailable": "当前无法核对原 NPC 或其库存。请回到已批准区域等区块加载，再审阅。",
-                "site_not_loaded": "批准的施工区尚未加载，请回到附近后重新审阅。",
-                "survey_frame_stale": "这一轮现场观察已过期或变化，请重新观察后再审阅。",
-                "world_observation_stale": "现场或 NPC 已变化，请重新观察后再审阅。",
-            }
-            self.client.answer(request_id, messages.get(code, "本次无法继续。请重新询问进度或审阅当前设计。"))
-            action = code or "bridge_error"
+            self.client.answer(request_id, diagnostic.recovery)
+            action = code
         except DesignError as error:
             self.client.answer(request_id, safe_message(str(error), self.redactions))
             action = "design_error"
-        except ModelTimeout:
-            self.client.answer(request_id, "模型服务响应超时。请重发需求，施工状态保持原样。")
-            action = "model_timeout"
-        except InvalidOutput:
-            self.client.answer(request_id, "模型输出未通过建筑意图校验。请重述尺寸或材料。")
-            action = "invalid_model_output"
-        except ModelBudgetExhausted:
-            self.client.answer(request_id, "本地 Codex 预算已用完。请在启动器查看请求数和 Token 用量。")
-            action = "model_budget_exhausted"
-        except ModelError:
-            self.client.answer(request_id, "模型服务暂时不可用。请稍后重发需求。")
-            action = "model_unavailable"
+            self.record_diagnostic(action)
+        except (ModelTimeout, InvalidOutput, ModelBudgetExhausted, ModelError) as error:
+            action = {ModelTimeout: "model_timeout", InvalidOutput: "invalid_model_output",
+                      ModelBudgetExhausted: "model_budget_exhausted"}.get(type(error), "model_unavailable")
+            self.client.answer(request_id, self.record_diagnostic(action).recovery)
         except (subprocess.SubprocessError, BadZipFile, FileNotFoundError, ValueError):
-            self.client.answer(request_id, "暂时无法生成三维预览。请检查本地 Blender 和资源后重新预览。")
             action = "preview_error"
+            self.client.answer(request_id, self.record_diagnostic(action).recovery)
         self.store.remember(request_id, self.conversation_key(request), message, action)
+
+    def record_diagnostic(self, code):
+        info = diagnose(code)
+        self.trace.emit("diagnostic", code=code, component=info.component, kind=info.kind)
+        return info
 
     @staticmethod
     def proposal_id(request_id):
         return str(uuid5(NAMESPACE_URL, "minecraft-architect:" + str(UUID(request_id))))
 
     def design(self, request, intent):
+        with timed("building_generation"):
+            return self._design(request, intent)
+
+    def _design(self, request, intent):
         action = intent["action"]
         prior = None
         old_version = 0
@@ -355,9 +365,11 @@ class Runtime:
         return spec
 
     def review(self, request_id, mode, plan=None, *, observation_reason=""):
-        report = self.client.stage(request_id, mode, plan)
+        with timed("bridge_review"):
+            report = self.client.stage(request_id, mode, plan)
         version = report["new_version"]
         plan_id = version["plan_id"]
+        self.trace.emit("proposal", request_id=request_id, plan_id=plan_id, building_version=version["building_version"])
         digest = report["review_sha256"]
         if not re.fullmatch(r"[a-f0-9]{64}", digest):
             raise ValueError("Bridge returned an invalid review hash")
@@ -370,7 +382,8 @@ class Runtime:
         with self.render_lock:
             if not all((folder / name).is_file() for name in previews):
                 write_json(report_file, report)
-                self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
+                with timed("blender_review", plan_id=plan_id):
+                    self.render(report_file, self.instance, folder, self.blender, multi_angle=True)
         counts = report["counts"]
         materials = {}
         for row in report["changes"]:
@@ -408,14 +421,7 @@ class Runtime:
                     if job else "当前没有属于你的施工任务。")
             if job and job.get("reason"):
                 reason = job["reason"]
-                description = {
-                    "site_not_loaded": "施工区未加载。请回到区域附近后重新确认继续",
-                    "warehouse_unreachable": "NPC 无法安全到达供料箱。请检查区域内的通道",
-                    "no_reachable_placement_stance": "目标没有可达的放置位置",
-                    "no_reachable_break_stance": "目标没有可达的拆除位置",
-                    "navigation_timeout": "NPC 导航超时。请检查高低差和障碍物",
-                }.get(reason, reason)
-                text += " " + description + "。"
+                text += f" [{reason}] " + diagnose(reason).recovery
             self.client.answer(request_id, text)
         elif action == "get_capabilities":
             self.client.answer(request_id, "我是 MC Builder。我能设计窗墙和单层住宅、生成 Blender 预览、"
@@ -435,9 +441,22 @@ class Runtime:
             self.client.answer(request_id, safe_message(intent["message"], self.redactions))
 
     def run(self, should_stop=lambda: False):
+        self.trace.start()
+        try:
+            self._poll(should_stop)
+        finally:
+            self.trace.close()
+
+    def _poll(self, should_stop):
         pending = {}
         failures = {}
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="architect") as pool:
+        disconnected = False
+        planner_task = None
+        next_planner_poll = 0
+        with ExitStack() as stack:
+            pool = stack.enter_context(ThreadPoolExecutor(max_workers=2, thread_name_prefix="architect"))
+            planner_pool = stack.enter_context(ThreadPoolExecutor(max_workers=1, thread_name_prefix="architect-plan")) \
+                if self.parallel_planning else None
             while not should_stop():
                 for request_id, future in list(pending.items()):
                     if not future.done():
@@ -445,17 +464,36 @@ class Runtime:
                     del pending[request_id]
                     try:
                         future.result()
-                    except (OSError, BridgeError, sqlite3.Error, ValueError):
+                    except (OSError, BridgeError, sqlite3.Error, ValueError) as error:
+                        self.trace.emit("runtime_delivery", request_id=request_id, error_type=type(error).__name__)
                         failures[request_id] = monotonic() + 1
                 try:
                     requests = self.client.inbox()
                 except (OSError, BridgeError, ValueError):
+                    if not disconnected:
+                        self.record_diagnostic("bridge_unavailable")
+                        disconnected = True
                     sleep(1)
                     continue
+                if disconnected:
+                    self.trace.emit("bridge_restored")
+                    disconnected = False
+                if planner_pool is not None and monotonic() >= next_planner_poll:
+                    if planner_task is not None and planner_task.done():
+                        try:
+                            planner_task.result()
+                        except BridgeError as error:
+                            self.record_diagnostic(error.body.get("error", "bridge_unavailable"))
+                        except (OSError, ValueError, KeyError):
+                            self.record_diagnostic("bridge_unavailable")
+                        planner_task = None
+                    if planner_task is None:
+                        planner_task = planner_pool.submit(planning.run_once, self, lambda value: scrub(value, self.redactions))
+                        next_planner_poll = monotonic() + 1.25
                 live = {request["request_id"] for request in requests}
                 failures = {key: value for key, value in failures.items() if key in live and value > monotonic()}
                 for request in requests:
                     request_id = request["request_id"]
                     if len(pending) < 2 and request_id not in pending and request_id not in failures:
-                        pending[request_id] = pool.submit(self.handle, request)
+                        pending[request_id] = pool.submit(self.handle, request, perf_counter_ns())
                 sleep(0.2)

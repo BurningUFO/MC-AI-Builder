@@ -36,7 +36,7 @@ final class ArchitectService {
         UUID id() { return BuildPlan.id(plan, "plan_id"); }
     }
 
-    private record Ticket(UUID code, String hash, long expires) {}
+    private record Ticket(UUID code, String hash, long expires, long started) {}
 
     private record VisualWatch(String goal, boolean checkpoint, boolean failure, boolean finalReview) {
         VisualWatch(String goal, boolean checkpoint) {
@@ -52,6 +52,7 @@ final class ArchitectService {
     private static final class Request {
         final UUID id = UUID.randomUUID();
         final long expires = System.currentTimeMillis() + REQUEST_LIFETIME;
+        final long started = BuildPerformance.clock();
         final JsonObject input;
         final UUID siteJob;
         boolean staged;
@@ -116,6 +117,15 @@ final class ArchitectService {
                 session.request = null;
                 persist();
                 tell(player, "供料箱已批准。");
+                return;
+            }
+            case "plan" -> {
+                if (!construction.offerPlanning(session.active) || parts.length != 2 || parts[1].isBlank()
+                        || parts[1].length() > 160 || parts[1].codePoints().anyMatch(Character::isISOControl)) {
+                    throw Wire.conflict("planning_hint_unavailable", "在自己的副本任务施工中，可发送最多 160 字的施工顺序建议。");
+                }
+                tell(player, construction.planningHint(parts[1].strip()) ? "施工顺序建议已记录。"
+                        : "建议已记录。此版本的规划机会已用，施工仍按已生效的安全顺序进行。");
                 return;
             }
             case "materials" -> {
@@ -294,12 +304,40 @@ final class ArchitectService {
                     tell(player, "当前施工已切换，请对当前版本重新提出需求。");
                 }
             } else if (permitted(player)) {
+                if (request.started != 0) {
+                    request.input.addProperty("bridge_queue_ms", (System.nanoTime() - request.started) / 1_000_000.0);
+                }
                 requests.add(request.input);
             }
         }
         JsonObject result = new JsonObject();
         result.add("requests", requests);
         return result;
+    }
+
+    boolean awaitingApproval() {
+        return sessions.values().stream().anyMatch(session -> session.ticket != null);
+    }
+
+    JsonObject planning(JsonObject body, NpcObservations observations) {
+        String operation = Wire.string(body.get("operation"), "operation");
+        UUID job = currentJob();
+        if (writable && runtimeOnline() && construction.offerPlanning(job)) {
+            for (var entry : sessions.entrySet()) {
+                Session session = entry.getValue();
+                if (!job.equals(session.active)) {
+                    continue;
+                }
+                ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+                if (permitted(player)) {
+                    return construction.planning(operation, player, body, observations);
+                }
+            }
+        }
+        if (operation.equals("claim")) {
+            return new JsonObject();
+        }
+        throw Wire.conflict("stale_planning", "施工、玩家授权或连接状态已改变。");
     }
 
     JsonObject survey(JsonObject body, NpcObservations observations) {
@@ -508,7 +546,8 @@ final class ArchitectService {
                     || (cottage && !Files.isRegularFile(root.resolve("proposed-interior.png")))) {
                 throw Wire.conflict("preview_unavailable", "设计预览尚未就绪，请重新预览。");
             }
-            session.ticket = new Ticket(UUID.randomUUID(), hash, System.currentTimeMillis() + APPROVAL_LIFETIME);
+            session.ticket = new Ticket(UUID.randomUUID(), hash, System.currentTimeMillis() + APPROVAL_LIFETIME,
+                    BuildPerformance.clock());
             persist();
             tell(player, message);
             tell(player, "预览 " + folder + "/revision-review.blend（含两角度图片"
@@ -586,6 +625,9 @@ final class ArchitectService {
             session.draft = draft;
             persist();
             throw error;
+        }
+        if (approve) {
+            construction.recordApprovalWait(ticket.started);
         }
         ForgeBridge.LOGGER.info("architect_decision player={} candidate={} approved={} hash={}",
                 player.getUUID(), draft.id(), approve, ticket.hash);
@@ -751,7 +793,7 @@ final class ArchitectService {
                 session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null, surveyed, goal);
                 if (data.has("code")) {
                     session.ticket = new Ticket(BuildPlan.id(data, "code"), Wire.string(data.get("hash"), "hash"),
-                            data.get("expires").getAsLong());
+                            data.get("expires").getAsLong(), 0);
                 }
             }
             sessions.put(owner, session);

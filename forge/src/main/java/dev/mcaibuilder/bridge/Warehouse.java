@@ -37,7 +37,8 @@ import java.util.UUID;
 
 final class Warehouse {
     private static final String SEAL = "mcaibuilder_supply";
-    private static final int TRIP_ITEMS = 16;
+    static final int TRIP_ITEMS = 16;
+    static final int COTTAGE_TRIP_ITEMS = 48;
     private static final Set<Item> TOOLS = Set.of(Items.IRON_AXE, Items.IRON_PICKAXE);
 
     private Warehouse() {}
@@ -315,13 +316,25 @@ final class Warehouse {
         }
     }
 
-    static Transfer planTransfer(ChestBlockEntity chest, SimpleContainer inventory, List<WorkStep> steps, int cursor) {
+    static void requireNextItem(ChestBlockEntity chest, SimpleContainer cargo, WorkStep step) {
+        Item next = item(step);
+        int slot = find(chest, next);
+        if (slot < 0) {
+            throw Wire.conflict(step.remove() ? "out_of_tool" : "out_of_material", "供料箱缺少 " + id(next));
+        }
+        if (!cargo.canAddItem(chest.getItem(slot).copyWithCount(1))) {
+            throw Wire.conflict("inventory_full", "NPC 背包没有可用空间。");
+        }
+    }
+
+    static Transfer planTransfer(ChestBlockEntity chest, SimpleContainer inventory, List<WorkStep> steps,
+                                 int cursor, int batchSize) {
         SimpleContainer pendingChest = copy(chest);
         SimpleContainer pendingNpc = copy(inventory);
         Map<Item, Integer> remainingCargo = quantities(inventory, true);
         Map<Item, Integer> taken = new LinkedHashMap<>();
         List<Move> moves = new ArrayList<>();
-        for (int index = cursor; index < steps.size() && moves.size() < TRIP_ITEMS; index++) {
+        for (int index = cursor; index < steps.size() && moves.size() < batchSize; index++) {
             WorkStep step = steps.get(index);
             if (step.before() == step.after()) {
                 continue;

@@ -11,6 +11,7 @@ from src.architect.observations import observation_image
 from src.architect.providers import InvalidOutput, _bad_constant, _unique_pairs, parse_intent
 from src.architect.scene import scene_context_message, world_context
 from src.core.building import write_json
+from src.architect.telemetry import timed
 
 ACTIONS = ("observe_here", "look_at", "move_to_observation_point", "inspect_build_site",
            "compare_viewpoints", "design", "unsuitable")
@@ -227,7 +228,8 @@ def suggest(runtime, request, message):
     action, offset = "observe_here", None
     try:
         for step in range(1, MAX_STEPS + 1):
-            result = collect(runtime.client, request_id, step, action, offset)
+            with timed("visual_capture", step=step):
+                result = collect(runtime.client, request_id, step, action, offset)
             trace["steps"].append(result)
             if result["capture_status"] == "captured":
                 if view:
@@ -235,7 +237,8 @@ def suggest(runtime, request, message):
                                 "from_previous_view": [x - y for x, y in zip(result["to"], view.anchor, strict=True)],
                                 "connected_relief": view.context["terrain"]["connected_relief"],
                                 "last_reason": trace["decisions"][-1]["reason"]}
-                view = SiteView.read(runtime.client, cache, result)
+                with timed("world_sample", observation_id=result["observation_id"]):
+                    view = SiteView.read(runtime.client, cache, result)
                 trace["steps"][-1]["relative_scene"] = view.context
                 failure = None
             else:

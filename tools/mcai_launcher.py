@@ -17,6 +17,7 @@ from zipfile import BadZipFile, ZipFile
 
 from src.architect.codex_budget import CodexBudget
 from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL
+from src.architect.diagnostics import diagnose
 from src.construction.client import BridgeClient, BridgeError
 from src.core.building import write_json
 from tools.m1_client import BRIDGE_JAR, PLAYERS_HASH, PLAYERS_JAR, ROOT, TEST_ROOT, launch_client
@@ -160,6 +161,46 @@ def require_free_port(port):
         raise ValueError(f"本地端口 {port} 已被占用。关闭占用程序后，点击「启动 / 重连」。") from error
 
 
+def describe_execution(execution):
+    labels = {
+        "survey": "尚无施工任务", "running": "施工中", "working": "处理方块",
+        "scheduled_wait": "施工批次间等待", "navigating": "正在寻路",
+        "to_warehouse": "前往仓库取料", "warehouse_return": "运料返回工地",
+        "mining": "正在拆除方块", "jumping": "移动到放置位置",
+        "placement_obstructed": "等待实体让出作业位置", "completed": "完工",
+        "cancelled": "施工已取消", "failed": "施工已停止",
+    }
+    if not execution:
+        return ""
+    activity = execution.get("activity", "idle")
+    reason = execution.get("reason")
+    if execution.get("state") == "paused":
+        status = ("等待材料 · 安全暂停" if reason in {"missing_material", "out_of_material", "out_of_tool"}
+                  else "现场冲突 · 安全暂停" if reason == "world_conflict" else "施工已安全暂停")
+    else:
+        status = labels.get(activity, labels.get(execution.get("state"), "待命"))
+    version = execution.get("building_version", 0)
+    if version:
+        status = f"V{version} · {execution['processed']}/{execution['total']} · {status}"
+    if execution.get("awaiting_approval"):
+        status += " · 等待玩家审批"
+    if execution.get("observation") == "pending":
+        status += " · 正在视觉观察"
+    plan = execution.get("planning", {})
+    if plan.get("state") == "observing" and execution.get("observation") != "pending":
+        status += " · 准备下一阶段观察"
+    elif plan.get("state") == "thinking":
+        status += " · LLM 正在思考，NPC 按当前顺序施工"
+    elif plan.get("state") in {"applied", "kept"}:
+        group = {"roof_front": "前侧屋顶", "roof_rear": "后侧屋顶"}.get(plan.get("group"), "原顺序")
+        status += f" · 最近规划 {group} · {plan.get('reason', '')}"
+    elif plan.get("state") == "discarded":
+        status += " · 本次策略已失效"
+    if reason and execution.get("state") in {"paused", "failed"}:
+        status += " · " + diagnose(reason).recovery
+    return status
+
+
 class Launcher:
     def __init__(self, checks):
         self.checks = checks
@@ -173,6 +214,7 @@ class Launcher:
         self.game_dir = None
         self.environ = None
         self.live_site = None
+        self.execution = None
         self.world_label = ""
         self.login_ok = self.want_agent = self.exiting_game = self.closing = False
         self.game_exit_code = self.agent_exit_code = None
@@ -192,7 +234,7 @@ class Launcher:
                  "agent_pid": self.agent.pid if self.agent else None, "game_dir": game,
                  "game_exit_code": self.game_exit_code, "agent_exit_code": self.agent_exit_code,
                  "login": self.login_status, "pack": self.state.get("pack", ""),
-                 "world_label": self.world_label, "site": self.live_site}
+                 "world_label": self.world_label, "site": self.live_site, "execution": self.execution}
         if self.budget.is_file():
             try:
                 usage = CodexBudget(self.budget, MAX_TURNS, MAX_TOKENS).records()
@@ -201,12 +243,14 @@ class Launcher:
             else:
                 state.update(turns=len(usage), tokens=sum(row["charged_tokens"] for row in usage))
         if state != self.state:
+            log_transition = any(state[key] != self.state.get(key) for key in ("phase", "message"))
             self.state = state
             self.window_updates.put(state)
             if self.checks:
                 write_json(self.home / "status.json", state)
-            with (self.home / "launcher.log").open("a", encoding="utf-8") as log:
-                print(f"{phase}: {message}", file=log)
+            if log_transition:
+                with (self.home / "launcher.log").open("a", encoding="utf-8") as log:
+                    print(f"{phase}: {message}", file=log)
 
     def prepare_bridge(self):
         if not PLAYERS_JAR.is_file() or sha256(PLAYERS_JAR.read_bytes()).hexdigest() != PLAYERS_HASH:
@@ -329,7 +373,9 @@ class Launcher:
         self.live_site = None
 
     def start_agent(self, runtime_polls):
-        share = self.settings.get("share_observations") is True and (self.game_dir / MARKER).is_file()
+        copied_world = (self.game_dir / MARKER).is_file()
+        share = self.settings.get("share_observations") is True and copied_world
+        planning = self.settings.get("parallel_planning") is True and copied_world
         self.agent_start_poll = runtime_polls
         self.stop_agent.unlink(missing_ok=True)
         self.agent = self.spawn([
@@ -340,6 +386,7 @@ class Launcher:
             "--codex-max-tokens", str(MAX_TOKENS), "--codex-budget-log", str(self.budget),
             "--stop-file", str(self.stop_agent),
             *(["--share-observations"] if share else []),
+            *(["--planning"] if planning else []),
         ], "agent.log", "ab")
         self.agent_deadline = monotonic() + 30
 
@@ -401,6 +448,7 @@ class Launcher:
         except (OSError, BridgeError, ValueError):
             pass
         self.live_site = status.get("site_authorization")
+        self.execution = status.get("execution")
         if not status.get("architect_enabled"):
             if monotonic() >= self.deadline:
                 self.publish("bridge_wait", "Forge Bridge 尚未就绪。进入练习世界或查看 Minecraft 日志。")
@@ -476,15 +524,15 @@ def window(app):
 
     root = tk.Tk()
     root.title("MC AI Builder")
-    root.geometry("675x395")
-    root.minsize(620, 380)
+    root.geometry("675x445")
+    root.minsize(620, 405)
     frame = ttk.Frame(root, padding=20)
     frame.pack(expand=True, fill="both")
     ttk.Label(frame, text="MC AI Builder", font=("Segoe UI", 20, "bold")).pack(anchor="w")
     model_label = f"Codex · {DEFAULT_MODEL} · {DEFAULT_EFFORT} · ChatGPT 登录"
     ttk.Label(frame, text=model_label).pack(anchor="w", pady=(4, 14))
-    world, authorization, status, login, usage, detail = (tk.StringVar() for _ in range(6))
-    for item in (world, status, authorization, login, usage, detail):
+    world, authorization, status, execution, login, usage, detail = (tk.StringVar() for _ in range(7))
+    for item in (world, status, authorization, execution, login, usage, detail):
         ttk.Label(frame, textvariable=item, wraplength=550).pack(anchor="w", pady=3)
     buttons = ttk.Frame(frame)
     buttons.pack(anchor="w", pady=(14, 0))
@@ -537,11 +585,15 @@ def window(app):
         share_observations = tk.BooleanVar(value=app.settings.get("share_observations") is True)
         ttk.Checkbutton(dialog, text="允许副本中的主动观察与视觉监管将 NPC 图像发送给 Codex",
                         variable=share_observations).grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=8)
+        parallel_planning = tk.BooleanVar(value=app.settings.get("parallel_planning") is True)
+        ttk.Checkbutton(dialog, text="副本中的住宅施工启用并行 Codex 规划", variable=parallel_planning).grid(
+            row=5, column=0, columnspan=3, sticky="w", padx=8, pady=8)
 
         def save():
             values = {**app.settings, **{key: field.get().strip() for key, field in fields.items()}}
             values["survival"] = survival.get()
             values["share_observations"] = share_observations.get()
+            values["parallel_planning"] = parallel_planning.get()
             try:
                 write_json(SETUP, values)
                 app.settings = values
@@ -549,7 +601,7 @@ def window(app):
                 detail.set(str(error))
                 return
             dialog.destroy()
-        ttk.Button(dialog, text="保存", command=save).grid(row=5, column=2, padx=8, pady=8)
+        ttk.Button(dialog, text="保存", command=save).grid(row=6, column=2, padx=8, pady=8)
 
     button(shortcuts, "最新预览", previews)
     button(shortcuts, "Agent / 启动日志", lambda: open_local(app.home))
@@ -608,6 +660,7 @@ def window(app):
                 else:
                     authorization.set("")
                 status.set(state["message"])
+                execution.set(describe_execution(state.get("execution")))
                 login.set(state["login"])
                 usage.set("本地预算账本不可读取，请查看 Agent 日志。" if state.get("budget_error") else
                           f"本地预算已用 {state.get('turns', 0)}/{MAX_TURNS} 回合，"
