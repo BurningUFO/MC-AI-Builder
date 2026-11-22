@@ -20,6 +20,7 @@ from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
 from src.core.building import write_json
+from src.architect import survey
 
 PREVIEW_ACTIONS = {"preview_design", "review_changes", "request_approval"}
 STATUS_ACTIONS = {"get_build_status", "get_construction_progress"}
@@ -40,6 +41,14 @@ class ArchitectClient(BridgeClient):
 
     def observe_world(self):
         return self._call("architect/observe_world")
+
+    def survey(self, request_id, *, step=None, action=None, offset=None):
+        body = {"request_id": request_id}
+        if action is not None:
+            body.update(step=step, action=action)
+        if offset is not None:
+            body["offset"] = offset
+        return self._call("architect/survey", body)
 
     def inbox(self):
         return self._call("architect/inbox")["requests"]
@@ -157,13 +166,14 @@ def describe_supply(supply, *, approval=False):
 
 
 class Runtime:
-    def __init__(self, client, provider, store, instance, blender, *, render=preview_review):
+    def __init__(self, client, provider, store, instance, blender, *, render=preview_review, share_observations=False):
         self.client = client
         self.provider = provider
         self.store = store
         self.instance = instance
         self.blender = blender
         self.render = render
+        self.share_observations = share_observations
         self.render_lock = Lock()
         self.redactions = (client.token, getattr(provider, "key", None))
 
@@ -213,14 +223,28 @@ class Runtime:
         action = "error"
         try:
             prepared = self.store.design(self.proposal_id(request_id))
-            if prepared is None:
+            if request.get("survey"):
+                if prepared is None:
+                    intent, reason = survey.suggest(self, request, message)
+                    if intent is None:
+                        self.client.answer(request_id, safe_message(reason, self.redactions))
+                        action = "unsuitable"
+                    else:
+                        spec = self.design(request, intent)
+                        self.review(request_id, "new", spec["plan"], observation_reason=reason)
+                        action = intent["action"]
+                else:
+                    self.review(request_id, "new", prepared["plan"])
+                    action = prepared["action"]
+            elif prepared is None:
                 context = self.language_context(request, message)
                 intent = parse_intent(self.provider.decide(context))
                 action = intent["action"]
             else:
                 action = prepared["action"]
                 intent = {"action": action}
-            self.dispatch(request, intent, prepared)
+            if not request.get("survey"):
+                self.dispatch(request, intent, prepared)
         except BridgeError as error:
             code = error.body.get("error")
             if code == "stale_request":
@@ -237,6 +261,8 @@ class Runtime:
                 "warehouse_player_approval": "需要由供料箱的授权玩家批准。",
                 "checkpoint_npc_unavailable": "当前无法核对原 NPC 或其库存。请回到已批准区域等区块加载，再审阅。",
                 "site_not_loaded": "批准的施工区尚未加载，请回到附近后重新审阅。",
+                "survey_frame_stale": "这一轮现场观察已过期或变化，请重新观察后再审阅。",
+                "world_observation_stale": "现场或 NPC 已变化，请重新观察后再审阅。",
             }
             self.client.answer(request_id, messages.get(code, "本次无法继续。请重新询问进度或审阅当前设计。"))
             action = code or "bridge_error"
@@ -291,11 +317,16 @@ class Runtime:
             raise DesignError("当前世界未启用这些受支持的模组材料 " + "、".join(missing) + "。")
         draft = request.get("draft")
         locked = draft["revision"] if draft is not None else "job" in request
-        if "site_authorization" in request:
+        if request.get("survey"):
+            origin = tuple(base + offset for base, offset in zip(request["suggested_origin"], intent["origin"], strict=True))
+            rotation = intent["rotation"]
+        elif "site_authorization" in request:
             rotation = request["site_rotation"]
             if intent.get("origin") not in (None, "here", [0, 0, 0]) or intent.get("rotation") not in (None, "here", rotation):
                 raise DesignError("副本使用玩家已授权的原点和朝向。更换位置时请重新审阅施工区。")
             origin = tuple(request["suggested_origin"])
+            if prior:
+                origin, rotation = tuple(prior["plan"]["origin"]), prior["plan"]["rotation"]
         else:
             origin, rotation = placement(intent, request, prior["plan"] if prior else None,
                                          action == "revise_design" and locked)
@@ -303,7 +334,7 @@ class Runtime:
                                   building, origin, rotation, wall, action)
         return spec
 
-    def review(self, request_id, mode, plan=None):
+    def review(self, request_id, mode, plan=None, *, observation_reason=""):
         report = self.client.stage(request_id, mode, plan)
         version = report["new_version"]
         plan_id = version["plan_id"]
@@ -333,7 +364,9 @@ class Runtime:
         reason = f"。冲突位置 {'、'.join(conflicts)}，请先处理" if conflicts else ""
         if grass := report.get("covered_grass"):
             reason += f"。墙体覆盖的 {len(grass)} 处区域内草方块可能自然变为泥土，位置见审阅报告"
-        self.client.answer(request_id, f"候选 V{version['building_version']}。保留 {counts['keep']}，"
+        observed = safe_message(observation_reason, self.redactions)[:160]
+        prefix = f"现场判断 {observed}。 " if observed else ""
+        self.client.answer(request_id, prefix + f"候选 V{version['building_version']}。保留 {counts['keep']}，"
                            f"补建 {counts['add']}，拆除 {counts['remove']}，替换 {counts['replace']}，"
                            f"冲突 {counts['conflict']}。材料 {details}{reason}。",
                            review=digest)

@@ -49,6 +49,7 @@ final class ConstructionService {
     private final Map<UUID, Registration> registered = new LinkedHashMap<>();
     private JsonObject history = new JsonObject();
     private ConstructionJob current;
+    private UUID surveyNpc;
     private Registration candidate;
     private Warehouse.Source warehouse;
     private boolean journalBlocked;
@@ -73,13 +74,17 @@ final class ConstructionService {
     }
 
     JsonObject submit(JsonObject payload, UUID owner) {
+        return submit(payload, owner, false);
+    }
+
+    JsonObject submit(JsonObject payload, UUID owner, boolean surveyed) {
         requireWritable();
         Warehouse.Source source = requireWarehouse(owner);
         UUID id = BuildPlan.id(payload, "plan_id");
         if (current != null && current.plan.id().equals(id) && registered.get(id).payload().equals(payload)) {
             return status(false);
         }
-        InitialBuild initial = validateInitial(payload, false);
+        InitialBuild initial = validateInitial(payload, false, surveyed);
         BuildPlan plan = initial.plan();
         List<WorkStep> steps = initial.steps();
         SupplyCheckpoint supply = prepareSupply(source, plan);
@@ -94,6 +99,9 @@ final class ConstructionService {
                 worker.attach(current.npc);
             }
         }
+        if (current == null && surveyNpc != null && !worker.attach(surveyNpc)) {
+            throw Wire.conflict("observation_npc_unavailable", "获准的原 NPC 尚未加载。");
+        }
         prepare(steps);
         archiveCurrent(null);
         registered.put(id, new Registration(plan, payload.deepCopy(), "approved"));
@@ -107,14 +115,14 @@ final class ConstructionService {
 
     private record InitialBuild(BuildPlan plan, List<WorkStep> steps, Map<BlockPos, String> obstacles) {}
 
-    private InitialBuild validateInitial(JsonObject payload, boolean survey) {
+    private InitialBuild validateInitial(JsonObject payload, boolean reportObstacles, boolean surveyed) {
         requireWritable();
         UUID id = BuildPlan.id(payload, "plan_id");
         requireUnused(id);
         if (current != null && current.state.active()) {
             throw Wire.conflict("job_active", "Pause and propose a change, or finish the active job");
         }
-        BuildPlan plan = BuildPlan.read(payload, site, palette);
+        BuildPlan plan = BuildPlan.read(payload, site, palette, surveyed);
         requireImmutableVersion(plan);
         int latest = registered.values().stream().filter(entry -> entry.disposition().equals("approved")
                         && plan.samePlacement(entry.plan())).mapToInt(entry -> entry.plan().version()).max().orElse(0);
@@ -136,11 +144,12 @@ final class ConstructionService {
                         throw Wire.conflict("occupied_target", "Existing block at " + target.world().toShortString());
                     }
                     requireSafeMutation(step, false);
-                    if (site.worldCopy() && !hasSupport(target.world(), supported)) {
+                    if (surveyed && target.local().getY() == 0 && !surveyFoundation(target.world())
+                            || site.worldCopy() && !hasSupport(target.world(), supported)) {
                         throw Wire.conflict("missing_terrain_support", "No approved support at " + target.world().toShortString());
                     }
                 } catch (Wire.Problem obstacle) {
-                    if (!survey || !site.worldCopy()) {
+                    if (!reportObstacles || !site.worldCopy()) {
                         throw obstacle;
                     }
                     obstacles.put(target.world(), obstacle.code);
@@ -152,6 +161,54 @@ final class ConstructionService {
             steps.add(step);
         }
         return new InitialBuild(plan, steps, obstacles);
+    }
+
+    BlockPos surveyFocus() {
+        return site.origin();
+    }
+
+    JsonArray surveyPads() {
+        var pads = new JsonArray();
+        var center = site.origin();
+        for (var rotation : net.minecraft.world.level.block.Rotation.values()) {
+            // Try the marked spot first, then look for a short shift to flat terrain.
+            int alternatives = 0;
+            for (BlockPos offset : BlockPos.withinManhattan(BlockPos.ZERO, 4, 2, 4)) {
+                BlockPos origin = center.offset(offset);
+                int span = 0;
+                for (int x = 0; x < 12; x++) {
+                    BlockPos pos = origin.offset(new BlockPos(x, 0, 0).rotate(rotation));
+                    if (!site.canBuildAt(pos) || !site.canBuildAt(pos.above(2)) || !surveyFoundation(pos)
+                            || !level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()
+                            || !level.getBlockState(pos.above(2)).isAir()) {
+                        break;
+                    }
+                    span++;
+                }
+                if (span >= 5) {
+                    var pad = new JsonObject();
+                    pad.add("offset", Wire.position(offset));
+                    pad.addProperty("rotation", rotation.ordinal() * 90);
+                    pad.addProperty("span", span);
+                    pads.add(pad);
+                    if (++alternatives >= 2) {
+                        break;
+                    }
+                }
+            }
+        }
+        return pads;
+    }
+
+    private boolean surveyFoundation(BlockPos target) {
+        if (!site.area().contains(target) || !level.hasChunkAt(target)) {
+            return false;
+        }
+        BlockPos floor = target.below();
+        BlockState state = level.getBlockState(floor);
+        return (NATURAL_SUPPORTS.contains(state.getBlock()) || palette.contains(state.getBlock()))
+                && !WorldObservation.hazard(state) && state.getFluidState().isEmpty()
+                && state.isFaceSturdy(level, floor, Direction.UP);
     }
 
     private boolean hasSupport(BlockPos target, Set<BlockPos> supported) {
@@ -166,9 +223,9 @@ final class ConstructionService {
         return false;
     }
 
-    JsonObject inspectInitial(JsonObject payload, UUID owner) {
+    JsonObject inspectInitial(JsonObject payload, UUID owner, boolean surveyed) {
         Warehouse.Source source = requireWarehouse(owner);
-        InitialBuild initial = validateInitial(payload, true);
+        InitialBuild initial = validateInitial(payload, true, surveyed);
         requireWarehouseClear(source, initial.plan());
         JsonArray changes = new JsonArray();
         var context = new java.util.TreeSet<>(BuildPlan.BUILD_ORDER);
@@ -257,7 +314,7 @@ final class ConstructionService {
             throw Wire.conflict("job_finished", "Only the current running, paused, or completed placement can be changed");
         }
         requireNoIntent();
-        BuildPlan next = BuildPlan.read(payload, site, palette);
+        BuildPlan next = BuildPlan.read(payload, site, palette, true);
         requireUnused(next.id());
         if (!current.plan.samePlacement(next)) {
             throw Wire.invalid("A revision must keep the building ID, origin, and rotation");
@@ -1008,8 +1065,27 @@ final class ConstructionService {
         return difference;
     }
 
+    ConstructionWorker beginSurvey() {
+        requireWritable();
+        if (!site.worldCopy() || current != null && current.state.active()) {
+            throw Wire.conflict("survey_construction_active", "请在无运行中施工的获准世界副本内观察。");
+        }
+        site.requireLoaded(level);
+        UUID selected = current == null ? surveyNpc : current.npc;
+        if (selected != null && !worker.attach(selected)) {
+            throw Wire.conflict("observation_npc_unavailable", "原 NPC 尚未加载或已经离开授权区。");
+        }
+        worker.startSurvey();
+        if (current == null && surveyNpc == null) {
+            surveyNpc = worker.id();
+            persist();
+        }
+        return worker;
+    }
+
     FakePlayerEntity observationTarget() {
-        if (current == null || !(level.getEntity(current.npc) instanceof FakePlayerEntity target)
+        UUID npc = current == null ? surveyNpc : current.npc;
+        if (npc == null || !(level.getEntity(npc) instanceof FakePlayerEntity target)
                 || !target.isAlive() || !target.getTags().contains(ForgeBridge.MOD_ID)
                 || !site.area().contains(target.blockPosition()) || !level.hasChunkAt(target.blockPosition())) {
             throw Wire.conflict("observation_npc_unavailable", "没有可观察的已加载施工 NPC。");
@@ -1023,6 +1099,13 @@ final class ConstructionService {
 
     JsonObject observationJob() {
         JsonObject info = new JsonObject();
+        if (current == null) {
+            info.addProperty("state", "survey");
+            info.addProperty("building_version", 0);
+            info.addProperty("processed", 0);
+            info.addProperty("total", 0);
+            return info;
+        }
         info.addProperty("job_id", current.plan.id().toString());
         info.addProperty("building_version", current.plan.version());
         info.addProperty("state", current.state.wire());
@@ -1141,6 +1224,9 @@ final class ConstructionService {
         }
         state.add("plans", plans);
         state.add("history", history);
+        if (surveyNpc != null) {
+            state.addProperty("survey_npc", surveyNpc.toString());
+        }
         if (warehouse != null) {
             state.add("warehouse", warehouse.json());
         }
@@ -1171,7 +1257,7 @@ final class ConstructionService {
         for (JsonElement element : Wire.array(data.get("plans"), "plans")) {
             JsonObject entry = Wire.object(element, "registration");
             JsonObject payload = Wire.object(entry.get("plan"), "registered plan");
-            BuildPlan plan = BuildPlan.read(payload, site, palette);
+            BuildPlan plan = BuildPlan.read(payload, site, palette, true);
             String disposition = Wire.string(entry.get("disposition"), "disposition");
             if (!Set.of("approved", "rejected", "proposed").contains(disposition) || registered.containsKey(plan.id())) {
                 throw Wire.invalid("Invalid journal plan registration");
@@ -1180,6 +1266,9 @@ final class ConstructionService {
             registered.put(plan.id(), new Registration(plan, payload, disposition));
         }
         history = Wire.object(data.get("history"), "journal history");
+        if (data.has("survey_npc") && site.worldCopy()) {
+            surveyNpc = BuildPlan.id(data, "survey_npc");
+        }
         if (data.has("warehouse")) {
             warehouse = Warehouse.Source.read(Wire.object(data.get("warehouse"), "warehouse"), site);
         }

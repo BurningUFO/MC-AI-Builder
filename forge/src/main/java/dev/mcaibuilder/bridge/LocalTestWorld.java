@@ -42,6 +42,7 @@ import java.nio.file.Path;
 @Mod.EventBusSubscriber(modid = ForgeBridge.MOD_ID, value = Dist.CLIENT)
 final class LocalTestWorld {
     private static final String WORLD_NAME = "M1 Construction Lab";
+    private static final String NATURAL_FIXTURE = "Architect Terrain Lab";
     private static final String WORLD_FOLDER = "m1-construction";
     private static boolean opened;
     private static boolean leavingWorld;
@@ -191,10 +192,11 @@ final class LocalTestWorld {
         rules.getRule(GameRules.RULE_DAYLIGHT).set(false, null);
         rules.getRule(GameRules.RULE_SPAWN_RADIUS).set(0, null);
         GameType mode = Boolean.getBoolean("mcaibuilder.survival") ? GameType.SURVIVAL : GameType.CREATIVE;
-        LevelSettings settings = new LevelSettings(WORLD_NAME, mode, false,
+        boolean terrain = Boolean.getBoolean("mcaibuilder.naturalTerrainFixture");
+        LevelSettings settings = new LevelSettings(terrain ? NATURAL_FIXTURE : WORLD_NAME, mode, false,
                 Difficulty.PEACEFUL, true, rules, WorldDataConfiguration.DEFAULT);
         client.createWorldOpenFlows().createFreshLevel(WORLD_FOLDER, settings, new WorldOptions(1090L, false, false),
-                access -> access.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).createWorldDimensions());
+                access -> access.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(terrain ? WorldPresets.NORMAL : WorldPresets.FLAT).createWorldDimensions());
     }
 
     @SubscribeEvent

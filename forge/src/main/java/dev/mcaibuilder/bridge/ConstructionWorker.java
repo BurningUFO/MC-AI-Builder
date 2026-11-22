@@ -1,6 +1,7 @@
 package dev.mcaibuilder.bridge;
 
 import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.SimpleContainer;
 
@@ -30,6 +31,14 @@ interface ConstructionWorker {
                         Consumer<JsonObject> beforeTransfer);
 
     JsonObject status();
+
+    void startSurvey();
+
+    void moveForSurvey(BlockPos destination);
+
+    boolean surveyArrived();
+
+    void lookForSurvey(BlockPos point);
 
     void halt();
 

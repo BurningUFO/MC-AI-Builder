@@ -112,8 +112,8 @@ class Chat:
         })
         return received
 
-    def card(self, child, text, *, can_approve=True):
-        replies = self.send(child, text, "[拒绝 ")
+    def card(self, child, text, *, can_approve=True, timeout=95):
+        replies = self.send(child, text, "[拒绝 ", timeout=timeout)
         button = replies[-1]
         matches = re.search(r"\[拒绝 (" + UUID_PATTERN + r")\]", button)
         preview = next((line.split("预览 ", 1)[1].split("（", 1)[0] for line in replies

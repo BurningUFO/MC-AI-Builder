@@ -14,7 +14,7 @@ MAX_RESPONSE = 12_000
 NAMESPACED = re.compile(r"[a-z0-9_.-]+:[a-z0-9_./-]+")
 STATE_TEXT = re.compile(r"[a-z0-9_./-]{1,48}")
 HASH = re.compile(r"[a-f0-9]{64}")
-JOB_STATES = {"running", "paused", "completed", "cancelled", "failed"}
+JOB_STATES = {"running", "paused", "completed", "cancelled", "failed", "survey"}
 DIMENSIONS = {"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"}
 WINDOW_MIN, WINDOW_MAX = [-4, -2, -4], [4, 4, 4]
 
@@ -132,7 +132,7 @@ def _construction(value):
     state = value["state"]
     _check(type(state) is str and state in JOB_STATES)
     total = _integer(value["total"], 0, 24_000)
-    return {"state": state, "building_version": _integer(value["building_version"], 1, 2**31 - 1),
+    return {"state": state, "building_version": _integer(value["building_version"], 0 if state == "survey" else 1, 2**31 - 1),
             "processed": _integer(value["processed"], 0, total), "total": total}
 
 

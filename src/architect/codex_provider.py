@@ -23,6 +23,7 @@ from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudget
                                      ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
+from src.architect import survey
 
 DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "medium"
@@ -137,11 +138,20 @@ class CodexProvider:
         return self._metered(metrics, lambda: self._turn(payload, metrics), "intent")
 
     def analyze_scene_with_metrics(self, context, image, *, observation_id, allow_upload=False):
+        return self._vision_decision(scene_context_message(context), image, observation_id, allow_upload,
+                                     self._scene_turn, "scene")
+
+    def survey_with_metrics(self, payload, image, *, observation_id, allow_upload=False):
+        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        if len(message.encode("utf-8")) > 7600:
+            raise ValueError("Survey prompt exceeds its input limit")
+        return self._vision_decision(message, image, observation_id, allow_upload, self._survey_turn, "survey")
+
+    def _vision_decision(self, payload, image, observation_id, allow_upload, invoke, kind):
         if allow_upload is not True:
             raise ValueError("Explicit image-sharing approval is required.")
         if type(observation_id) is not str or str(UUID(observation_id)) != observation_id:
             raise ValueError("A selected observation ID is required for image sharing.")
-        payload = scene_context_message(context)
         png, width, height = rgb_png(image)
         metrics = {
             "purpose": "vision", "requested_model": self.model, "requested_effort": self.effort,
@@ -149,7 +159,7 @@ class CodexProvider:
             "context_bytes": len(payload.encode("utf-8")), "context_sha256": sha256(payload.encode("utf-8")).hexdigest(),
             "image_sha256": sha256(png).hexdigest(), "image_bytes": len(png), "image_size": [width, height],
         }
-        return self._metered(metrics, lambda: self._scene_turn(payload, png, metrics), "scene")
+        return self._metered(metrics, lambda: invoke(payload, png, metrics), kind)
 
     def _metered(self, metrics, invoke, kind):
         with self._lock:
@@ -162,10 +172,12 @@ class CodexProvider:
             result = asyncio.run(invoke())
             if kind == "intent":
                 metrics["intent"] = {key: value for key, value in result.items() if key != "message"}
-            else:
+            elif kind == "scene":
                 metrics["scene"] = {"consistency": result["consistency"],
                                     "center_color": result["focal_surface"]["color"],
                                     "center_material": result["focal_surface"]["material"]}
+            else:
+                metrics["decision"] = {key: value for key, value in result.items() if key != "reason"}
             metrics["status"] = "completed"
         except TimeoutError:
             metrics.update(status="timeout", error={"kind": "timeout"})
@@ -193,6 +205,10 @@ class CodexProvider:
 
     async def _scene_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), VISION_PROMPT, SCENE_SCHEMA, decode_scene, metrics)
+
+    async def _survey_turn(self, payload, image, metrics):
+        return await self._sdk_turn(scene_input(payload, image), survey.PROMPT, survey.schema(WALL_FIELDS),
+                                    lambda output: survey.decode(output, WALL_FIELDS), metrics)
 
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread

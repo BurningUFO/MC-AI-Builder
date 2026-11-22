@@ -109,6 +109,10 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     }
 
     static BuildPlan read(JsonObject data, BuildSite site, Set<Block> palette) {
+        return read(data, site, palette, false);
+    }
+
+    static BuildPlan read(JsonObject data, BuildSite site, Set<Block> palette, boolean surveyed) {
         if (Wire.integer(data.get("schema_version"), "schema_version") != 1
                 || !Wire.string(data.get("minecraft_version"), "minecraft_version").equals("1.20.1")
                 || Wire.integer(data.get("data_version"), "data_version") != 3465) {
@@ -128,8 +132,15 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             case 270 -> Rotation.COUNTERCLOCKWISE_90;
             default -> throw Wire.invalid("Rotation must be 0, 90, 180 or 270 degrees clockwise");
         };
-        if (site.worldCopy() && (!origin.equals(site.origin()) || rotation != site.rotation())) {
-            throw Wire.conflict("placement_scope", "请使用当前施工授权的建筑原点和朝向。");
+        if (site.worldCopy()) {
+            boolean permitted = surveyed
+                    ? site.canBuildAt(origin) && Math.abs((long) origin.getY() - site.origin().getY()) <= 2
+                        && Math.abs((long) origin.getX() - site.origin().getX()) <= 4
+                        && Math.abs((long) origin.getZ() - site.origin().getZ()) <= 4
+                    : origin.equals(site.origin()) && rotation == site.rotation();
+            if (!permitted) {
+                throw Wire.conflict("placement_scope", "拟建原点或朝向超出了施工区授权。");
+            }
         }
         BuildSite.Box declared = BuildSite.Box.read(data.get("local_bounds"), "local_bounds");
         JsonArray actions = Wire.array(data.get("actions"), "actions");

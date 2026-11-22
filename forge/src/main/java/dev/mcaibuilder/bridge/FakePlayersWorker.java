@@ -20,6 +20,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameType;
@@ -57,6 +58,9 @@ final class FakePlayersWorker implements ConstructionWorker {
     private static final Direction[] FACES = {Direction.UP, Direction.NORTH, Direction.SOUTH,
             Direction.WEST, Direction.EAST, Direction.DOWN};
 
+    private static final int SURVEY_LIMIT_TICKS = 110;
+    private static final int SURVEY_RADIUS = 8;
+
     private final ServerLevel level;
     private final BuildSite site;
     private final Set<Block> anchors;
@@ -70,6 +74,10 @@ final class FakePlayersWorker implements ConstructionWorker {
     private BlockPos mining;
     private long miningSince;
     private int placementJumps;
+    private BlockPos surveyDestination;
+    private BlockPos surveyStart;
+    private long surveyDeadline;
+    private boolean surveyPathStarted;
 
     FakePlayersWorker(ServerLevel level, BuildSite site, Set<Block> palette) {
         this.level = level;
@@ -123,6 +131,133 @@ final class FakePlayersWorker implements ConstructionWorker {
         for (int slot = 0; slot < supplied.size(); slot++) {
             npc.getInventory().setItem(slot, supplied.get(slot));
         }
+    }
+
+    @Override
+    public void startSurvey() {
+        boolean spawned = npc == null;
+        if (spawned) {
+            if (!surveyFooting(site.spawn())) {
+                throw Wire.conflict("survey_unsafe_footing", "观察出生点没有安全站位。");
+            }
+            spawn();
+        }
+        if (!available() || Math.abs(npc.getY() - npc.blockPosition().getY()) > 0.15
+                || !surveyFooting(npc.blockPosition())) {
+            throw Wire.conflict("survey_unsafe_footing", "NPC 当前没有安全站位。");
+        }
+        halt();
+    }
+
+    @Override
+    public void moveForSurvey(BlockPos goal) {
+        if (!available() || !npc.blockPosition().closerThan(goal, SURVEY_RADIUS + 0.01)
+                || !surveyFooting(goal)) {
+            throw Wire.conflict("survey_unsafe_footing", "观察目标失载、过远或没有安全站位。");
+        }
+        BlockPos start = npc.blockPosition();
+        if (start.equals(goal)) {
+            throw Wire.conflict("survey_same_stance", "NPC 已站在该位置。");
+        }
+        surveyStart = start;
+        surveyDestination = goal;
+        surveyDeadline = level.getGameTime() + SURVEY_LIMIT_TICKS;
+        surveyPathStarted = false;
+        // A frozen FakePlayer can stand on the floor with its onGround flag unset.
+        // Tick its ordinary physics before asking ground navigation for a route.
+        npc.setNoAi(false);
+    }
+
+    @Override
+    public boolean surveyArrived() {
+        if (!available() || surveyDestination == null || !surveyFooting(surveyDestination)
+                || !site.area().contains(npc.blockPosition().above()) || !level.hasChunkAt(npc.blockPosition())) {
+            throw Wire.conflict("survey_route_changed", "观察移动已停止，站位或路线失效。");
+        }
+        if (npc.onGround() && npc.blockPosition().equals(surveyDestination)
+                && surveyFooting(npc.blockPosition())) {
+            halt();
+            return true;
+        }
+        if (level.getGameTime() >= surveyDeadline) {
+            throw Wire.conflict("survey_navigation_timeout", "观察移动超时，NPC 已停止。");
+        }
+        if (npc.isInWaterOrBubble() || npc.isInLava() || npc.fallDistance > 1.0f
+                || !npc.blockPosition().closerThan(surveyStart, SURVEY_RADIUS + 1.5)) {
+            throw Wire.conflict("survey_route_changed", "观察行走超出安全范围。");
+        }
+        if (!surveyPathStarted) {
+            if (npc.onGround()) {
+                if (!npc.blockPosition().equals(surveyStart) || !surveyFooting(surveyStart)) {
+                    throw Wire.conflict("survey_route_changed", "观察起点已改变。");
+                }
+                Path path = npc.getNavigation().createPath(surveyDestination, 0);
+                if (path == null || !path.canReach() || !surveyPath(path) || !npc.getNavigation().moveTo(path, 1.0)) {
+                    throw Wire.conflict("survey_unreachable", "NPC 无法沿安全路径到达站位。");
+                }
+                surveyPathStarted = true;
+            }
+            return false;
+        }
+        Path path = npc.getNavigation().getPath();
+        if (path == null || !path.getTarget().equals(surveyDestination) || !surveyPath(path)
+                || npc.getNavigation().isDone()) {
+            throw Wire.conflict("survey_route_changed", "NPC 无法继续沿安全范围内的观察路线移动。");
+        }
+        return false;
+    }
+
+    @Override
+    public void lookForSurvey(BlockPos point) {
+        if (!available() || !site.area().contains(point) || !level.hasChunkAt(point) || !surveyFooting(npc.blockPosition())
+                || !npc.blockPosition().closerThan(point, 13)) {
+            throw Wire.conflict("survey_target_outside_scope", "观察方向超出已加载、获准的近距离范围。");
+        }
+        Vec3 delta = Vec3.atCenterOf(point).subtract(npc.getEyePosition());
+        float yaw = (float) (Mth.atan2(delta.z, delta.x) * Mth.RAD_TO_DEG) - 90;
+        float pitch = (float) (-Mth.atan2(delta.y, delta.horizontalDistance()) * Mth.RAD_TO_DEG);
+        npc.setYRot(yaw);
+        npc.setYHeadRot(yaw);
+        npc.setYBodyRot(yaw);
+        npc.setXRot(pitch);
+    }
+
+    private boolean surveyPath(Path path) {
+        if (path.getNodeCount() > 13) {
+            return false;
+        }
+        BlockPos previous = surveyStart;
+        for (int i = 0; i < path.getNodeCount(); i++) {
+            BlockPos node = path.getNode(i).asBlockPos();
+            if (!surveyFooting(node) || !surveyStart.closerThan(node, SURVEY_RADIUS + 1)
+                    || Math.abs(previous.getY() - node.getY()) > 1) {
+                return false;
+            }
+            // Vanilla can skip to a diagonal node. Check both corner columns as well.
+            if (previous.getX() != node.getX() && previous.getZ() != node.getZ()
+                    && (!surveyFooting(new BlockPos(previous.getX(), node.getY(), node.getZ()))
+                    || !surveyFooting(new BlockPos(node.getX(), node.getY(), previous.getZ())))) {
+                return false;
+            }
+            previous = node;
+        }
+        return true;
+    }
+
+    private boolean surveyFooting(BlockPos feet) {
+        if (!site.area().contains(feet) || !site.area().contains(feet.above())
+                || !level.isInWorldBounds(feet.above()) || !level.hasChunkAt(feet)
+                || !BuildTerrain.canStand(level, feet)) {
+            return false;
+        }
+        for (BlockPos cell : List.of(feet.below(), feet, feet.above())) {
+            if (WorldObservation.hazard(level.getBlockState(cell))) {
+                return false;
+            }
+        }
+        AABB bounds = npc == null ? new AABB(feet).expandTowards(0, 0.8, 0)
+                : npc.getBoundingBox().move(Vec3.atBottomCenterOf(feet).subtract(npc.position()));
+        return level.noCollision(npc, bounds);
     }
 
     private void spawn() {
@@ -638,6 +773,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public void halt() {
         haltAction();
+        surveyDestination = null;
         if (npc != null) {
             npc.setDisplayItem(ItemStack.EMPTY);
             if (site.worldCopy()) {

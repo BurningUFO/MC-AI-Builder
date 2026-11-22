@@ -13,7 +13,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 from uuid import UUID, uuid4
 
 from src.core.building import write_json
-from tools.m1_client import BRIDGE_JAR, PLAYERS_JAR, TEST_ROOT
+from tools.m1_client import BRIDGE_JAR, LOCAL_PLAYER_ID, PLAYERS_JAR, TEST_ROOT
 from tools.save_nbt import saved_player
 
 
@@ -169,13 +169,19 @@ def existing_copies():
     return sorted(result, key=lambda pair: (pair[0] / MARKER).stat().st_mtime_ns, reverse=True)
 
 
-def create_copy(instance: Path, source: Path):
+def create_copy(instance: Path, source: Path, *, terrain_fixture=False):
     instance = instance.resolve(strict=True)
     if linked(source) or source.resolve(strict=True).parent != (instance / "saves").resolve(strict=True):
         raise ValueError("请选择这个 BMC4 实例 saves 文件夹中的世界。")
     source = source.resolve(strict=True)
     if source.is_relative_to(TEST_ROOT.resolve()):
-        raise ValueError("请选择原始 BMC4 单人存档。")
+        marker = instance / ".mcaibuilder-test"
+        if (not terrain_fixture or instance.parent != TEST_ROOT.resolve()
+                or not instance.name.startswith("m6-terrain-source-")
+                or source.name != "m1-construction" or not marker.is_file() or linked(marker)):
+            raise ValueError("请选择原始 BMC4 单人存档。")
+    elif terrain_fixture:
+        raise ValueError("The terrain fixture must use an isolated synthetic source.")
     if not (instance / "mods").is_dir() or not any((instance / "mods").glob("*.jar")):
         raise ValueError("所选 Forge 实例缺少启用的 BMC4 模组。")
     root = copy_root()
@@ -183,7 +189,13 @@ def create_copy(instance: Path, source: Path):
     game = root / identity.hex
     with closed_world(source), TemporaryDirectory(prefix=".pending-", dir=root) as temporary:
         staged = Path(temporary) / "instance"
-        player_id, player_name, _ = discover_player(instance, source)
+        if terrain_fixture:
+            player_id, _ = saved_player(source / "level.dat")
+            if player_id != UUID(LOCAL_PLAYER_ID):
+                raise ValueError("Expected the synthetic BuilderTester save.")
+            player_name = "BuilderTester"
+        else:
+            player_id, player_name, _ = discover_player(instance, source)
         before = file_manifest(source, world=True)
         mods = file_manifest(instance / "mods")
         required = sum((source / name).stat().st_size for name in before["files"])

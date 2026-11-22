@@ -300,6 +300,7 @@ final class CopySites {
 
     void deactivate() {
         if (active != null) {
+            active.architect().stopSurvey();
             active.construction().close();
             active = null;
         }

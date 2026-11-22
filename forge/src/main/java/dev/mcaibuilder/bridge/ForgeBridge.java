@@ -69,7 +69,9 @@ public final class ForgeBridge {
         if (service == null) {
             throw new Wire.Problem(503, "architect_disabled", "这个世界未启用建筑师。");
         }
-        if (!natural && message.strip().equals("observe")) {
+        if (!natural && message.strip().startsWith("survey ")) {
+            service.request(player, message.strip().substring("survey ".length()), true);
+        } else if (!natural && message.strip().equals("observe")) {
             service.requirePlayer(player);
             if (observations == null) {
                 throw Wire.conflict("observation_unavailable", "此世界没有本地 NPC 相机。");
@@ -134,6 +136,10 @@ public final class ForgeBridge {
 
     private void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && event.getServer() == server) {
+            ArchitectService activeArchitect = architect();
+            if (activeArchitect != null) {
+                activeArchitect.tick(observations);
+            }
             ConstructionService current = construction();
             if (current != null) {
                 current.tick();

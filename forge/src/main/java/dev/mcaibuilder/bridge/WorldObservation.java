@@ -248,7 +248,7 @@ final class WorldObservation {
         }
     }
 
-    private static boolean hazard(BlockState state) {
+    static boolean hazard(BlockState state) {
         return state.getFluidState().is(FluidTags.LAVA) || state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE)
                 || state.is(Blocks.MAGMA_BLOCK) || state.is(Blocks.CACTUS) || state.is(Blocks.POWDER_SNOW);
     }

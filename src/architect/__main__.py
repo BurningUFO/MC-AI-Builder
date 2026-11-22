@@ -24,7 +24,13 @@ def main():
     parser.add_argument("--codex-budget-log", type=Path, help="Shared local SQLite ledger for Codex turn and token limits")
     parser.add_argument("--codex-max-tokens", type=int, default=150_000, help="Token limit for the Codex budget ledger")
     parser.add_argument("--codex-max-turns", type=int, default=12, help="Maximum Codex turns per ledger, or per process without a ledger")
+    parser.add_argument("--share-observations", action="store_true",
+                        help="Permit explicitly requested NPC site surveys to send their local images to Codex")
     options = parser.parse_args()
+    if options.share_observations and options.provider != "codex":
+        parser.error("--share-observations requires the Codex provider")
+    if options.share_observations and options.codex_budget_log is None:
+        options.codex_budget_log = ROOT / ".cache" / "m5-launcher" / "codex-turns.sqlite3"
     try:
         config = options.config.resolve(strict=True)
         client = ArchitectClient(config)
@@ -38,7 +44,7 @@ def main():
             provider = FixtureProvider()
         storage = SessionStore(config.parent.parent / "architect-previews")
         runtime = Runtime(client, provider, storage, options.instance.resolve(strict=True),
-                          options.blender.resolve(strict=True))
+                          options.blender.resolve(strict=True), share_observations=options.share_observations)
         print(f"Architect runtime ready ({options.provider})", flush=True)
         runtime.run(options.stop_file.is_file if options.stop_file else lambda: False)
     except KeyboardInterrupt:

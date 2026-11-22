@@ -158,11 +158,12 @@ final class BridgeHttp implements AutoCloseable {
                 requireMethod(method, "GET");
                 yield onGameThread(this::inbox);
             }
-            case "/architect/stage", "/architect/answer", "/architect/pause" -> {
+            case "/architect/stage", "/architect/answer", "/architect/pause", "/architect/survey" -> {
                 requireMethod(method, "POST");
                 JsonObject body = readBody(exchange);
                 yield onGameThread(() -> switch (path) {
-                    case "/architect/stage" -> architect().stage(body);
+                    case "/architect/stage" -> architect().stage(body, observations);
+                    case "/architect/survey" -> architect().survey(body, observations);
                     case "/architect/answer" -> architect().answer(body);
                     default -> architect().pauseRequest(body);
                 });
