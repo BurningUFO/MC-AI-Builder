@@ -39,6 +39,8 @@ final class ConstructionService {
     private static final int ACTION_INTERVAL_TICKS = 6;
     private static final int NEARBY_PLACEMENT_INTERVAL_TICKS = 2;
     private static final int PLACEMENT_LIMIT_TICKS = 1200;
+    private static final String SCAFFOLD_CLEANUP_UNREACHABLE = "scaffold_cleanup_unreachable";
+    private static final String SCAFFOLD_DESCENT = "scaffold_descent";
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final Set<String> PLACEMENT_FAILURES = Set.of(
             "no_reachable_placement_stance", "no_reachable_break_stance", "navigation_timeout", "placement_stalled",
@@ -1290,7 +1292,14 @@ final class ConstructionService {
             executeNext();
         } catch (Wire.Problem problem) {
             if (!journalBlocked) {
-                if (current.cursor < current.steps.size()) {
+                if (SCAFFOLD_CLEANUP_UNREACHABLE.equals(problem.code)) {
+                    BlockPos target = worker.scaffoldCleanupTarget();
+                    if (target != null) {
+                        current.lastFailure = scaffoldFailure(target);
+                        current.lastFailure.addProperty("tick", level.getGameTime());
+                        current.lastFailure.add("route", worker.routeEvidence(target));
+                    }
+                } else if (current.cursor < current.steps.size()) {
                     WorkStep step = current.steps.get(current.cursor);
                     rememberFailure(step, problem.code, worker.routeEvidence(step.pos()));
                 }
@@ -1321,6 +1330,14 @@ final class ConstructionService {
     }
 
     private void executeNext() {
+        if (SCAFFOLD_DESCENT.equals(current.approach)) {
+            if (worker.cleanScaffolds(true)) {
+                current.approach = null;
+                schedule();
+            }
+            checkpoint();
+            return;
+        }
         if (current.cancelling || current.cursor == current.steps.size()) {
             if (!worker.cleanScaffolds() || !worker.cleanWorkshop()) {
                 checkpoint();
@@ -1889,15 +1906,30 @@ final class ConstructionService {
 
     boolean offerPlanning(UUID job) {
         return !journalBlocked && candidate == null && job != null && job.equals(currentJobId())
-                && !current.cancelling && current.cursor < current.steps.size()
+                && !current.cancelling
                 && (!current.autonomous || autonomousAvailable())
-                && (current.state == State.RUNNING && current.supplyChoice == null
-                    || current.state == State.PAUSED && recoverableFailure());
+                && (current.state == State.RUNNING && current.cursor < current.steps.size()
+                    && current.supplyChoice == null && !SCAFFOLD_DESCENT.equals(current.approach)
+                    || current.state == State.PAUSED && (scaffoldCleanupFailed()
+                        || current.cursor < current.steps.size() && recoverableFailure()));
     }
 
     private boolean recoverableFailure() {
         return current.reason != null
                 && (PLACEMENT_FAILURES.contains(current.reason) || SUPPLY_FAILURES.contains(current.reason));
+    }
+
+    private boolean scaffoldCleanupFailed() {
+        return SCAFFOLD_CLEANUP_UNREACHABLE.equals(current.reason) && !current.scaffolds.isEmpty();
+    }
+
+    private JsonObject scaffoldFailure(BlockPos target) {
+        JsonObject failure = new JsonObject();
+        failure.add("local", Wire.position(current.plan.localPosition(target)));
+        failure.addProperty("operation", "remove_scaffold");
+        failure.add("block", Wire.state(level.getBlockState(target)).get("id"));
+        failure.addProperty("reason", SCAFFOLD_CLEANUP_UNREACHABLE);
+        return failure;
     }
 
     JsonObject executionState() {
@@ -1957,7 +1989,12 @@ final class ConstructionService {
         if (current.cursor < current.steps.size()) {
             task.add("next_step", briefStep(current.steps.get(current.cursor)));
         }
-        if (current.lastFailure != null) {
+        if (scaffoldCleanupFailed() && (current.lastFailure == null
+                || !current.lastFailure.has("operation")
+                || !"remove_scaffold".equals(current.lastFailure.get("operation").getAsString()))) {
+            // Checkpoints made by older bridges recorded the next placement instead of the scaffold.
+            task.add("last_failure", scaffoldFailure(worker.scaffoldCleanupTarget()));
+        } else if (current.lastFailure != null) {
             task.add("last_failure", current.lastFailure.deepCopy());
         }
         JsonArray recent = new JsonArray();
@@ -2009,8 +2046,8 @@ final class ConstructionService {
             }
             stock.add("tools", worker.status().get("tools"));
             response.add("supply", stock);
-        } else if (topic.equals("world") && current.cursor < current.steps.size()) {
-            BlockPos target = current.steps.get(current.cursor).pos();
+        } else if (topic.equals("world") && (scaffoldCleanupFailed() || current.cursor < current.steps.size())) {
+            BlockPos target = scaffoldCleanupFailed() ? worker.scaffoldCleanupTarget() : current.steps.get(current.cursor).pos();
             JsonArray sample = new JsonArray();
             for (BlockPos pos : BlockPos.betweenClosed(target.offset(-1, -1, -1), target.offset(1, 1, 1))) {
                 if (site.area().contains(pos) && level.hasChunkAt(pos)) {
@@ -2041,6 +2078,9 @@ final class ConstructionService {
             if (current.state == State.PAUSED) {
                 if (PLACEMENT_FAILURES.contains(current.reason)) {
                     choices.addAll(List.of("upper_stance", "scaffold", "open_access"));
+                }
+                if (scaffoldCleanupFailed()) {
+                    choices.add(SCAFFOLD_DESCENT);
                 }
                 if (current.supply != null && warehouses.containsKey(owner) && SUPPLY_FAILURES.contains(current.reason)) {
                     choices.addAll(List.of("collect", "craft"));
@@ -2153,15 +2193,15 @@ final class ConstructionService {
         site.requireLoaded(level);
         boolean paused = current.state == State.PAUSED;
         boolean supplyWork = strategy.equals("collect") || strategy.equals("craft");
+        boolean scaffoldWork = SCAFFOLD_DESCENT.equals(strategy);
         String group = null;
-        WorkStep next = current.steps.get(current.cursor);
         if (paused) {
             requireCheckpointWorker();
             if (supplyWork) {
                 if (!supplyNeeded()) {
                     throw Wire.conflict("supply_already_ready", "下一步所需物品已经在 NPC 背包里。");
                 }
-            } else if (current.supply != null && Warehouse.missing(materials(owner))) {
+            } else if (!scaffoldWork && current.supply != null && Warehouse.missing(materials(owner))) {
                 throw Wire.conflict("awaiting_materials", "先解决授权库存中的实际缺口。");
             }
         }
@@ -2170,9 +2210,9 @@ final class ConstructionService {
                 group = Wire.string(data.get("group"), "group");
                 current.steps = current.planning.prioritize(current, group, this::readyForPriority);
             }
-            case "upper_stance", "scaffold" -> current.approach = strategy;
+            case "upper_stance", "scaffold", SCAFFOLD_DESCENT -> current.approach = strategy;
             case "open_access" -> {
-                if (!reopenAccess(next)) {
+                if (!reopenAccess(current.steps.get(current.cursor))) {
                     throw Wire.conflict("planning_access_unavailable", "目标上方没有可安全临时移开的自有覆盖物。");
                 }
             }

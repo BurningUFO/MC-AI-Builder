@@ -762,7 +762,16 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public boolean cleanScaffolds() {
+    public BlockPos scaffoldCleanupTarget() {
+        BlockPos underfoot = npc == null ? null : npc.blockPosition().below();
+        if (underfoot != null && scaffolds.containsKey(underfoot) && !scaffolds.containsKey(underfoot.above())) {
+            return underfoot;
+        }
+        return scaffolds.keySet().stream().max(Comparator.comparingInt(BlockPos::getY)).orElse(null);
+    }
+
+    @Override
+    public boolean cleanScaffolds(boolean descendFirst) {
         if (tickDescent()) {
             return false;
         }
@@ -771,15 +780,10 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (scaffolds.isEmpty()) {
             return true;
         }
-        BlockPos underfoot = npc.blockPosition().below();
-        BlockPos pos = scaffolds.containsKey(underfoot) ? underfoot : scaffolds.keySet().stream()
-                .max(Comparator.comparingInt(BlockPos::getY)).orElseThrow();
         if (!npc.onGround()) {
             return false;
         }
-        if (scaffolds.containsKey(pos.above())) {
-            pos = scaffolds.keySet().stream().max(Comparator.comparingInt(BlockPos::getY)).orElseThrow();
-        }
+        BlockPos pos = scaffoldCleanupTarget();
         BlockState state = scaffolds.get(pos);
         String risk = new Clearance(level, site).mutationRisk(pos, state, true, Set.of());
         if (risk != null) {
@@ -788,9 +792,11 @@ final class FakePlayersWorker implements ConstructionWorker {
         Vec3 current = trackPosition();
         Aim aim = chestAim(pos, current);
         if (aim == null) {
-            BlockPos target = pos;
-            if (navigate(pos, current, feet -> chestAim(target, feet) != null, "scaffold_cleanup_unreachable") != null
-                    && !startDescent(target)) {
+            if (descendFirst && startDescent(pos, true)) {
+                return false;
+            }
+            if (navigate(pos, current, feet -> chestAim(pos, feet) != null, "scaffold_cleanup_unreachable") != null
+                    && !startDescent(pos)) {
                 throw Wire.conflict("scaffold_cleanup_unreachable", "我需要一条能到达脚手架顶端的通道来拆除临时方块。");
             }
             return false;
@@ -1432,6 +1438,10 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private boolean startDescent(BlockPos target) {
+        return startDescent(target, false);
+    }
+
+    private boolean startDescent(BlockPos target, boolean scaffoldCleanup) {
         BlockPos here = npc.blockPosition();
         if (!npc.onGround() || here.getY() < target.getY() + 2) {
             return false;
@@ -1439,7 +1449,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         int maxDrop = npc.getHealth() >= 8 ? 6 : 3;
         List<Descent> options = new ArrayList<>();
         for (BlockPos edge : BlockPos.withinManhattan(here, 6, 1, 6)) {
-            if (!canTravelAt(edge) || !canStand(edge)) {
+            // An NPC already standing on a roof stair can step off it without a path to its center.
+            boolean occupiedEdge = scaffoldCleanup && edge.equals(here);
+            if (!canTravelAt(edge) || !canStand(edge) && !occupiedEdge) {
                 continue;
             }
             for (Direction side : Direction.Plane.HORIZONTAL) {
@@ -1453,7 +1465,8 @@ final class FakePlayersWorker implements ConstructionWorker {
                         break;
                     }
                     if (canStand(landing)) {
-                        if (drop >= 2 && landing.getY() < here.getY()) {
+                        if (drop >= 2 && landing.getY() < here.getY()
+                                && (!scaffoldCleanup || chestAim(target, BuildTerrain.standPoint(level, landing)) != null)) {
                             options.add(new Descent(edge.immutable(), landing, level.getGameTime() + 110));
                         }
                         break;

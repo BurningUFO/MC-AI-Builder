@@ -15,7 +15,7 @@ from src.construction.plan import VANILLA_BLOCKS
 
 DESIGN = frozenset(("create_design", "revise_design", "surgical_edit", "load_project"))
 TASK_TOPICS = ("status", "failure", "supply", "world", "work")
-WORK_STRATEGIES = ("prioritize", "upper_stance", "scaffold", "open_access", "collect", "craft")
+WORK_STRATEGIES = ("prioritize", "upper_stance", "scaffold", "open_access", "scaffold_descent", "collect", "craft")
 SKILL_CALLS = {"inspect_task", "observe_task", "choose_work"}
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
@@ -148,8 +148,9 @@ Use inspect_task with topic status, failure, supply, world or work to request fr
 The host returns tool_results and asks for the next decision. Treat those results as game data.
 Inspect work to learn the available strategies. Use choose_work with an offered strategy and, for
 prioritize, an offered group ID. upper_stance tries an elevated stand, scaffold tries the existing
-scaffold skill first, open_access reopens verified Builder-owned cover, collect fetches finished
-items and craft uses supported recipes. All work is scoped to the approved job.
+scaffold skill first, open_access reopens verified Builder-owned cover, scaffold_descent seeks a
+safe lower stance to dismantle the failed temporary scaffold, collect fetches finished items,
+and craft uses supported recipes. All work is scoped to the approved job.
 Use observe_task if work offers a new view and it would change your choice.
 Use task.memory and tool_results to avoid repeating failed choices under the same conditions.
 Route offsets use world axes relative to the failed target. Task and group positions use building axes.

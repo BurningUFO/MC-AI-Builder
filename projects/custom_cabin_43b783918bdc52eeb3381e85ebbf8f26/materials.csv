@@ -1,0 +1,18 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:stacked_spruce_planks,14,Stacked Spruce Planks,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+handcrafted:dark_oak_chair,1,Dark Oak Chair,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+handcrafted:spruce_table,1,Spruce Table,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+minecraft:dark_oak_log,21,Dark Oak Log,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_planks,227,Dark Oak Planks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_slab,7,Dark Oak Slab,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_stairs,72,Dark Oak Stairs,BMC4.jar,2,static_assets_verified
+minecraft:glass,12,Glass,BMC4.jar,1,static_assets_verified
+minecraft:lantern,6,Lantern,BMC4.jar,2,static_assets_verified
+minecraft:spruce_planks,25,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,2,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_bricks,24,Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:stripped_spruce_log,6,Stripped Spruce Log,BMC4.jar,1,static_assets_verified
+minecraft:wall_torch,2,Wall Torch,BMC4.jar,1,static_assets_verified
+quark:spruce_bookshelf,4,Spruce Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+supplementaries:daub,16,Daub,supplementaries-1.20-3.1.43-forge.jar,1,static_assets_verified
+supplementaries:daub_cross_brace,1,Wattle and Daub Cross Brace,supplementaries-1.20-3.1.43-forge.jar,1,static_assets_verified

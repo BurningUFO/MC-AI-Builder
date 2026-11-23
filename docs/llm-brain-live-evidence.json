@@ -1,0 +1,171 @@
+{
+  "date": "2026-11-24",
+  "starting_revision": "74cbeb7",
+  "existing_local_forge_changes_used_for_live_run": true,
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "bmc4_mod_jars": 387,
+    "fake_players": "3.0.0",
+    "model": "gpt-6.2-sol",
+    "model_effort": "medium",
+    "blender": "5.2.4 LTS"
+  },
+  "status_query": {
+    "question": "@Builder 请查一下现场的任务、NPC 和材料状态。这里正在建什么，Builder 现在能开工吗？",
+    "chosen_operation": "inspect_task",
+    "forge_result": "no_job",
+    "answer": "[Architect] MC Builder 现场还在设计阶段，没有已批准的施工任务，所以目前没有在建项目。Builder 没有施工任务可执行，暂时不能开工。生存模式下，现场未授权仓库，也没检测到储物箱；目前没有材料需求清单，还不能判断材料够不够。等你确认设计并批准施工后，再核对供料。"
+  },
+  "build_request": "@Builder 帮我在这块地上建一栋漂亮的中世纪风格小屋。要有完整的人字屋顶、入口、窗户和简单室内装饰。以云杉木和深色木材为主，可以合理使用 BMC4 中已有的建筑材料。你根据现场空间自己确定布局，先给我看预览，确认以后再施工。",
+  "proposal": {
+    "blueprint": "projects/custom_cabin_43b783918bdc52eeb3381e85ebbf8f26/building.json",
+    "sha256": "447a94cb3332cd1c8437994ebda05e464859fc3490356540c837ae01bb072d11",
+    "id": "43b78391-8bdc-52ee-b338-1e85ebbf8f26",
+    "ghost_cells": 441,
+    "post_approval_ghost_cells": 0,
+    "blender_views": [
+      "01-front.png",
+      "02-rear.png",
+      "03-side.png",
+      "04-top.png"
+    ],
+    "scene_source_blocks": 441,
+    "player_approved": true
+  },
+  "player_resume_at": 307,
+  "model_recoveries": [
+    {
+      "processed_before": 406,
+      "obstacle": "scaffold_cleanup_unreachable",
+      "model": "gpt-6.2-sol",
+      "model_turn": 8,
+      "strategy": "scaffold_descent",
+      "forge_result": "running",
+      "follow_up_model_turn": 9,
+      "first_later_placement": {
+        "step": 406,
+        "world": [
+          19,
+          -52,
+          25
+        ],
+        "tick": 34086,
+        "actual": {
+          "id": "minecraft:dark_oak_stairs",
+          "properties": {
+            "facing": "east",
+            "half": "bottom",
+            "shape": "straight",
+            "waterlogged": "false"
+          }
+        }
+      }
+    },
+    {
+      "processed_before": 433,
+      "obstacle": "scaffold_cleanup_unreachable",
+      "model": "gpt-6.2-sol",
+      "model_turn": 10,
+      "strategy": "scaffold_descent",
+      "forge_result": "running",
+      "follow_up_model_turn": 11,
+      "first_later_placement": {
+        "step": 433,
+        "world": [
+          18,
+          -59,
+          24
+        ],
+        "tick": 37526,
+        "actual": {
+          "id": "minecraft:lantern",
+          "properties": {
+            "hanging": "false",
+            "waterlogged": "false"
+          }
+        }
+      }
+    }
+  ],
+  "completion": {
+    "wanted_blocks": 441,
+    "forge_block_state_matches": 441,
+    "saved_anvil_block_state_matches": 441,
+    "saved_air_matches": 450,
+    "survival_items_consumed": 441,
+    "quark_supply_trips": 10,
+    "remaining_scaffolds": 0,
+    "remaining_temporary_workstations": 0,
+    "save_exit_code": 0
+  },
+  "original_pcl_metadata_check": {
+    "file_entries": 5557,
+    "metadata_match": true,
+    "sha256": "c7ac8b67c195b9549e8c8e10641d45dcea9b4bceef04b7f890c1243d1007fe31",
+    "directories": [
+      "saves",
+      "mods",
+      "config",
+      "defaultconfigs"
+    ]
+  },
+  "historical_resume": {
+    "project": "medieval_house",
+    "from_cursor": 507,
+    "saved_cursor": 552,
+    "target_count": 1478,
+    "rear_beam": [
+      {
+        "world": [
+          25,
+          -56,
+          26
+        ],
+        "expected": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        },
+        "actual": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        },
+        "saved": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        }
+      },
+      {
+        "world": [
+          26,
+          -56,
+          26
+        ],
+        "expected": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        },
+        "actual": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        },
+        "saved": {
+          "id": "minecraft:stripped_dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        }
+      }
+    ]
+  }
+}

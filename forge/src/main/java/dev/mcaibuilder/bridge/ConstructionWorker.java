@@ -31,7 +31,13 @@ interface ConstructionWorker {
 
     void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets);
 
-    boolean cleanScaffolds();
+    BlockPos scaffoldCleanupTarget();
+
+    default boolean cleanScaffolds() {
+        return cleanScaffolds(false);
+    }
+
+    boolean cleanScaffolds(boolean descendFirst);
 
     void useSupplyArea(BlockPos center);
 

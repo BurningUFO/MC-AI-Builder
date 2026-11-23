@@ -49,7 +49,8 @@ final class ConstructionPlanning {
             return new JsonObject();
         }
         Set<String> tried = recoveryCursor == job.cursor ? recoveryTried : Set.of();
-        String event = paused ? "failure:" + job.cursor + ":" + job.steps.get(job.cursor).target().local()
+        String failedStep = job.cursor < job.steps.size() ? job.steps.get(job.cursor).target().local().toString() : "cleanup";
+        String event = paused ? "failure:" + job.cursor + ":" + failedStep
                 + ":" + job.reason + ":" + tried.size() : "progress:" + job.cursor / PROGRESS_INTERVAL;
         if (!manual && hint.isEmpty() && handled.contains(event)) {
             return new JsonObject();
