@@ -45,6 +45,11 @@ final class ConstructionJob {
     int placed;
     int removed;
     int deferred;
+    long stepStarted = -1;
+    String approach;
+    String supplyChoice;
+    JsonObject lastFailure;
+    JsonObject strategy;
     boolean cancelling;
     boolean needsScaffoldDirt;
     long lightingSettleUntil;
@@ -152,6 +157,15 @@ final class ConstructionJob {
         JsonObject data = status(false);
         data.add("snapshot", snapshot.json());
         data.add("records", records);
+        if (lastFailure != null) {
+            data.add("last_failure", lastFailure);
+        }
+        if (strategy != null) {
+            data.add("strategy", strategy);
+        }
+        if (planning.hasRecord()) {
+            data.add("planning", planning.checkpoint());
+        }
         data.add("conflicts", conflicts);
         if (cancelling) {
             data.addProperty("cancelling", true);
@@ -213,6 +227,8 @@ final class ConstructionJob {
             }
         }
         job.records.addAll(Wire.array(data.get("records"), "records"));
+        job.lastFailure = optionalObject(data, "last_failure");
+        job.strategy = optionalObject(data, "strategy");
         job.state = State.valueOf(Wire.string(data.get("state"), "state").toUpperCase(Locale.ROOT));
         job.reason = data.has("reason") ? Wire.string(data.get("reason"), "reason") : null;
         job.conflicts = Wire.array(data.get("conflicts"), "conflicts");

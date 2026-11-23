@@ -52,6 +52,7 @@ _CODES = {
     "no_reachable_placement_stance": Diagnostic("navigation", "condition", "目标没有可达的放置位置。请检查通道、高差和支撑。"),
     "no_reachable_break_stance": Diagnostic("navigation", "condition", "目标没有可达的拆除位置。请检查通道和作业面。"),
     "navigation_timeout": Diagnostic("navigation", "condition", "NPC 导航超时。请检查高低差和障碍物。"),
+    "placement_stalled": Diagnostic("navigation", "condition", "当前方块长期没有施工进展，Builder 已停在检查点。"),
     "interaction_forbidden": Diagnostic("protection", "rejected", "真实游戏交互受保护。请检查区域和玩家权限。"),
     "placement_rejected": Diagnostic("interaction", "rejected", "原生游戏拒绝放置。请检查支撑、碰撞和保护规则。"),
     "survey_frame_stale": Diagnostic("vision", "rejected", "这一轮现场观察已过期或变化，请重新观察后再审阅。"),

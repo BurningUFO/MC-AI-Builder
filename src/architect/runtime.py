@@ -19,7 +19,7 @@ from zipfile import BadZipFile
 from src.__main__ import render_project
 from src.architect.design import DESIGNS, ROTATION, DesignError, fitted_origin, placement, voxel_footings
 from src.architect.diagnostics import diagnose
-from src.architect.providers import DESIGN, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent
+from src.architect.providers import DESIGN, FixtureProvider, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout
 from src.assets.projects import ProjectError
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
@@ -114,6 +114,9 @@ class SessionStore:
                     request_id TEXT PRIMARY KEY, player TEXT NOT NULL, message TEXT NOT NULL,
                     action TEXT NOT NULL, reply TEXT
                 );
+                CREATE TABLE IF NOT EXISTS task_memory (
+                    session TEXT NOT NULL, job TEXT NOT NULL, decisions TEXT NOT NULL, PRIMARY KEY (session, job)
+                );
             """)
             if not any(row[1] == "reply" for row in db.execute("PRAGMA table_info(turns)")):
                 db.execute("ALTER TABLE turns ADD COLUMN reply TEXT")
@@ -125,7 +128,8 @@ class SessionStore:
 
     @local_db
     def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
-                kind="window_wall", footing=None, worksite_order=None, edits=(), project_name=None, source_project=None):
+                kind="window_wall", footing=None, worksite_order=None, edits=(), project_name=None, source_project=None,
+                goal="", player_update=""):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
@@ -139,7 +143,11 @@ class SessionStore:
         plan["plan_id"] = plan_id
         if worksite_order is not None:
             plan["worksite_order"] = worksite_order
-        spec = {"kind": kind, "parameters": params, "plan": plan, "action": action}
+        spec = {"kind": kind, "parameters": params, "plan": plan, "action": action, "name": model.name}
+        if goal:
+            spec["goal"] = goal
+        if player_update:
+            spec["player_update"] = player_update
         if project_name is not None:
             spec["project_name"] = project_name
         if edits:
@@ -163,6 +171,22 @@ class SessionStore:
     def remember(self, db, request_id, player_id, message, action, reply=None):
         db.execute("INSERT OR IGNORE INTO turns (request_id, player, message, action, reply) VALUES (?, ?, ?, ?, ?)",
                    (request_id, player_id, message, action, reply))
+
+    @local_db
+    def task_memory(self, db, session, job):
+        row = db.execute("SELECT decisions FROM task_memory WHERE session = ? AND job = ?", (session, job)).fetchone()
+        return json.loads(row[0]) if row else []
+
+    @local_db
+    def save_work(self, db, session, job, decision):
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT decisions FROM task_memory WHERE session = ? AND job = ?", (session, job)).fetchone()
+        recent = json.loads(row[0]) if row else []
+        if decision not in recent:
+            db.execute("INSERT OR REPLACE INTO task_memory VALUES (?, ?, ?)",
+                       (session, job, json.dumps([*recent[-5:], decision], ensure_ascii=False)))
+            db.execute("DELETE FROM task_memory WHERE session = ? AND rowid NOT IN "
+                       "(SELECT rowid FROM task_memory WHERE session = ? ORDER BY rowid DESC LIMIT 8)", (session, session))
 
     def directory(self, plan_id):
         return self.root / str(UUID(plan_id))
@@ -272,8 +296,6 @@ class Runtime:
         self.share_observations = share_observations
         self.parallel_planning = parallel_planning
         self.observation_cache = Path(__file__).resolve().parents[2] / ".cache" / "observations" / store.root.parent.name
-        if parallel_planning and not callable(getattr(provider, "plan_with_metrics", None)):
-            raise ValueError("Parallel planning requires a structured planning provider.")
         self.preview_queue = Queue(maxsize=8)
         self.preview_lock = Lock()
         self.preview_thread = None
@@ -284,6 +306,52 @@ class Runtime:
     def conversation_key(request):
         player = request["player_id"]
         return player + "/" + request["site_authorization"] if "site_authorization" in request else player
+
+    def clean(self, text):
+        return safe_message(text, self.redactions)
+
+    def task_context(self, owner, facts):
+        if not facts or "job_id" not in facts:
+            return {}
+        job_id = facts["job_id"]
+        task = {key: facts[key] for key in (
+            "state", "activity", "building_version", "processed", "total", "placed", "remaining", "target_count",
+            "reason", "source_project", "next_step", "recent_steps", "last_failure", "npc", "strategy", "supply_phase",
+            "temporary_blocks", "preparation", "revision_approved",
+        ) if key in facts}
+        spec = self.store.design(job_id) or {}
+        source = facts.get("source_project")
+        title = spec.get("name") or spec.get("parameters", {}).get("name")
+        if source and self.projects is not None:
+            title = next((project.title for project in self.projects.catalog() if project.name == source), title)
+        task["name"] = self.clean(title or source or {
+            "cottage": "木石小屋", "window_wall": "窗墙",
+        }.get(spec.get("kind"), "当前建筑"))[:100]
+        task["goal"] = self.clean(spec.get("goal") or f"完成已批准的{task['name']}")[:240]
+        if spec.get("player_update"):
+            task["approved_player_update"] = self.clean(spec["player_update"])[:240]
+        task["memory"] = self.store.task_memory(self.conversation_key(owner), job_id)
+        if "remaining" not in task and "total" in task and "processed" in task:
+            task["remaining"] = task["total"] - task["processed"]
+        return task
+
+    def remember_work(self, offer, intent, result):
+        entry = {"event": offer["event"], "strategy": intent["strategy"], "result": result["result"]}
+        if "group" in intent:
+            entry["group"] = intent["group"]
+        if "code" in result:
+            entry["code"] = result["code"]
+        if intent.get("message"):
+            entry["reason"] = self.clean(intent["message"])[:140]
+        self.store.save_work(self.conversation_key(offer), offer["job_id"], entry)
+
+    def remember_observation(self, offer, scene):
+        frame = scene["scene_to_building"]
+        self.store.save_work(self.conversation_key(offer), offer["job_id"], {
+            "event": offer["event"], "observation": frame, "at_step": offer["task"]["processed"],
+            "focus": scene.get("focus_sample"),
+            "nearby_blocks": [{"offset": cell["offset"], "id": cell["id"]} for cell in scene["cells"][:4]],
+        })
 
     def language_context(self, request: dict, message: str) -> dict:
         context = {key: request[key] for key in ("dimension", "position", "facing", "suggested_origin",
@@ -300,13 +368,17 @@ class Runtime:
         if "supply" in request:
             supply = request["supply"]
             context["supply"] = {key: supply[key] for key in ("mode", "warehouse_approved", "containers",
-                                                              "requirements", "recipe_inputs", "reason") if key in supply}
+                                                               "reason") if key in supply}
+            rows = supply.get("requirements", {})
+            context["supply"]["requirements"] = dict(sorted(rows.items(), key=lambda row: not row[1].get("missing"))[:16])
+            context["supply"]["requirements_count"] = len(rows)
         job = request.get("job")
         visible = request.get("draft") or job
         if job is not None:
             context["construction"] = {key: job[key] for key in ("state", "building_version", "processed", "total")}
             if "supply" in job:
                 context["construction"]["supply_phase"] = job["supply"]["phase"]
+            context["task"] = self.task_context(request, request.get("task") or job)
         if visible:
             spec = self.store.design(visible.get("plan_id") or visible["job_id"])
             if spec is not None:
@@ -378,8 +450,9 @@ class Runtime:
             elif prepared is None:
                 context = self.language_context(request, message)
                 with timed("intent_provider"):
-                    library_intent = self.projects.conversation_intent(message) if self.projects is not None else None
-                    intent = parse_intent(library_intent or self.provider.decide(context))
+                    library_intent = (self.projects.conversation_intent(message)
+                                      if self.projects is not None and isinstance(self.provider, FixtureProvider) else None)
+                    intent = library_intent or planning.decide(self, context, request=request)
                 action = intent["action"]
             else:
                 action = prepared["action"]
@@ -412,8 +485,8 @@ class Runtime:
         supply = request.get("supply", {})
         opening = ""
         try:
-            intent = parse_intent(self.provider.decide(self.language_context(request, message)))
-            if intent["action"] == "get_material_status":
+            intent = planning.decide(self, self.language_context(request, message), request=request)
+            if intent["action"] in {"get_material_status", "chat", "clarify"}:
                 opening = safe_message(intent.get("message", ""), self.redactions)
         except ModelError:
             pass
@@ -513,7 +586,10 @@ class Runtime:
         archive = self.projects.archive(building, plan_id, kind) if self.projects is not None and action == "create_design" else None
         spec = self.store.reserve(plan_id, building_id, old_version,
                                   building, origin, rotation, parameters, action, kind=kind, footing=footing,
-                                  worksite_order=worksite_order, edits=edits, project_name=archive)
+                                  worksite_order=worksite_order, edits=edits, project_name=archive,
+                                  goal=prior.get("goal", "") if prior else self.clean(
+                                      request.get("pending_worksite_goal") or request.get("message", "")),
+                                  player_update=self.clean(request.get("message", "")) if prior else "")
         return spec
 
     def load_project(self, request, intent):
@@ -530,7 +606,8 @@ class Runtime:
         plan_id = self.proposal_id(request["request_id"])
         try:
             return self.store.reserve(plan_id, "project_" + UUID(plan_id).hex, 0, model, origin, rotation, {},
-                                      "load_project", kind="project", project_name=name, source_project=name)
+                                      "load_project", kind="project", project_name=name, source_project=name,
+                                      goal=self.clean(request.get("message", "")))
         except ValueError as error:
             raise ProjectError(str(error)) from error
 
@@ -553,7 +630,8 @@ class Runtime:
         return self.store.reserve(self.proposal_id(request["request_id"]), plan["building_id"], plan["building_version"],
                                   model, plan["origin"], plan["rotation"], prior["parameters"], intent["action"],
                                   kind=prior["kind"], footing=prior.get("footing"),
-                                  source_project=plan.get("source_project"), edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}])
+                                  source_project=plan.get("source_project"), edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}],
+                                  goal=prior.get("goal", ""), player_update=self.clean(request.get("message", "")))
 
     def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message=""):
         with timed("bridge_review"):
@@ -681,7 +759,7 @@ class Runtime:
                                spec["plan"], player_id=request["player_id"], proposal_message=message)
         elif action in PREVIEW_ACTIONS:
             return self.review(request_id, "review", player_id=request["player_id"])
-        if action in STATUS_ACTIONS:
+        if action in STATUS_ACTIONS and not intent.get("message"):
             job = request.get("job")
             phases = {"running": "施工中", "paused": "已暂停", "completed": "已完工", "cancelled": "已取消", "failed": "需要检查"}
             text = (f"V{job['building_version']} {phases.get(job['state'], '准备中')}，"
@@ -762,8 +840,8 @@ class Runtime:
                         except (OSError, ValueError, KeyError):
                             self.record_diagnostic("bridge_unavailable")
                         planner_task = None
-                    if planner_task is None:
-                        planner_task = planner_pool.submit(planning.run_once, self, lambda value: scrub(value, self.redactions))
+                    if planner_task is None and not requests and not pending:
+                        planner_task = planner_pool.submit(planning.run_once, self)
                         next_planner_poll = monotonic() + 1.25
                 live = {request["request_id"] for request in requests}
                 failures = {key: value for key, value in failures.items() if key in live and value > monotonic()}

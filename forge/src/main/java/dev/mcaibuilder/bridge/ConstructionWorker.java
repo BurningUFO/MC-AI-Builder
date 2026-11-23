@@ -25,7 +25,9 @@ interface ConstructionWorker {
     boolean isActor(Entity entity);
 
     // Null means the NPC is still moving, mining or adjusting its stance.
-    Result act(WorkStep step);
+    Result act(WorkStep step, String approach);
+
+    JsonObject routeEvidence(BlockPos target);
 
     void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets);
 
@@ -55,7 +57,7 @@ interface ConstructionWorker {
 
     void mentionSupply();
 
-    JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor);
+    JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor, String choice);
 
     JsonObject status();
 

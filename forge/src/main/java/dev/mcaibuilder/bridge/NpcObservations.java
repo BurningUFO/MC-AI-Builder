@@ -289,7 +289,8 @@ final class NpcObservations implements AutoCloseable {
     private static boolean sameActiveVersion(JsonObject original, JsonObject now) {
         return original.has("job_id") && original.get("job_id").equals(now.get("job_id"))
                 && original.get("building_version").equals(now.get("building_version"))
-                && now.get("state").getAsString().equals("running");
+                && original.get("state").equals(now.get("state"))
+                && (now.get("state").getAsString().equals("running") || now.get("state").getAsString().equals("paused"));
     }
 
     boolean pairedPlanning(UUID id, ConstructionService site) {

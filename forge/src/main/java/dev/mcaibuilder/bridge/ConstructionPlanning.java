@@ -2,217 +2,235 @@ package dev.mcaibuilder.bridge;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import net.minecraft.core.BlockPos;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
-/** One bounded advisory lease for the future supported edge of an approved cottage roof. */
+/** A bounded lease on an approved job, with choices from a single placement band. */
 final class ConstructionPlanning {
-    private static final long LIFETIME = Duration.ofSeconds(55).toNanos();
-    private static final int MIN_PROGRESS = 6;
-    private static final String FRONT = "roof_front";
-    private static final String REAR = "roof_rear";
+    private static final long LIFETIME = Duration.ofSeconds(120).toNanos();
+    private static final int LOOKAHEAD = 96;
+    private static final int PROGRESS_INTERVAL = 256;
+    private static final int IN_FLIGHT_BUFFER = 12;
+    private static final int MAX_EVENTS = 16;
 
-    private record Offer(UUID id, UUID owner, int firstRoof, Map<String, List<WorkStep>> groups, long issued) {}
+    private record Offer(UUID id, UUID owner, List<WorkStep> queue, ConstructionJob.State state,
+                         String failure, int cursor, int first, int end, Map<String, List<WorkStep>> groups,
+                         Set<String> strategies, long issued) {}
 
+    private final Set<String> handled = new LinkedHashSet<>();
+    private final Set<String> recoveryTried = new LinkedHashSet<>();
+    private int recoveryCursor = -1;
     private Offer active;
     private JsonObject record;
     private String hint = "";
     private long thinkingAt;
     private UUID capture;
-    private int captures;
+    private boolean applied;
 
-    JsonObject claim(ConstructionJob job, UUID owner, long tick, Predicate<BlockPos> safeFeet) {
-        if (record != null || job.state != ConstructionJob.State.RUNNING || job.cursor < MIN_PROGRESS
-                || !job.plan.optimizedCottage()) {
+    JsonObject claim(ConstructionJob job, UUID owner, long tick, boolean manual, Set<String> recovery,
+                     Predicate<WorkStep> ready) {
+        if (active != null) {
             return new JsonObject();
         }
-        int roofY = job.plan.worldBounds().max().getY();
-        int firstRoof = job.steps.size();
-        Map<String, List<WorkStep>> groups = new LinkedHashMap<>();
-        groups.put(FRONT, new ArrayList<>());
-        groups.put(REAR, new ArrayList<>());
-        for (int index = 0; index < job.steps.size(); index++) {
-            WorkStep step = job.steps.get(index);
-            if (step.pos().getY() == roofY && !step.remove()) {
-                firstRoof = Math.min(firstRoof, index);
-                if (step.before().isAir() && job.plan.at(step.pos().below()) != null) {
-                    groups.get(step.target().local().getZ() < 0 ? FRONT : REAR).add(step);
-                }
+        boolean paused = job.state == ConstructionJob.State.PAUSED;
+        if (!paused && !manual && job.cursor < 6) {
+            return new JsonObject();
+        }
+        Set<String> tried = recoveryCursor == job.cursor ? recoveryTried : Set.of();
+        String event = paused ? "failure:" + job.cursor + ":" + job.steps.get(job.cursor).target().local()
+                + ":" + job.reason + ":" + tried.size() : "progress:" + job.cursor / PROGRESS_INTERVAL;
+        if (!manual && hint.isEmpty() && handled.contains(event)) {
+            return new JsonObject();
+        }
+        int first = Math.min(job.steps.size(), job.cursor + (paused ? 0 : IN_FLIGHT_BUFFER));
+        int end = first;
+        Map<BlockPos, List<WorkStep>> cells = new LinkedHashMap<>();
+        while (end < job.steps.size() && end - first < LOOKAHEAD) {
+            WorkStep step = job.steps.get(end);
+            if (!movable(step) || step.pos().getY() != job.steps.get(first).pos().getY()) {
+                break;
             }
+            if ((!paused || end != job.cursor) && ready.test(step)) {
+                BlockPos local = step.target().local();
+                BlockPos tile = new BlockPos(Math.floorDiv(local.getX(), 4), local.getY(), Math.floorDiv(local.getZ(), 4));
+                cells.computeIfAbsent(tile, ignored -> new ArrayList<>()).add(step);
+            }
+            end++;
         }
-        if (roofY - job.plan.origin().getY() < 3 || firstRoof <= job.cursor + 12
-                || groups.values().stream().anyMatch(List::isEmpty)
-                || job.steps.subList(firstRoof, job.steps.size()).stream()
-                    .anyMatch(step -> step.remove() || step.pos().getY() != roofY)) {
+        Map<String, List<WorkStep>> groups = new LinkedHashMap<>();
+        if ((paused || cells.size() > 1) && !tried.contains("prioritize") && tried.size() < 3) {
+            cells.values().stream().limit(8).forEach(steps -> groups.put("g" + (groups.size() + 1), List.copyOf(steps)));
+        }
+        if (!paused && !manual && groups.isEmpty()) {
             return new JsonObject();
         }
-        Map<String, Integer> standing = new LinkedHashMap<>();
-        groups.forEach((name, steps) -> standing.put(name, standableCells(job, steps, safeFeet)));
-        if (standing.values().stream().anyMatch(count -> count == 0)) {
-            return new JsonObject();
+        Set<String> strategies = new LinkedHashSet<>(recovery);
+        strategies.removeAll(tried);
+        if (tried.size() >= 3) {
+            strategies.clear();
         }
-        active = new Offer(UUID.randomUUID(), owner, firstRoof, groups, System.nanoTime());
+        if (!groups.isEmpty()) {
+            strategies.add("prioritize");
+        }
+        handled.add(event);
+        if (handled.size() > MAX_EVENTS) {
+            handled.remove(handled.iterator().next());
+        }
+        active = new Offer(UUID.randomUUID(), owner, job.steps, job.state, job.reason, job.cursor,
+                first, end, groups, Set.copyOf(strategies), System.nanoTime());
+        applied = false;
+        thinkingAt = 0;
+        capture = null;
         record = new JsonObject();
-        record.addProperty("lease", active.id.toString());
+        record.addProperty("lease", active.id().toString());
         record.addProperty("state", "observing");
-        record.addProperty("phase", "roof");
+        record.addProperty("event", event);
         record.addProperty("issued_tick", tick);
-        record.addProperty("first_step", firstRoof);
         JsonObject offer = status();
-        offer.addProperty("job_id", job.plan.id().toString());
-        offer.addProperty("building_version", job.plan.version());
-        offer.addProperty("processed", job.cursor);
-        offer.addProperty("total", job.steps.size());
         offer.addProperty("user_hint", hint);
-        offer.addProperty("default_group", job.steps.get(firstRoof).target().local().getZ() < 0 ? FRONT : REAR);
         JsonArray options = new JsonArray();
         groups.forEach((key, steps) -> {
             JsonObject option = new JsonObject();
             option.addProperty("group", key);
             option.addProperty("placements", steps.size());
-            option.addProperty("verified_nearby_ground_stances", standing.get(key));
-            option.add("relative_min", Wire.position(extreme(steps, false)));
-            option.add("relative_max", Wire.position(extreme(steps, true)));
+            option.add("first_local", Wire.position(steps.get(0).target().local()));
+            option.add("last_local", Wire.position(steps.get(steps.size() - 1).target().local()));
+            option.add("materials", Warehouse.jsonTotals(Warehouse.needs(steps, 0)));
             options.add(option);
         });
         offer.add("groups", options);
-        Map<String, Integer> needs = new LinkedHashMap<>();
-        job.steps.subList(firstRoof, job.steps.size()).forEach(step ->
-                needs.merge(Warehouse.id(step.target().item()), 1, Integer::sum));
-        JsonObject materials = new JsonObject();
-        needs.forEach((id, count) -> materials.addProperty(id, count));
-        offer.add("roof_materials", materials);
+        JsonArray choices = new JsonArray();
+        strategies.forEach(choices::add);
+        offer.add("strategies", choices);
+        hint = "";
         return offer;
     }
 
-    private static int standableCells(ConstructionJob job, List<WorkStep> steps, Predicate<BlockPos> safeFeet) {
-        Set<BlockPos> possible = new HashSet<>();
-        int floorY = job.plan.origin().getY();
-        for (WorkStep step : steps) {
-            for (BlockPos ground : BlockPos.betweenClosed(
-                    new BlockPos(step.pos().getX() - 2, floorY - 1, step.pos().getZ() - 2),
-                    new BlockPos(step.pos().getX() + 2, floorY + 1, step.pos().getZ() + 2))) {
-                possible.add(ground.immutable());
-            }
-        }
-        return (int) possible.stream().filter(safeFeet).count();
+    private static boolean movable(WorkStep step) {
+        return !step.remove() && step.before().isAir() && !step.target().paired()
+                && !step.target().upper() && !step.target().light() && !step.target().topSlab();
     }
 
-    private static BlockPos extreme(List<WorkStep> steps, boolean high) {
-        var locals = steps.stream().map(step -> step.target().local()).toList();
-        var x = locals.stream().mapToInt(BlockPos::getX).summaryStatistics();
-        var y = locals.stream().mapToInt(BlockPos::getY).summaryStatistics();
-        var z = locals.stream().mapToInt(BlockPos::getZ).summaryStatistics();
-        return high ? new BlockPos(x.getMax(), y.getMax(), z.getMax())
-                : new BlockPos(x.getMin(), y.getMin(), z.getMin());
-    }
-
-    void require(ConstructionJob job, UUID owner, UUID lease) {
-        if (active == null || !active.id.equals(lease) || !active.owner.equals(owner) || !valid(job)) {
-            throw Wire.conflict("stale_planning", "施工阶段、授权或版本已经变化，策略已失效。");
+    void require(ConstructionJob job, UUID owner, UUID lease, boolean fresh) {
+        if (active == null || !active.id().equals(lease) || !active.owner().equals(owner)
+                || System.nanoTime() - active.issued() >= LIFETIME || fresh && (applied || !valid(job))) {
+            throw Wire.conflict("stale_planning", "当前任务、执行进度或现场已变化。");
         }
     }
 
     private boolean valid(ConstructionJob job) {
-        return job.state == ConstructionJob.State.RUNNING && job.cursor < active.firstRoof
-                && System.nanoTime() - active.issued < LIFETIME;
+        return job.state == active.state() && Objects.equals(job.reason, active.failure()) && job.steps == active.queue()
+                && (job.state == ConstructionJob.State.PAUSED ? job.cursor == active.cursor()
+                        : active.groups().isEmpty() || job.cursor < active.end());
     }
 
     void expire(ConstructionJob job) {
-        if (active != null && !valid(job)) {
+        if (active != null && (System.nanoTime() - active.issued() >= LIFETIME || !applied && !valid(job))) {
             invalidate("stale_planning");
         }
     }
 
-    UUID capture(Supplier<UUID> request) {
-        if (captures >= 2) {
-            throw Wire.conflict("planning_capture_limit", "这份施工版本的观察次数已用完。");
-        }
-        capture = request.get();
-        captures++;
-        return capture;
+    void capture(UUID id) {
+        capture = id;
+    }
+
+    boolean canCapture() {
+        return capture == null;
     }
 
     boolean ownsCapture(UUID id) {
         return id != null && id.equals(capture);
     }
 
-    boolean hint(String message) {
+    void hint(String message) {
         hint = message;
-        boolean willRead = record == null;
-        if (active != null) {
+        if (active != null && !applied) {
             invalidate("new_player_hint");
         }
-        return willRead;
     }
 
-    void thinking(ConstructionJob job, long tick, String observation) {
+    void thinking(ConstructionJob job, long tick, UUID observation) {
         if (observation != null) {
-            if (!record.has("observation_id")) {
-                record.addProperty("observation_id", observation);
-                record.add("observation_ids", new JsonArray());
-            }
-            JsonArray frames = record.getAsJsonArray("observation_ids");
-            JsonPrimitive identity = new JsonPrimitive(observation);
-            if (!frames.contains(identity)) {
-                frames.add(identity);
-            }
+            record.addProperty("observation_id", observation.toString());
         }
-        if (thinkingAt != 0) {
-            return;
+        if (thinkingAt == 0) {
+            thinkingAt = System.nanoTime();
+            record.addProperty("state", "thinking");
+            record.addProperty("model_start_tick", tick);
+            record.addProperty("model_start_ms", job.performance.offsetMs());
+            record.addProperty("placed_at_start", job.placed);
         }
-        thinkingAt = System.nanoTime();
-        record.addProperty("state", "thinking");
-        record.addProperty("model_start_tick", tick);
-        record.addProperty("model_start_ms", job.performance.offsetMs());
-        record.addProperty("placed_at_start", job.placed);
-        record.addProperty("processed_at_start", job.cursor);
     }
 
-    void resolve(ConstructionJob job, String group, String reason, long tick,
-                 Consumer<WorkStep> recheck, Predicate<BlockPos> safeFeet) {
-        if (thinkingAt == 0 && group != null) {
-            throw Wire.conflict("planning_not_started", "此策略尚未开始，保留现有施工顺序。");
+    void requireStrategy(String strategy) {
+        if (!active.strategies().contains(strategy)) {
+            throw Wire.conflict("invalid_planning_strategy", "这个工作策略未获 Forge 提供。");
         }
-        boolean reordered = false;
+    }
+
+    List<WorkStep> prioritize(ConstructionJob job, String group, Predicate<WorkStep> ready) {
+        List<WorkStep> selected = active.groups().get(group);
+        if (selected == null) {
+            throw Wire.conflict("invalid_planning_group", "请选择当前租约提供的工作组。");
+        }
+        int first = job.state == ConstructionJob.State.RUNNING ? Math.max(job.cursor + 1, active.first()) : active.first();
+        Set<WorkStep> remaining = Collections.newSetFromMap(new IdentityHashMap<>());
+        remaining.addAll(job.steps.subList(Math.min(first, active.end()), active.end()));
+        if (!remaining.containsAll(selected)) {
+            throw Wire.conflict("stale_planning", "选定工作组已经开始执行。");
+        }
+        if (!selected.stream().allMatch(ready)) {
+            throw Wire.conflict("planning_world_changed", "所选工作组的支持、空间或保护条件已变化。");
+        }
+        Set<WorkStep> priority = Collections.newSetFromMap(new IdentityHashMap<>());
+        priority.addAll(selected);
+        List<WorkStep> order = new ArrayList<>(job.steps.subList(0, first));
+        order.addAll(selected);
+        for (WorkStep step : job.steps.subList(first, active.end())) {
+            if (!priority.contains(step)) {
+                order.add(step);
+            }
+        }
+        order.addAll(job.steps.subList(active.end(), job.steps.size()));
+        if (order.equals(job.steps)) {
+            throw Wire.conflict("planning_order_unchanged", "这组已经排在当前可调整队列的最前面。");
+        }
+        record.addProperty("first_step", first);
+        record.add("first_local", Wire.position(selected.get(0).target().local()));
+        return List.copyOf(order);
+    }
+
+    void applied(ConstructionJob job, String strategy, String group, String reason, long tick) {
+        if (active.state() == ConstructionJob.State.PAUSED) {
+            if (recoveryCursor != job.cursor) {
+                recoveryCursor = job.cursor;
+                recoveryTried.clear();
+            }
+            recoveryTried.add(strategy);
+        }
+        applied = true;
+        record.addProperty("state", "applied");
+        record.addProperty("strategy", strategy);
         if (group != null) {
-            List<WorkStep> selected = active.groups.get(group);
-            if (selected == null) {
-                throw Wire.conflict("invalid_planning_group", "只能选择当前授权队列提供的工作组。");
-            }
-            if (standableCells(job, selected, safeFeet) == 0) {
-                throw Wire.conflict("planning_group_no_stance", "候选工作组附近没有经过现场核对的站位。");
-            }
-            selected.forEach(recheck);
-            Set<WorkStep> priority = Set.copyOf(selected);
-            List<WorkStep> order = new ArrayList<>(job.steps.subList(0, active.firstRoof));
-            order.addAll(selected);
-            for (WorkStep step : job.steps.subList(active.firstRoof, job.steps.size())) {
-                if (!priority.contains(step)) {
-                    order.add(step);
-                }
-            }
-            reordered = !order.equals(job.steps);
-            if (reordered) {
-                job.steps = List.copyOf(order);
-            }
             record.addProperty("group", group);
-            record.add("first_local", Wire.position(selected.get(0).target().local()));
         }
-        record.addProperty("state", reordered ? "applied" : "kept");
         record.addProperty("reason", reason);
+        recordResult(job, tick);
+    }
+
+    private void recordResult(ConstructionJob job, long tick) {
         record.addProperty("resolved_tick", tick);
         record.addProperty("resolved_ms", job.performance.offsetMs());
         if (thinkingAt != 0) {
@@ -220,13 +238,23 @@ final class ConstructionPlanning {
             record.addProperty("eligible_actions_during_thinking", job.placed - record.get("placed_at_start").getAsInt());
             record.addProperty("processed_at_result", job.cursor);
         }
+    }
+
+    void finish(ConstructionJob job, String reason, long tick) {
+        if (!applied) {
+            record.addProperty("state", "kept");
+            record.addProperty("reason", reason);
+            recordResult(job, tick);
+        }
         active = null;
     }
 
     void invalidate(String reason) {
         if (active != null) {
-            record.addProperty("state", "discarded");
-            record.addProperty("reason", reason);
+            if (!applied) {
+                record.addProperty("state", "discarded");
+                record.addProperty("reason", reason);
+            }
             active = null;
         }
     }
@@ -239,8 +267,29 @@ final class ConstructionPlanning {
         return record == null ? new JsonObject() : record.deepCopy();
     }
 
+    JsonObject checkpoint() {
+        JsonObject saved = status();
+        JsonArray events = new JsonArray();
+        handled.forEach(events::add);
+        saved.add("handled_events", events);
+        saved.addProperty("recovery_cursor", recoveryCursor);
+        JsonArray choices = new JsonArray();
+        recoveryTried.forEach(choices::add);
+        saved.add("recovery_tried", choices);
+        return saved;
+    }
+
     void restore(JsonObject saved) {
         record = saved.deepCopy();
+        if (record.remove("handled_events") instanceof JsonArray events) {
+            events.forEach(event -> handled.add(event.getAsString()));
+        }
+        if (record.remove("recovery_cursor") instanceof com.google.gson.JsonPrimitive cursor) {
+            recoveryCursor = cursor.getAsInt();
+        }
+        if (record.remove("recovery_tried") instanceof JsonArray choices) {
+            choices.forEach(choice -> recoveryTried.add(choice.getAsString()));
+        }
         String state = record.get("state").getAsString();
         if (state.equals("observing") || state.equals("thinking")) {
             record.addProperty("state", "discarded");

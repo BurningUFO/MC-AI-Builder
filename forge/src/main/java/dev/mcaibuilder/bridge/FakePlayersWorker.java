@@ -408,7 +408,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public Result act(WorkStep step) {
+    public Result act(WorkStep step, String approach) {
         if (tickDescent()) {
             return null;
         }
@@ -436,7 +436,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         }
         ItemStack stack = slot < 0 ? ItemStack.EMPTY : npc.getInventory().getItem(slot);
         npc.setDisplayItem(stack);
-        Aim aim = chooseAim(step, stack, current);
+        boolean upper = "upper_stance".equals(approach);
+        int platformY = step.pos().getY() - 1;
+        Aim aim = upper && current.y < platformY ? null : chooseAim(step, stack, current);
         if (aim != null && (!new AABB(step.pos()).intersects(npc.getBoundingBox()) || step.remove())) {
             if (!step.remove() && !level.isUnobstructed(step.after(), step.pos(),
                     net.minecraft.world.phys.shapes.CollisionContext.of(actor))) {
@@ -447,6 +449,9 @@ final class FakePlayersWorker implements ConstructionWorker {
             return step.remove() ? mine(step, slot, aim) : useItem(step.target(), slot, aim);
         }
         if (scaffoldRoute != null) {
+            return climbScaffold();
+        }
+        if ("scaffold".equals(approach) && deadline == 0 && npc.onGround() && findScaffold(step, stack)) {
             return climbScaffold();
         }
         stopMining();
@@ -475,7 +480,8 @@ final class FakePlayersWorker implements ConstructionWorker {
                 return climbScaffold();
             }
         }
-        String trouble = navigate(step.pos(), current, stance -> chooseAim(step, stack, stance) != null, unreachable);
+        String trouble = navigate(step.pos(), current, stance -> (!upper || stance.y >= platformY)
+                && chooseAim(step, stack, stance) != null, unreachable);
         if (trouble == null) {
             return null;
         }
@@ -890,7 +896,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor) {
+    public JsonObject resupply(Supplier<List<Warehouse.Stock>> availableStock, List<WorkStep> steps, int cursor, String choice) {
         if (!available()) {
             throw Wire.conflict("npc_unavailable", "NPC 暂时无法搬运。");
         }
@@ -911,14 +917,17 @@ final class FakePlayersWorker implements ConstructionWorker {
             stocks = availableStock.get();
             Item substitute = Warehouse.substitute(steps.get(cursor));
             var direct = rankedStock(stocks, Set.of(item));
-            if (!direct.isEmpty()) {
+            if (!"craft".equals(choice) && !direct.isEmpty()) {
                 return fetchStock(direct, Warehouse.needs(steps, cursor));
             }
-            if (substitute != null) {
+            if (!"craft".equals(choice) && substitute != null) {
                 direct = rankedStock(stocks, Set.of(substitute));
                 if (!direct.isEmpty()) {
                     return fetchStock(direct, Map.of(substitute, 1));
                 }
+            }
+            if ("collect".equals(choice)) {
+                throw Wire.conflict("awaiting_materials", "附近获准的容器没有下一步所需的成品。");
             }
             var carried = Warehouse.carried(npc.getInventory());
             fabrication = recipes().next(item, Warehouse.needs(steps, cursor), Warehouse.substitutes(steps, cursor),
@@ -1228,7 +1237,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         var target = new BuildPlan.Target(pos, pos, state, state.getBlock().asItem());
         if (entry.getValue() == CraftingAssistant.Station.FURNACE && slot < 0) {
             var source = supplyCenter == null ? null : new Warehouse.Source(workshop.owner, supplyCenter);
-            var receipt = resupply(() -> Warehouse.scan(level, site, source), List.of(new WorkStep(target, state, true)), 0);
+            var receipt = resupply(() -> Warehouse.scan(level, site, source),
+                    List.of(new WorkStep(target, state, true)), 0, null);
             if (receipt != null) {
                 receipt.addProperty("tick", level.getGameTime());
                 if (receipt.has("crafted")) {
@@ -1836,8 +1846,28 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private Result deferred(String reason) {
+        JsonObject evidence = routeEvidence(actionTarget);
         haltAction();
-        return new Result("deferred", reason, null);
+        return new Result("deferred", reason, evidence);
+    }
+
+    @Override
+    public JsonObject routeEvidence(BlockPos target) {
+        JsonObject result = new JsonObject();
+        if (target == null) {
+            return result;
+        }
+        JsonArray stances = new JsonArray();
+        triedStances.stream().sorted(Comparator.comparingDouble(target::distSqr)).limit(6)
+                .forEach(pos -> stances.add(Wire.position(pos.subtract(target))));
+        result.add("tested_stance_offsets", stances);
+        if (scaffoldRoute != null && target.equals(actionTarget)) {
+            result.add("scaffold_base_offset", Wire.position(scaffoldRoute.base().subtract(target)));
+        }
+        if (destination != null) {
+            result.add("destination_offset", Wire.position(destination.subtract(target)));
+        }
+        return result;
     }
 
     private void stopNavigation() {

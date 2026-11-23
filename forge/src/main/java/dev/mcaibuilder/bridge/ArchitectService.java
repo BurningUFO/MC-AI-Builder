@@ -124,10 +124,10 @@ final class ArchitectService {
             case "plan" -> {
                 if (!construction.offerPlanning(session.active) || parts.length != 2 || parts[1].isBlank()
                         || parts[1].length() > 160 || parts[1].codePoints().anyMatch(Character::isISOControl)) {
-                    throw Wire.conflict("planning_hint_unavailable", "在自己的副本任务施工中，可发送最多 160 字的施工顺序建议。");
+                    throw Wire.conflict("planning_hint_unavailable", "在自己的施工任务中，可发送最多 160 字的施工顺序建议。");
                 }
-                tell(player, construction.planningHint(parts[1].strip()) ? "施工顺序建议已记录。"
-                        : "建议已记录。此版本的规划机会已用，施工仍按已生效的安全顺序进行。");
+                construction.planningHint(parts[1].strip());
+                tell(player, "施工顺序建议已记录。");
                 return;
             }
             case "work" -> {
@@ -165,7 +165,7 @@ final class ArchitectService {
                 decide(player, session, id, verb.equals("approve"), false);
                 return;
             }
-            case "resume", "cancel" -> {
+            case "pause", "resume", "cancel" -> {
                 UUID id = parts.length == 2 ? parseUuid(parts[1]) : session.active;
                 control(player, session, id, verb);
                 return;
@@ -260,12 +260,11 @@ final class ArchitectService {
             return;
         }
         UUID job = currentJob();
-        boolean pause = input.matches("(?is)^(?:pause\\b|(?:先\\s*)?暂停(?:\\s*施工)?)(?:$|[\\s,，。;；：:、].*)");
         boolean owned = session.active != null && session.active.equals(job);
         if (inspect && (!owned || session.watch == null)) {
             throw Wire.conflict("visual_job_required", "请先用 /architect supervise 批准一个视觉监管任务。");
         }
-        if (owned && (pause || inspect)) {
+        if (inspect) {
             JsonObject current = ownedJob(session);
             if (current != null && current.get("state").getAsString().equals("running")) {
                 construction.control("pause", job);
@@ -276,9 +275,10 @@ final class ArchitectService {
             tell(player, "Agent 未连接。这条需求没有进入模型队列，请查看启动器。");
             return;
         }
-        String feedback = owned && session.watch != null && !surveyed
-                && (inspect || pause && !input.matches("(?i)^(?:pause|(?:先\\s*)?暂停(?:\\s*施工)?)[。.!！]?$"))
-                ? "requested" : null;
+        String feedback = inspect ? "requested" : null;
+        if (owned) {
+            construction.invalidatePlanning("new_player_request");
+        }
         queue(player, session, input, surveyed, watch, feedback);
         if (autonomous) {
             session.request.input.addProperty("worksite", true);
@@ -299,6 +299,7 @@ final class ArchitectService {
         JsonObject owned = ownedJob(session);
         if (owned != null) {
             context.add("job", owned);
+            context.add("task", construction.taskContext());
         }
         if (session.draft != null) {
             JsonObject draft = new JsonObject();
@@ -447,10 +448,20 @@ final class ArchitectService {
     JsonObject planning(JsonObject body, NpcObservations observations) {
         String operation = Wire.string(body.get("operation"), "operation");
         UUID job = currentJob();
-        if (writable && runtimeOnline() && construction.offerPlanning(job)) {
+        if (body.has("request_id")) {
+            Pending pending = requireRequest(body);
+            if (job == null || !job.equals(pending.session.active)) {
+                throw Wire.conflict("no_job", "当前会话没有施工任务。");
+            }
+            if (pending.session.reviewing && !Set.of("inspect", "finish").contains(operation)) {
+                throw Wire.conflict("change_pending", "请先处理待审阅方案。");
+            }
+            return construction.planning(operation, pending.player, body, observations);
+        }
+        if (writable && runtimeOnline() && job != null) {
             for (var entry : sessions.entrySet()) {
                 Session session = entry.getValue();
-                if (!job.equals(session.active)) {
+                if (!job.equals(session.active) || session.request != null || session.reviewing) {
                     continue;
                 }
                 ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
@@ -835,7 +846,11 @@ final class ArchitectService {
             session.reviewing = false;
             persist();
         }
-        tell(player, action.equals("resume") ? "已继续施工。" : "已取消当前施工。");
+        tell(player, switch (action) {
+            case "pause" -> "已暂停当前施工。";
+            case "resume" -> "已继续施工。";
+            default -> "已取消当前施工。";
+        });
     }
 
     private JsonObject inspect(Draft draft, boolean stageIfMissing, UUID owner) {
@@ -1065,7 +1080,7 @@ final class ArchitectService {
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/architect " + command)));
     }
 
-    private static void tell(ServerPlayer player, String message) {
+    static void tell(ServerPlayer player, String message) {
         tell(player, Component.literal(message));
     }
 

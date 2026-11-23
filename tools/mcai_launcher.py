@@ -386,7 +386,7 @@ class Launcher:
     def start_agent(self, runtime_polls):
         copied_world = (self.game_dir / MARKER).is_file()
         share = self.settings.get("share_observations") is True and copied_world
-        planning = self.settings.get("parallel_planning") is True and copied_world
+        planning = self.settings.get("parallel_planning", True) is True
         self.agent_start_poll = runtime_polls
         self.stop_agent.unlink(missing_ok=True)
         self.agent = self.spawn([
@@ -398,7 +398,7 @@ class Launcher:
             "--codex-max-tokens", str(MAX_TOKENS), "--codex-budget-log", str(self.budget),
             "--stop-file", str(self.stop_agent),
             *(["--share-observations"] if share else []),
-            *(["--planning"] if planning else []),
+            *(["--no-planning"] if not planning else []),
         ], "agent.log", "ab")
         self.agent_deadline = monotonic() + 30
 
@@ -597,8 +597,8 @@ def window(app):
         share_observations = tk.BooleanVar(value=app.settings.get("share_observations") is True)
         ttk.Checkbutton(dialog, text="允许副本中的主动观察与视觉监管将 NPC 图像发送给 Codex",
                         variable=share_observations).grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=8)
-        parallel_planning = tk.BooleanVar(value=app.settings.get("parallel_planning") is True)
-        ttk.Checkbutton(dialog, text="副本中的住宅施工启用并行 Codex 规划", variable=parallel_planning).grid(
+        parallel_planning = tk.BooleanVar(value=app.settings.get("parallel_planning", True) is True)
+        ttk.Checkbutton(dialog, text="施工期间允许 Codex 规划和恢复", variable=parallel_planning).grid(
             row=5, column=0, columnspan=3, sticky="w", padx=8, pady=8)
 
         def save():

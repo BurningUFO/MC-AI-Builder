@@ -1,6 +1,6 @@
 """Run the standalone Minecraft Architect service."""
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
 import sys
 
@@ -28,12 +28,15 @@ def main():
     parser.add_argument("--codex-max-turns", type=int, default=12, help="Maximum Codex turns per ledger, or per process without a ledger")
     parser.add_argument("--share-observations", action="store_true",
                         help="Permit explicit NPC surveys and supervised builds to send their local images to Codex")
-    parser.add_argument("--planning", action="store_true",
-                        help="Allow a bounded Codex strategy for the unstarted roof of each approved cottage")
+    parser.add_argument("--planning", action=BooleanOptionalAction, default=None,
+                        help="Enable background work decisions for approved jobs (default for real providers)")
     options = parser.parse_args()
-    if (options.share_observations or options.planning) and options.provider != "codex":
-        parser.error("--share-observations and --planning require the Codex provider")
-    if (options.share_observations or options.planning) and options.codex_budget_log is None:
+    parallel = options.provider != "fixture" if options.planning is None else options.planning
+    if options.share_observations and options.provider != "codex":
+        parser.error("--share-observations requires the Codex provider")
+    if parallel and options.provider == "fixture":
+        parser.error("--planning requires a real model provider")
+    if options.provider == "codex" and (options.share_observations or parallel) and options.codex_budget_log is None:
         options.codex_budget_log = ROOT / ".cache" / "m5-launcher" / "codex-turns.sqlite3"
     try:
         config = options.config.resolve(strict=True)
@@ -51,7 +54,7 @@ def main():
         runtime = Runtime(client, provider, storage, options.instance.resolve(strict=True),
                           blender, projects=ProjectLibrary(options.project_root),
                           share_observations=options.share_observations,
-                          parallel_planning=options.planning)
+                          parallel_planning=parallel)
         print(f"Architect runtime ready ({options.provider})", flush=True)
         runtime.run(options.stop_file.is_file if options.stop_file else lambda: False)
     except KeyboardInterrupt:

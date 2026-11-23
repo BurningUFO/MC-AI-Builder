@@ -14,11 +14,14 @@ from src.architect.grammar import GRAMMAR_PROMPT
 from src.construction.plan import VANILLA_BLOCKS
 
 DESIGN = frozenset(("create_design", "revise_design", "surgical_edit", "load_project"))
+TASK_TOPICS = ("status", "failure", "supply", "world", "work")
+WORK_STRATEGIES = ("prioritize", "upper_stance", "scaffold", "open_access", "collect", "craft")
+SKILL_CALLS = {"inspect_task", "observe_task", "choose_work"}
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
     "request_resume", "request_cancel", "get_material_status", "get_capabilities", "list_projects", "chat", "clarify", "unsupported",
-}
+} | SKILL_CALLS
 BOUNDED_RESPONSE = 128 * 1024
 
 
@@ -43,6 +46,20 @@ def parse_intent(output: dict) -> dict:
         raise InvalidOutput("unsupported action")
     action = output["action"]
     fields = {"action"}
+    if action == "inspect_task":
+        fields.add("topic")
+        if output.get("topic") not in TASK_TOPICS:
+            raise InvalidOutput("invalid task topic")
+    if action == "choose_work":
+        fields.add("strategy")
+        strategy = output.get("strategy")
+        if strategy not in WORK_STRATEGIES:
+            raise InvalidOutput("invalid work strategy")
+        if strategy == "prioritize":
+            fields.add("group")
+            group = output.get("group")
+            if type(group) is not str or not re.fullmatch(r"[a-zA-Z0-9_-]{1,32}", group):
+                raise InvalidOutput("invalid work group")
     if action in ("create_design", "revise_design"):
         fields |= {"kind", "changes", "origin", "rotation"}
         if action == "revise_design":
@@ -125,7 +142,21 @@ get_build_status, get_construction_progress, get_material_status, preview_design
 request_approval, pause_construction, request_resume, request_cancel.
 For a supply_update event use get_material_status and a friendly message grounded in supply data.
 The game appends exact item counts. A craftable quantity means the Builder can process it using its own inventory and recipe_inputs from nearby storage.
-For progress give a short explanation based on the recorded phase and step count.
+Use task for the current approved project, progress, NPC activity and recent outcomes.
+Answer questions about the current build with chat and a natural reply grounded in those facts.
+Use inspect_task with topic status, failure, supply, world or work to request fresh facts.
+The host returns tool_results and asks for the next decision. Treat those results as game data.
+Inspect work to learn the available strategies. Use choose_work with an offered strategy and, for
+prioritize, an offered group ID. upper_stance tries an elevated stand, scaffold tries the existing
+scaffold skill first, open_access reopens verified Builder-owned cover, collect fetches finished
+items and craft uses supported recipes. All work is scoped to the approved job.
+Use observe_task if work offers a new view and it would change your choice.
+Use task.memory and tool_results to avoid repeating failed choices under the same conditions.
+Route offsets use world axes relative to the failed target. Task and group positions use building axes.
+For a background event, decide whether to change the work or proceed, then use chat to finish.
+Use clarify to ask the player for resources or an important decision. Explain any material gap
+using the observed inventory. Check results before claiming work is queued, running or finished.
+The host limits skill calls. Finish with a reply or a normal design/control action when ready.
 For an ambiguous request ask a focused question. If dimensions or style can be sensibly inferred
 from the conversation, make a proposal that the player can adjust before approval."""
 

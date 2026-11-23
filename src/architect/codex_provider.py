@@ -21,10 +21,9 @@ from src.architect.design import (COTTAGE_ROOFS, COTTAGE_SIZES, DESIGNS, ENTRIES
                                   MASONRY, ROOFS, ROOF_FORMS, STYLES, WINDOW_LAYOUTS, WOODS)
 from src.architect.observations import rgb_png
 from src.architect.telemetry import model_turn
-from src.architect.providers import (ACTIONS, PROMPT, InvalidOutput, ModelBudgetExhausted, ModelError,
-                                     ModelTimeout, parse_intent)
+from src.architect.providers import (ACTIONS, PROMPT, TASK_TOPICS, WORK_STRATEGIES, InvalidOutput,
+                                     ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
-from src.architect import planning
 from src.architect.grammar import LIGHTING, ROOF_STYLES
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
 from src.architect import feedback, survey
@@ -37,7 +36,7 @@ MAX_RESPONSE_BYTES = 32768
 CONTEXT_KEYS = (
     "message", "dimension", "position", "facing", "suggested_origin", "approved_area",
     "ground_near_anchor", "fixed_site", "construction", "design", "supply", "available_mod_blocks",
-    "phase", "event", "sites", "gaze", "workspace_projects",
+    "phase", "event", "sites", "gaze", "workspace_projects", "task", "work", "tool_results",
 )
 NON_TOOL_ITEMS = {"userMessage", "agentMessage", "reasoning", "functionCallOutput", "contextCompaction"}
 
@@ -106,6 +105,9 @@ FIELDS = {
         {"type": "string", "enum": ["here"]}, {"type": "null"},
     ]},
     "message": {"type": ["string", "null"]},
+    "topic": {"type": ["string", "null"], "enum": [*TASK_TOPICS, None]},
+    "strategy": {"type": ["string", "null"], "enum": [*WORK_STRATEGIES, None]},
+    "group": {"type": ["string", "null"]},
 }
 INTENT_SCHEMA = {
     "type": "object", "properties": FIELDS,
@@ -126,6 +128,8 @@ def context_message(context: dict) -> str:
             payload["recent"].pop(0)
         elif payload.get("workspace_projects"):
             payload["workspace_projects"] = payload["workspace_projects"][:-1]
+        elif len(payload.get("tool_results", ())) > 1:
+            payload["tool_results"] = payload["tool_results"][1:]
         else:
             raise ModelError("Codex Architect context exceeds the input limit")
 
@@ -184,6 +188,11 @@ class CodexProvider:
         intent, _ = self.decide_with_metrics(context)
         return intent
 
+    def decide_with_view(self, context, image, *, observation_id, allow_upload=False):
+        result, _ = self._vision_decision(context_message(context), image, observation_id, allow_upload,
+                                          self._intent_view_turn, "intent")
+        return result
+
     def decide_with_metrics(self, context: dict) -> tuple[dict, dict]:
         payload = context_message(context)
         metrics = {
@@ -218,16 +227,6 @@ class CodexProvider:
         if len(message.encode("utf-8")) > 7600:
             raise ValueError("Feedback prompt exceeds its input limit")
         return self._vision_decision(message, image, observation_id, allow_upload, self._feedback_turn, "feedback")
-
-    def plan_with_metrics(self, payload, image=None, *, observation_id=None, allow_upload=False):
-        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
-        if len(message.encode("utf-8")) > 7600:
-            raise InvalidOutput("Planning prompt exceeds its input limit")
-        if image is not None:
-            return self._vision_decision(message, image, observation_id, allow_upload, self._planning_turn, "planning")
-        metrics = {"requested_model": self.model, "requested_effort": self.effort, "status": "reserved",
-                   "context_bytes": len(message.encode("utf-8"))}
-        return self._metered(metrics, lambda: self._planning_turn(message, None, metrics), "planning")
 
     def _vision_decision(self, payload, image, observation_id, allow_upload, invoke, kind):
         if allow_upload is not True:
@@ -280,11 +279,15 @@ class CodexProvider:
     async def _turn(self, payload: str, metrics: dict) -> dict:
         from openai_codex import ExternalMessage
 
-        instructions = PROMPT + "\nThe only request data is the architect_context message. " \
-            "Return the intent without reading files, using tools or taking actions. " \
+        return await self._intent_turn(ExternalMessage(tool_name="architect_context", content=payload), metrics)
+
+    async def _intent_view_turn(self, payload, image, metrics):
+        return await self._intent_turn(scene_input(payload, image), metrics)
+
+    async def _intent_turn(self, inputs, metrics):
+        instructions = PROMPT + "\nReturn the next typed decision using the supplied data. " \
             "Use JSON null for schema fields that are not part of this intent."
-        return await self._sdk_turn(ExternalMessage(tool_name="architect_context", content=payload),
-                                    instructions, INTENT_SCHEMA, decode_intent, metrics)
+        return await self._sdk_turn(inputs, instructions, INTENT_SCHEMA, decode_intent, metrics)
 
     async def _scene_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), VISION_PROMPT, SCENE_SCHEMA, decode_scene, metrics)
@@ -306,13 +309,6 @@ class CodexProvider:
     async def _feedback_turn(self, payload, image, metrics):
         return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),
                                     lambda output: feedback.decode(output, DESIGN_FIELDS), metrics)
-
-    async def _planning_turn(self, payload, image, metrics):
-        from openai_codex import ExternalMessage
-
-        inputs = scene_input(payload, image) if image is not None else ExternalMessage(
-            tool_name="construction_context", content=payload)
-        return await self._sdk_turn(inputs, planning.PROMPT, planning.SCHEMA, planning.decode, metrics)
 
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread
