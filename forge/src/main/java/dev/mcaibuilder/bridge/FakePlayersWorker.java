@@ -252,7 +252,7 @@ final class FakePlayersWorker implements ConstructionWorker {
                     throw Wire.conflict("survey_route_changed", "观察起点已改变。");
                 }
                 Path path = npc.getNavigation().createPath(surveyDestination, 0);
-                if (path == null || !path.canReach() || !surveyPath(path) || !npc.getNavigation().moveTo(path, 1.0)) {
+                if (path == null || !path.canReach() || !surveyPath(path, surveyStart) || !npc.getNavigation().moveTo(path, 1.0)) {
                     throw Wire.conflict("survey_unreachable", "NPC 无法沿安全路径到达站位。");
                 }
                 surveyPathStarted = true;
@@ -260,7 +260,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return false;
         }
         Path path = npc.getNavigation().getPath();
-        if (path == null || !path.getTarget().equals(surveyDestination) || !surveyPath(path)
+        if (path == null || !path.getTarget().equals(surveyDestination) || !surveyPath(path, surveyStart)
                 || npc.getNavigation().isDone()) {
             throw Wire.conflict("survey_route_changed", "NPC 无法继续沿安全范围内的观察路线移动。");
         }
@@ -282,14 +282,14 @@ final class FakePlayersWorker implements ConstructionWorker {
         npc.setXRot(pitch);
     }
 
-    private boolean surveyPath(Path path) {
+    private boolean surveyPath(Path path, BlockPos start) {
         if (path.getNodeCount() > 13) {
             return false;
         }
-        BlockPos previous = surveyStart;
+        BlockPos previous = start;
         for (int i = 0; i < path.getNodeCount(); i++) {
             BlockPos node = path.getNode(i).asBlockPos();
-            if (!surveyFooting(node) || !surveyStart.closerThan(node, SURVEY_RADIUS + 1)
+            if (!surveyFooting(node) || !start.closerThan(node, SURVEY_RADIUS + 1)
                     || Math.abs(previous.getY() - node.getY()) > 1) {
                 return false;
             }
@@ -330,9 +330,15 @@ final class FakePlayersWorker implements ConstructionWorker {
         return stances(step.pos(), npc.position()).stream()
                 .filter(pos -> !pos.equals(start) && start.closerThan(pos, SURVEY_RADIUS + 0.01) && surveyFooting(pos))
                 .limit(24)
+                .filter(pos -> !surveyedTerrain || reachableSurveyStance(start, pos))
                 .map(pos -> new Stance(pos, chooseAim(step, stack, Vec3.atBottomCenterOf(pos)) != null))
                 .sorted(Comparator.comparing(Stance::canWork).reversed())
                 .limit(6).toList();
+    }
+
+    private boolean reachableSurveyStance(BlockPos start, BlockPos goal) {
+        Path path = npc.getNavigation().createPath(goal, 0);
+        return path != null && path.canReach() && surveyPath(path, start);
     }
 
     private void spawn() {
@@ -486,7 +492,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return climbScaffold();
         }
         if ("scaffold".equals(approach) && deadline == 0 && npc.onGround() && findScaffold(step, stack)) {
-            return climbScaffold();
+            return null;
         }
         stopMining();
         BlockPos feet = npc.blockPosition();
@@ -514,7 +520,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             return null;
         }
         if (npc.onGround() && findScaffold(step, stack)) {
-            return climbScaffold();
+            return null;
         }
         if (startDescent(step.pos())) {
             return null;
@@ -640,6 +646,14 @@ final class FakePlayersWorker implements ConstructionWorker {
                 sayOccasionally("屋顶这里够不着，我搭几个垫脚块，上去就好。");
                 deadline = level.getGameTime() + MOVE_LIMIT_TICKS;
                 return true;
+            }
+        }
+        if (surveyedTerrain) {
+            for (ScaffoldRoute route : routes) {
+                BlockPos base = route.base();
+                if (base.getY() <= feetY - 2 && suppliedBases.contains(base)) {
+                    return startDescent(base);
+                }
             }
         }
         return false;
