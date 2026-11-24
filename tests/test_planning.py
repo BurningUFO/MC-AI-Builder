@@ -113,6 +113,73 @@ class SimulatedBridge(ArchitectClient):
         raise AssertionError(operation)
 
 
+class CheckpointBridge(SimulatedBridge):
+    def __init__(self):
+        super().__init__()
+        self.npc_local = [2, 3, 6]
+        self.stance = [4, 3, 6]
+        self.event = "approved"
+        self.execution = None
+        self.tried = set()
+
+    def task(self):
+        task = super().task()
+        task["npc"]["local"] = self.npc_local
+        if self.execution:
+            task["last_action"] = self.execution.copy()
+        return task
+
+    def resolve(self, *, code=None):
+        if code is None and self.execution["action"] == "move_to":
+            self.npc_local = self.execution["stance"]
+        elif code is None:
+            self.processed += 2
+        self.execution.update(status="failed" if code else "completed", processed=self.processed)
+        if code:
+            self.execution["code"] = code
+        self.event = "action_failed" if code else "action_completed"
+        self.claimed = False
+
+    def _call(self, endpoint, body=None):
+        assert endpoint == "architect/planning"
+        operation = body["operation"]
+        if operation == "claim":
+            if self.event is None:
+                return {}
+            reply = super()._call(endpoint, body)
+            if reply:
+                reply.update(brain=True, event=self.event, can_move=True)
+            return reply
+        if operation == "inspect" and body["topic"] == "world":
+            assert body.get("group") in {None, "g2"}
+            result = super()._call(endpoint, body)
+            result.update(cells=[{"local": self.stance, "actual": "minecraft:air"}],
+                          stances=[{"local": self.stance, "can_reach_target": True}])
+            return result
+        if operation == "act":
+            self.commands.append((operation, body))
+            if body["building_version"] != self.version:
+                raise BridgeError(409, {"error": "stale_planning"})
+            action = body["action"]
+            key = (self.processed, action, body.get("group"), tuple(body.get("stance", ())))
+            if key in self.tried:
+                raise BridgeError(409, {"error": "planning_attempt_exhausted"})
+            self.tried.add(key)
+            self.execution = {"id": str(uuid4()), "action": action, "status": "accepted",
+                              "processed_before": self.processed}
+            if action == "move_to":
+                assert body["stance"] == self.stance
+                self.execution["stance"] = body["stance"]
+            else:
+                region = {"g1": "west", "g2": "east"}[body["group"]]
+                self.queue.sort(key=lambda step: not step.startswith(region))
+            self.event = None
+            return {"result": "accepted", "execution": self.execution.copy(), "task": self.task()}
+        if operation == "finish" and body.get("reason"):
+            self.event = None
+        return super()._call(endpoint, body)
+
+
 class PlannerTest(unittest.TestCase):
     def setUp(self):
         temporary = TemporaryDirectory()
@@ -265,6 +332,83 @@ class PlannerTest(unittest.TestCase):
         self.assertNotIn("capture", [op for op, _ in self.client.commands])
         self.assertEqual(self.contexts[-1]["tool_results"][-1]["result"], "blocked")
 
+    def test_brain_reads_then_moves_and_builds_across_runtime_restart(self):
+        self.client = CheckpointBridge()
+        self.runtime = self.open_runtime()
+        self.script({**inspect("world"), "group": "g2"},
+                    {"action": "move_to", "stance": [4, 3, 6], "current_subgoal": "完成东侧支撑",
+                     "pending_subgoals": ["接上西侧横梁"]})
+        run_once(self.runtime)
+        self.assertTrue(self.contexts[-1]["tool_results"][-1]["stances"][0]["can_reach_target"])
+        self.assertEqual((self.client.npc_local, self.client.processed), ([2, 3, 6], 507))
+        self.assertEqual(self.client.execution["status"], "accepted")
+        self.assertEqual(self.client.commands[-1][0], "act")
+        self.client.execution["status"] = "running"
+        self.runtime = self.open_runtime()
+        run_once(self.runtime)
+        self.assertEqual(self.provider.decide.call_count, 2)
+
+        self.client.resolve()
+        self.script({"action": "check_result"}, {"action": "execute_group", "group": "g2"})
+        run_once(self.runtime)
+        self.assertEqual(self.contexts[-1]["task"]["current_subgoal"], "完成东侧支撑")
+        self.assertEqual(self.contexts[-1]["tool_results"][-1]["execution"]["status"], "completed")
+        self.assertEqual(self.contexts[-1]["task"]["npc"]["local"], [4, 3, 6])
+        self.assertEqual(self.client.queue[:2], ["east_a", "east_b"])
+        self.assertEqual(self.client.processed, 507)
+
+        self.client.resolve()
+        self.script({"action": "execute_group", "group": "g1", "current_subgoal": "接上西侧横梁"})
+        run_once(self.runtime)
+        task = self.contexts[-1]["task"]
+        self.assertEqual((task["processed"], task["last_action"]["status"]), (509, "completed"))
+        self.assertEqual(task["pending_subgoals"], ["接上西侧横梁"])
+        self.assertEqual(self.client.queue[:2], ["west_a", "west_b"])
+        self.assertEqual(self.runtime.task_context({"player_id": self.client.player_id,
+                                                    "site_authorization": self.client.site},
+                                                   self.client.task())["current_subgoal"], "接上西侧横梁")
+
+    def test_brain_replans_after_failure_without_repeating_the_same_move(self):
+        self.client = CheckpointBridge()
+        self.runtime = self.open_runtime()
+        move = {"action": "move_to", "stance": self.client.stance}
+        self.script(inspect("world"), move)
+        run_once(self.runtime)
+        self.client.resolve(code="survey_unreachable")
+        self.script(inspect("world"), move, move, {"action": "execute_group", "group": "g2"})
+        run_once(self.runtime)
+        self.assertEqual(self.contexts[-4]["task"]["last_action"]["code"], "survey_unreachable")
+        self.assertEqual(self.contexts[-2]["tool_results"][-1]["code"], "planning_attempt_exhausted")
+        self.assertEqual(self.contexts[-1]["tool_results"][-1]["code"], "action_already_attempted")
+        self.assertEqual([row["action"] for op, row in self.client.commands if op == "act"],
+                         ["move_to", "move_to", "execute_group"])
+
+    def test_stale_brain_result_cannot_change_work_or_persist_subgoals(self):
+        self.client = CheckpointBridge()
+        self.runtime = self.open_runtime()
+
+        def expired(_):
+            self.client.version += 1
+            return {"action": "execute_group", "group": "g2", "current_subgoal": "已经过期的目标"}
+
+        self.provider.decide.side_effect = expired
+        before = self.client.queue.copy()
+        run_once(self.runtime)
+        self.assertIsNone(self.client.execution)
+        self.assertEqual(self.client.queue, before)
+        memory = self.runtime.store.task_memory(self.client.player_id + "/" + self.client.site, self.client.job_id)
+        self.assertEqual(memory, ([], {}))
+
+    def test_brain_can_recover_once_from_invalid_model_output(self):
+        self.client = CheckpointBridge()
+        self.runtime = self.open_runtime()
+        self.script(InvalidOutput("unknown output fields"), {**inspect("world"), "current_subgoal": "检查东侧支撑"},
+                    {"action": "execute_group", "group": "g2"})
+        run_once(self.runtime)
+        self.assertEqual(self.contexts[-2]["tool_results"][-1]["code"], "invalid_model_output")
+        self.assertEqual(self.contexts[-1]["task"]["current_subgoal"], "检查东侧支撑")
+        self.assertEqual(self.client.execution["status"], "accepted")
+
     def test_schema_rejects_direct_actions_and_untyped_strategies(self):
         invalid = [
             '{"action":"choose_work","strategy":"prioritize","group":"../roof"}',
@@ -272,6 +416,8 @@ class PlannerTest(unittest.TestCase):
             '{"action":"inspect_task","topic":"world","command":"say test"}',
             '{"action":"choose_work","strategy":"craft","group":"g1"}',
             '{"action":"inspect_task","topic":"supply","topic":"status"}',
+            '{"action":"move_to","stance":[0,true,0]}',
+            '{"action":"set_subgoals","current_subgoal":"梁","pending_subgoals":["A","B","C","D"]}',
         ]
         for response in invalid:
             with self.subTest(response=response), self.assertRaises(InvalidOutput):
@@ -296,6 +442,8 @@ class PlannerTest(unittest.TestCase):
         self.assertIn("NPC 按当前顺序施工", message)
         execution.update(state="paused", reason="out_of_material", planning={"state": "discarded"})
         self.assertIn("等待材料 · 安全暂停", describe_execution(execution))
+        execution.update(activity="planning_checkpoint", planning={"state": "thinking", "brain_event": "action_completed"})
+        self.assertIn("已到施工检查点 · 模型正在安排后续工作", describe_execution(execution))
         self.assertEqual(diagnose("moving_frame_mismatch").component, "vision")
 
 

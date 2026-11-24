@@ -60,8 +60,9 @@ class ArchitectClient(BridgeClient):
     def planning(self, operation, **data):
         return self._call("architect/planning", {"operation": operation, **data})
 
-    def inbox(self):
-        return self._call("architect/inbox")["requests"]
+    def inbox(self, *, task_brain=False):
+        endpoint = "architect/inbox?task_brain=1" if task_brain else "architect/inbox"
+        return self._call(endpoint)["requests"]
 
     def stage(self, request_id, mode, plan=None):
         body = {"request_id": request_id, "mode": mode}
@@ -120,6 +121,8 @@ class SessionStore:
             """)
             if not any(row[1] == "reply" for row in db.execute("PRAGMA table_info(turns)")):
                 db.execute("ALTER TABLE turns ADD COLUMN reply TEXT")
+            if not any(row[1] == "subgoals" for row in db.execute("PRAGMA table_info(task_memory)")):
+                db.execute("ALTER TABLE task_memory ADD COLUMN subgoals TEXT")
 
     @local_db
     def design(self, db, plan_id):
@@ -174,17 +177,25 @@ class SessionStore:
 
     @local_db
     def task_memory(self, db, session, job):
-        row = db.execute("SELECT decisions FROM task_memory WHERE session = ? AND job = ?", (session, job)).fetchone()
-        return json.loads(row[0]) if row else []
+        row = db.execute("SELECT decisions, subgoals FROM task_memory WHERE session = ? AND job = ?",
+                         (session, job)).fetchone()
+        return (json.loads(row[0]), json.loads(row[1]) if row[1] else {}) if row else ([], {})
 
     @local_db
-    def save_work(self, db, session, job, decision):
+    def save_work(self, db, session, job, decision=None, *, subgoals=None):
         db.execute("BEGIN IMMEDIATE")
-        row = db.execute("SELECT decisions FROM task_memory WHERE session = ? AND job = ?", (session, job)).fetchone()
-        recent = json.loads(row[0]) if row else []
-        if decision not in recent:
-            db.execute("INSERT OR REPLACE INTO task_memory VALUES (?, ?, ?)",
-                       (session, job, json.dumps([*recent[-5:], decision], ensure_ascii=False)))
+        row = db.execute("SELECT decisions, subgoals FROM task_memory WHERE session = ? AND job = ?",
+                         (session, job)).fetchone()
+        recent, saved = row if row else ("[]", None)
+        if decision is not None:
+            decisions = json.loads(recent)
+            if decision not in decisions:
+                recent = json.dumps([*decisions[-5:], decision], ensure_ascii=False)
+        if subgoals is not None:
+            saved = json.dumps(subgoals, ensure_ascii=False)
+        if not row or (recent, saved) != row:
+            db.execute("INSERT OR REPLACE INTO task_memory (session, job, decisions, subgoals) VALUES (?, ?, ?, ?)",
+                       (session, job, recent, saved))
             db.execute("DELETE FROM task_memory WHERE session = ? AND rowid NOT IN "
                        "(SELECT rowid FROM task_memory WHERE session = ? ORDER BY rowid DESC LIMIT 8)", (session, session))
 
@@ -317,7 +328,7 @@ class Runtime:
         task = {key: facts[key] for key in (
             "state", "activity", "building_version", "processed", "total", "placed", "remaining", "target_count",
             "reason", "source_project", "next_step", "recent_steps", "last_failure", "npc", "strategy", "supply_phase",
-            "temporary_blocks", "preparation", "revision_approved",
+            "temporary_blocks", "preparation", "revision_approved", "blueprint", "last_action",
         ) if key in facts}
         spec = self.store.design(job_id) or {}
         source = facts.get("source_project")
@@ -330,20 +341,34 @@ class Runtime:
         task["goal"] = self.clean(spec.get("goal") or f"完成已批准的{task['name']}")[:240]
         if spec.get("player_update"):
             task["approved_player_update"] = self.clean(spec["player_update"])[:240]
-        task["memory"] = self.store.task_memory(self.conversation_key(owner), job_id)
+        task["memory"], subgoals = self.store.task_memory(self.conversation_key(owner), job_id)
+        if task.get("state") != "completed":
+            task.update(subgoals)
         if "remaining" not in task and "total" in task and "processed" in task:
             task["remaining"] = task["total"] - task["processed"]
         return task
 
     def remember_work(self, offer, intent, result):
-        entry = {"event": offer["event"], "strategy": intent["strategy"], "result": result["result"]}
-        if "group" in intent:
-            entry["group"] = intent["group"]
-        if "code" in result:
-            entry["code"] = result["code"]
-        if intent.get("message"):
-            entry["reason"] = self.clean(intent["message"])[:140]
-        self.store.save_work(self.conversation_key(offer), offer["job_id"], entry)
+        entry = None
+        if intent["action"] != "set_subgoals":
+            entry = {"event": offer["event"], "action": intent["action"], "result": result["result"]}
+            entry.update({key: intent[key] for key in ("strategy", "group", "stance") if key in intent})
+            if "code" in result:
+                entry["code"] = result["code"]
+            if intent.get("message"):
+                entry["reason"] = self.clean(intent["message"])[:140]
+        subgoals = None
+        if "current_subgoal" in intent and result["result"] in {"accepted", "completed"}:
+            subgoals = {"current_subgoal": self.clean(intent["current_subgoal"])[:140],
+                        "pending_subgoals": [self.clean(goal)[:140] for goal in intent.get("pending_subgoals", [])]}
+            self.trace.emit("brain_subgoals", pending=len(subgoals["pending_subgoals"]))
+        self.store.save_work(self.conversation_key(offer), offer["job_id"], entry, subgoals=subgoals)
+
+    def remember_outcome(self, offer):
+        outcome = offer["task"].get("last_action")
+        if outcome and outcome["status"] in {"completed", "failed"}:
+            self.store.save_work(self.conversation_key(offer), offer["job_id"], outcome)
+            self.trace.emit("brain_outcome", **outcome)
 
     def remember_observation(self, offer, scene):
         frame = scene["scene_to_building"]
@@ -820,7 +845,7 @@ class Runtime:
                         self.trace.emit("runtime_delivery", request_id=request_id, error_type=type(error).__name__)
                         failures[request_id] = monotonic() + 1
                 try:
-                    requests = self.client.inbox()
+                    requests = self.client.inbox(task_brain=True) if self.parallel_planning else self.client.inbox()
                 except (OSError, BridgeError, ValueError):
                     if not disconnected:
                         self.record_diagnostic("bridge_unavailable")

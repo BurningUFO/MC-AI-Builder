@@ -108,6 +108,9 @@ FIELDS = {
     "topic": {"type": ["string", "null"], "enum": [*TASK_TOPICS, None]},
     "strategy": {"type": ["string", "null"], "enum": [*WORK_STRATEGIES, None]},
     "group": {"type": ["string", "null"]},
+    "stance": {"type": ["array", "null"], "items": {"type": "integer"}},
+    "current_subgoal": {"type": ["string", "null"]},
+    "pending_subgoals": {"type": ["array", "null"], "items": {"type": "string"}},
 }
 INTENT_SCHEMA = {
     "type": "object", "properties": FIELDS,

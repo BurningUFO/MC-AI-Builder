@@ -104,7 +104,7 @@ final class BridgeHttp implements AutoCloseable {
         return health;
     }
 
-    private JsonObject inbox() {
+    private JsonObject inbox(boolean taskBrain) {
         runtimePoll = System.nanoTime();
         runtimePolls++;
         ArchitectService service = architect.get();
@@ -113,7 +113,7 @@ final class BridgeHttp implements AutoCloseable {
             empty.add("requests", new JsonArray());
             return empty;
         }
-        return service.inbox();
+        return service.inbox(taskBrain);
     }
 
     private ArchitectService architect() {
@@ -165,7 +165,8 @@ final class BridgeHttp implements AutoCloseable {
             }
             case "/architect/inbox" -> {
                 requireMethod(method, "GET");
-                yield onGameThread(this::inbox);
+                boolean taskBrain = "task_brain=1".equals(exchange.getRequestURI().getRawQuery());
+                yield onGameThread(() -> inbox(taskBrain));
             }
             case "/architect/stage", "/architect/answer", "/architect/preview", "/architect/pause", "/architect/survey", "/architect/planning" -> {
                 requireMethod(method, "POST");

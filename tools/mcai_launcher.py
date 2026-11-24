@@ -169,6 +169,7 @@ def describe_execution(execution):
     labels = {
         "survey": "尚无施工任务", "running": "施工中", "working": "处理方块",
         "scheduled_wait": "施工批次间等待", "navigating": "正在寻路",
+        "planning_checkpoint": "已到施工检查点", "planning_move": "正在前往选定站位",
         "to_warehouse": "前往仓库取料", "warehouse_return": "运料返回工地",
         "mining": "正在拆除方块", "jumping": "移动到放置位置",
         "waiting_for_space": "等待让出作业位置", "scaffolding": "搭临时脚手架", "cleaning_scaffolds": "拆临时脚手架", "completed": "完工",
@@ -178,7 +179,9 @@ def describe_execution(execution):
         return ""
     activity = execution.get("activity", "idle")
     reason = execution.get("reason")
-    if execution.get("state") == "paused":
+    if activity in {"planning_checkpoint", "planning_move"}:
+        status = labels[activity]
+    elif execution.get("state") == "paused":
         status = ("等待材料 · 安全暂停" if reason in {"awaiting_materials", "warehouse_unreachable", "scaffold_material", "out_of_material", "out_of_tool"}
                   else "现场冲突 · 安全暂停" if reason in {"protected_facility", "protected_area", "outside_effect"} else "施工已安全暂停")
     else:
@@ -205,13 +208,17 @@ def describe_execution(execution):
     if plan.get("state") == "observing" and execution.get("observation") != "pending":
         status += " · 准备下一阶段观察"
     elif plan.get("state") == "thinking":
-        status += " · LLM 正在思考，NPC 按当前顺序施工"
+        status += " · 模型正在安排后续工作" if plan.get("brain_event") else " · LLM 正在思考，NPC 按当前顺序施工"
     elif plan.get("state") in {"applied", "kept"}:
-        group = {"roof_front": "前侧屋顶", "roof_rear": "后侧屋顶"}.get(plan.get("group"), "原顺序")
-        status += f" · 最近规划 {group} · {plan.get('reason', '')}"
+        if action := plan.get("last_action"):
+            statuses = {"accepted": "已接收", "running": "执行中", "completed": "已完成", "failed": "失败"}
+            status += f" · 最近行动{statuses.get(action.get('status'), '')}"
+        else:
+            group = {"roof_front": "前侧屋顶", "roof_rear": "后侧屋顶"}.get(plan.get("group"), "原顺序")
+            status += f" · 最近规划 {group} · {plan.get('reason', '')}"
     elif plan.get("state") == "discarded":
         status += " · 本次策略已失效"
-    if reason and execution.get("state") in {"paused", "failed"}:
+    if reason and execution.get("state") in {"paused", "failed"} and activity not in {"planning_checkpoint", "planning_move"}:
         status += " · " + diagnose(reason).recovery
     return status
 
@@ -628,7 +635,7 @@ def window(app):
         ttk.Checkbutton(dialog, text="允许副本中的主动观察与视觉监管将 NPC 图像发送给 Codex",
                         variable=share_observations).grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=8)
         parallel_planning = tk.BooleanVar(value=app.settings.get("parallel_planning", True) is True)
-        ttk.Checkbutton(dialog, text="施工期间允许 Codex 规划和恢复", variable=parallel_planning).grid(
+        ttk.Checkbutton(dialog, text="由 Codex 管理已批准的施工任务", variable=parallel_planning).grid(
             row=5, column=0, columnspan=3, sticky="w", padx=8, pady=8)
 
         def save():

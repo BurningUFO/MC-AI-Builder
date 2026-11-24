@@ -126,7 +126,7 @@ final class ArchitectService {
                         || parts[1].length() > 160 || parts[1].codePoints().anyMatch(Character::isISOControl)) {
                     throw Wire.conflict("planning_hint_unavailable", "在自己的施工任务中，可发送最多 160 字的施工顺序建议。");
                 }
-                construction.planningHint(parts[1].strip());
+                construction.planningHint(parts[1].strip(), taskBrain && runtimeOnline());
                 tell(player, "施工顺序建议已记录。");
                 return;
             }
@@ -407,8 +407,11 @@ final class ArchitectService {
                 .anyMatch(id -> level.getServer().getPlayerList().getPlayer(id) != null);
     }
 
-    JsonObject inbox() {
+    private boolean taskBrain;
+
+    JsonObject inbox(boolean taskBrain) {
         runtimePoll = System.nanoTime();
+        this.taskBrain = taskBrain;
         JsonArray requests = new JsonArray();
         long now = System.currentTimeMillis();
         UUID active = currentJob();
@@ -459,6 +462,9 @@ final class ArchitectService {
             return construction.planning(operation, pending.player, body, observations);
         }
         if (writable && runtimeOnline() && job != null) {
+            if (operation.equals("claim") && body.has("brain") && !taskBrain) {
+                return new JsonObject();
+            }
             for (var entry : sessions.entrySet()) {
                 Session session = entry.getValue();
                 if (!job.equals(session.active) || session.request != null || session.reviewing) {
@@ -536,6 +542,9 @@ final class ArchitectService {
         String state = job.get("state").getAsString();
         if (!state.equals("paused") || !job.has("reason")) {
             session.notifiedProblem = null;
+            return;
+        }
+        if (taskBrain && runtimeOnline() && construction.brainControlling()) {
             return;
         }
         String reason = job.get("reason").getAsString();
@@ -810,6 +819,9 @@ final class ArchitectService {
             session.watch = draft.visualGoal == null ? null : new VisualWatch(draft.visualGoal,
                     draft.base != null && session.watch != null && session.watch.checkpoint);
             session.active = draft.id();
+            if (taskBrain && runtimeOnline()) {
+                construction.requestBrain(draft.base == null ? "approved" : "revision_approved");
+            }
             session.notifiedProblem = null;
         } else {
             discardRevision(draft);

@@ -319,6 +319,21 @@ final class FakePlayersWorker implements ConstructionWorker {
         return level.noCollision(npc, bounds);
     }
 
+    @Override
+    public List<Stance> workStances(WorkStep step) {
+        if (!available() || !surveyFooting(npc.blockPosition())) {
+            return List.of();
+        }
+        BlockPos start = npc.blockPosition();
+        ItemStack stack = new ItemStack(Warehouse.item(step));
+        return stances(step.pos(), npc.position()).stream()
+                .filter(pos -> !pos.equals(start) && start.closerThan(pos, SURVEY_RADIUS + 0.01) && surveyFooting(pos))
+                .limit(24)
+                .map(pos -> new Stance(pos, chooseAim(step, stack, Vec3.atBottomCenterOf(pos)) != null))
+                .sorted(Comparator.comparing(Stance::canWork).reversed())
+                .limit(6).toList();
+    }
+
     private void spawn() {
         BlockPos feet = site.spawn();
         if (!canStand(feet)) {
@@ -2067,7 +2082,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             data.addProperty("entity_type", ForgeRegistries.ENTITY_TYPES.getKey(npc.getType()).toString());
             data.addProperty("npc_id", npc.getUUID().toString());
             data.addProperty("walked_blocks", walked);
-            data.addProperty("moving", destination != null);
+            data.addProperty("moving", destination != null || surveyDestination != null);
             data.addProperty("doors_opened", doorsOpened);
             data.addProperty("doors_restored", doorsRestored);
             data.addProperty("scaffold_dirt_collected", scaffoldDirtCollected);

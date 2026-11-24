@@ -5,7 +5,7 @@ import json
 from time import monotonic, sleep
 
 from src.architect.observations import observation_image
-from src.architect.providers import (SKILL_CALLS, InvalidOutput, ModelBudgetExhausted, ModelError,
+from src.architect.providers import (SKILL_CALLS, TASK_ACTIONS, InvalidOutput, ModelBudgetExhausted, ModelError,
                                      ModelRateLimited, ModelTimeout, parse_intent)
 from src.architect.scene import scene_context_message, world_context
 from src.construction.client import BridgeError
@@ -67,6 +67,7 @@ def decide(runtime, context, *, request=None, offer=None):
     attempted = set()
     applied = False
     observed = False
+    repaired = False
     image = observation_id = None
     ending = ""
 
@@ -75,7 +76,8 @@ def decide(runtime, context, *, request=None, offer=None):
         return runtime.client.planning(operation, **request_binding, **binding, **data)
 
     def expose_work():
-        context["work"] = {key: offer[key] for key in ("event", "groups", "strategies", "user_hint") if key in offer}
+        context["work"] = {key: offer[key] for key in ("event", "groups", "strategies", "user_hint",
+                                                      "brain", "can_move", "can_prepare") if key in offer}
         if "user_hint" in context["work"]:
             context["work"]["user_hint"] = runtime.clean(context["work"]["user_hint"])[:160]
         context["work"]["can_observe"] = (
@@ -91,20 +93,31 @@ def decide(runtime, context, *, request=None, offer=None):
             expose_work()
         for remaining in range(MAX_TURNS - 1, -1, -1):
             context["work"] = {**context.get("work", {}), "remaining_calls": remaining}
-            if image is not None:
-                decision = runtime.provider.decide_with_view(context, image, observation_id=observation_id,
-                                                            allow_upload=True)
+            brain = bool(offer and offer.get("brain") and request is None)
+            try:
+                if image is not None:
+                    decision = runtime.provider.decide_with_view(context, image, observation_id=observation_id,
+                                                                allow_upload=True)
+                else:
+                    decision = runtime.provider.decide(context)
+                intent = parse_intent(decision)
+            except InvalidOutput as error:
+                if not brain or repaired or not remaining:
+                    raise
+                repaired = True
+                reason = runtime.clean(str(error))[:120]
+                context["tool_results"].append({"result": "blocked", "code": "invalid_model_output", "reason": reason})
+                runtime.trace.emit("brain_output_rejected", reason=reason)
+                continue
+            finally:
                 image = None
-            else:
-                decision = runtime.provider.decide(context)
-            intent = parse_intent(decision)
             action = intent["action"]
             if action not in SKILL_CALLS:
                 ending = runtime.clean(intent.get("message", ""))[:240]
                 if request is None and action not in {"chat", "clarify", "get_material_status"}:
                     raise InvalidOutput("A background turn can use work skills and reply")
                 return intent
-            if not remaining:
+            if not remaining and not (brain and action in TASK_ACTIONS | {"choose_work"}):
                 raise InvalidOutput("The Builder reached its skill-call limit")
             result = {"result": "blocked", "code": "work_unavailable"}
             try:
@@ -115,16 +128,36 @@ def decide(runtime, context, *, request=None, offer=None):
                             if offer:
                                 expose_work()
                         if offer:
+                            if brain and "current_subgoal" in intent:
+                                send("thinking")
                             result = {"result": "completed", "work": context["work"]}
                     else:
-                        result = send("inspect", topic=intent["topic"])
+                        query = {key: intent[key] for key in ("topic", "group") if key in intent}
+                        result = send("inspect", **query)
                 elif action == "observe_task":
                     if offer and not observed and context["work"].get("can_observe") and not applied:
                         observed = True
                         observation_id, image, scene = capture(runtime, send, offer)
                         send("thinking", observation_id=observation_id)
                         result = {"result": "completed", "scene": scene}
-                elif offer:
+                elif brain and action == "set_subgoals":
+                    send("thinking")  # Recheck the lease before saving any model-authored state.
+                    result = {"result": "completed", "task": offer["task"]}
+                elif brain and action == "check_result":
+                    result = send("inspect", topic="status")
+                    if outcome := result["task"].get("last_action"):
+                        result["execution"] = outcome
+                elif brain:
+                    arguments = {key: intent[key] for key in ("strategy", "group", "stance") if key in intent}
+                    signature = json.dumps([action, arguments], sort_keys=True)
+                    if signature in attempted:
+                        result = {"result": "blocked", "code": "action_already_attempted"}
+                    else:
+                        attempted.add(signature)
+                        result = send("act", action=action, **arguments,
+                                      reason=runtime.clean(intent.get("message", ""))[:140])
+                        applied = result["result"] in {"accepted", "completed"}
+                elif offer and action == "choose_work":
                     signature = (intent["strategy"], intent.get("group"))
                     if applied or signature in attempted:
                         result = {"result": "blocked", "code": "strategy_already_attempted"}
@@ -139,35 +172,42 @@ def decide(runtime, context, *, request=None, offer=None):
             except (BridgeError, OSError, ValueError, KeyError) as error:
                 image = None
                 code = error_code(error) if isinstance(error, (BridgeError, OSError)) else "observation_unavailable"
-                if code == "stale_request":
+                if code == "stale_request" or brain and code in {"stale_planning", "job_not_found"}:
                     raise
                 result = {"result": "blocked", "code": code}
-            if action == "choose_work" and offer:
-                if result.get("code") != "strategy_already_attempted":
-                    runtime.remember_work(offer, intent, result)
+            if (action == "choose_work" and offer or brain and (action in TASK_ACTIONS or "current_subgoal" in intent)) and (
+                    result.get("code") not in {"strategy_already_attempted", "action_already_attempted"}):
+                runtime.remember_work(offer, intent, result)
             if action == "observe_task" and result["result"] == "completed":
                 runtime.remember_observation(offer, result["scene"])
             if "task" in result:
                 context["task"] = runtime.task_context(offer or request, result.pop("task"))
             context["tool_results"].append({"call": intent, **result})
-            runtime.trace.emit("brain_skill", action=action, result=result["result"], code=result.get("code"))
+            runtime.trace.emit("brain_skill", action=action, result=result["result"], code=result.get("code"),
+                               topic=intent.get("topic"), group=intent.get("group"),
+                               sampled_cells=len(result.get("cells", ())), candidate_stances=len(result.get("stances", ())))
+            if brain and applied:
+                runtime.trace.emit("brain_dispatch", action=action, execution=result.get("execution"))
+                return intent
     except (ModelError, OSError, BridgeError) as error:
         if offer:
             ending = runtime.record_diagnostic(error_code(error)).recovery
         raise
     finally:
-        if offer:
+        if offer and not (offer.get("brain") and applied):
             with suppress(BridgeError, OSError):
                 send("finish", reason=ending, notify=request is None)
 
 
 def run_once(runtime):
-    offer = runtime.client.planning("claim")
+    offer = runtime.client.planning("claim", brain=True)
     if not offer:
         return
     with runtime.trace.bind(job_id=offer["job_id"], building_version=offer["building_version"],
                             planning_id=offer["lease"]):
         runtime.trace.emit("planning_claim", trigger=offer["event"])
+        if offer.get("brain"):
+            runtime.remember_outcome(offer)
         context = {"message": "根据这次施工事件决定下一步。", "event": "construction",
                    "task": runtime.task_context(offer, offer["task"])}
         try:

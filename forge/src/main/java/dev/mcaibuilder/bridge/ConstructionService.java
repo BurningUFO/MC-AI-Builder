@@ -43,6 +43,8 @@ final class ConstructionService {
     private static final int PLACEMENT_LIMIT_TICKS = 1200;
     private static final String SCAFFOLD_CLEANUP_UNREACHABLE = "scaffold_cleanup_unreachable";
     private static final String SCAFFOLD_DESCENT = "scaffold_descent";
+    private static final String PLANNING_BLOCKED = "planning_blocked";
+    private static final Set<String> REOPENED_CHECKPOINT = Set.of("restart_verification", "server_stopping");
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final Set<String> PLACEMENT_FAILURES = Set.of(
             "no_reachable_placement_stance", "no_reachable_break_stance", "navigation_timeout", "placement_stalled",
@@ -920,9 +922,17 @@ final class ConstructionService {
         if (ownsSupply(owner) && current.state == State.PAUSED && candidate == null
                 && Set.of("awaiting_materials", "warehouse_unreachable", "scaffold_material").contains(current.reason)) {
             requireCheckpointWorker();
-            worker.halt();
-            checkSupply();
-            schedule();
+            if (current.planning.started()) {
+                current.planning.resetAttempts();
+                current.planning.invalidate("materials_changed");
+                if (current.planning.action() == null) {
+                    requestBrain("materials_changed");
+                }
+            } else {
+                worker.halt();
+                checkSupply();
+                schedule();
+            }
         }
         persist();
     }
@@ -1127,6 +1137,12 @@ final class ConstructionService {
         if (current == null) {
             return "idle";
         }
+        if (current.planning.waiting()) {
+            return "planning_checkpoint";
+        }
+        if (current.planning.action() != null && current.planning.action().kind().equals("move_to")) {
+            return "planning_move";
+        }
         if (current.state == State.PAUSED) {
             return "paused:" + current.reason;
         }
@@ -1169,17 +1185,23 @@ final class ConstructionService {
         }
         switch (operation) {
             case "pause" -> {
-                if (current.state != State.PAUSED) {
-                    requireState(State.RUNNING);
+                if (current.state == State.RUNNING || current.state == State.PAUSED
+                        && (current.planning.waiting() || current.planning.action() != null)) {
                     pause("paused_by_request");
                     persist();
+                } else {
+                    requireState(State.PAUSED);
                 }
             }
             case "resume" -> {
                 if (site.survival()) {
                     requireCurrentWarehouse(owner);
                 }
-                if (current.state != State.RUNNING) {
+                if (current.state == State.RUNNING && current.planning.waiting()) {
+                    stopBrain("resumed_by_request");
+                    schedule();
+                    persist();
+                } else if (current.state != State.RUNNING) {
                     if (!current.state.active() && current.state != State.FAILED) {
                         requireState(State.PAUSED);
                     }
@@ -1189,6 +1211,10 @@ final class ConstructionService {
                     long recoveryStarted = BuildPerformance.clock();
                     site.requireLoaded(level);
                     requireCheckpointWorker();
+                    if (current.planning.action() != null) {
+                        worker.halt();
+                    }
+                    stopBrain("resumed_by_request");
                     checkSupply();
                     current.verification = null;
                     current.deferred = 0;
@@ -1207,6 +1233,8 @@ final class ConstructionService {
                         registered.put(candidate.plan().id(), candidate.withDisposition("rejected"));
                         candidate = null;
                     }
+                    worker.halt();
+                    stopBrain("cancelled_by_request");
                     if (current.scaffolds.isEmpty() && (current.supply == null || current.supply.temporary.isEmpty())) {
                         finish(State.CANCELLED, "cancelled_by_request");
                     } else {
@@ -1245,7 +1273,13 @@ final class ConstructionService {
         current.approach = null;
         current.supplyChoice = null;
         current.performance.event(reason);
-        current.planning.invalidate(reason);
+        boolean actionFailed = current.planning.action() != null;
+        stopBrain(reason);
+        if (current.planning.started() && (recoverableFailure() || scaffoldCleanupFailed()
+                || reason.equals("worksite_replanned") || actionFailed && !Set.of("paused_by_request", "change_pending",
+                        "visual_checkpoint", "autonomy_revoked", "journal_unavailable", "server_stopping").contains(reason))) {
+            current.planning.request("action_failed");
+        }
         if (current.supply != null) {
             current.supply.phase = "paused";
         }
@@ -1255,6 +1289,11 @@ final class ConstructionService {
         if (editedLevel == level && current != null && !worker.isActor(entity)) {
             if (site.area().contains(pos)) {
                 current.planning.invalidate("planning_world_changed");
+                current.planning.resetAttempts();
+                if (current.planning.started() && current.state == State.PAUSED && candidate == null
+                        && current.planning.action() == null && (recoverableFailure() || PLANNING_BLOCKED.equals(current.reason))) {
+                    current.planning.request("site_changed");
+                }
             }
             // Once a player takes over a temporary block, it is no longer ours to remove.
             current.scaffolds.remove(pos);
@@ -1269,19 +1308,22 @@ final class ConstructionService {
     }
 
     void tick() {
-        worker.tickLife((current == null || current.state != State.RUNNING) && pendingStockVisit == null);
-        if (current != null) {
-            current.planning.expire(current);
-        }
+        worker.tickLife((current == null || current.state != State.RUNNING
+                && current.planning.action() == null && !current.planning.waiting()) && pendingStockVisit == null);
         if (journalBlocked || current == null) {
             return;
+        }
+        if (current.planning.expire(current)) {
+            stopPlanningAtCheckpoint();
+            persistAfterFailure();
         }
         if (current.state == State.PAUSED && pendingStockVisit != null
                 && (level.getGameTime() >= stockVisitUntil || worker.inspectStock(pendingStockVisit))) {
             worker.halt();
             pendingStockVisit = null;
         }
-        if (current.state != State.RUNNING || level.getGameTime() < current.nextTick) {
+        if (current.planning.waiting() || current.state != State.RUNNING && current.planning.action() == null
+                || level.getGameTime() < current.nextTick) {
             return;
         }
         long tickStarted = BuildPerformance.clock();
@@ -1291,9 +1333,16 @@ final class ConstructionService {
             }
             site.requireLoaded(level);
             requireCheckpointWorker();
-            executeNext();
+            if (!executeBrainAction()) {
+                executeNext();
+            }
         } catch (Wire.Problem problem) {
             if (!journalBlocked) {
+                ConstructionPlanning.Action action = current.planning.action();
+                if (action != null && action.kind().equals("move_to")) {
+                    finishBrainAction(problem.code, movementEvidence());
+                    return;
+                }
                 if (SCAFFOLD_CLEANUP_UNREACHABLE.equals(problem.code)) {
                     BlockPos target = worker.scaffoldCleanupTarget();
                     if (target != null) {
@@ -1541,7 +1590,9 @@ final class ConstructionService {
         List<WorkStep> delayed = new ArrayList<>();
         List<WorkStep> above = new ArrayList<>();
         // Finish the lower placement layer before its roof, then install its light fixtures.
-        for (WorkStep pending : current.steps.subList(current.cursor, current.steps.size())) {
+        ConstructionPlanning.Action action = current.planning.action();
+        int end = action == null ? current.steps.size() : action.end();
+        for (WorkStep pending : current.steps.subList(current.cursor, end)) {
             if (pending.pos().equals(step.pos())) {
                 delayed.add(pending);
             } else if (!step.remove() && !pending.remove()
@@ -1562,6 +1613,7 @@ final class ConstructionService {
             persist();
             return;
         }
+        early.addAll(current.steps.subList(end, current.steps.size()));
         current.steps = List.copyOf(early);
         current.approach = null;
         current.nextTick = level.getGameTime() + (current.deferred % band == 0 ? 30 : ACTION_INTERVAL_TICKS);
@@ -1638,6 +1690,11 @@ final class ConstructionService {
         current.planning.invalidate("worksite_replanned");
         current.clearanceReplans++;
         worker.halt();
+        if (current.planning.action() != null) {
+            pause("worksite_replanned");
+            persist();
+            return;
+        }
         schedule();
         checkpoint();
     }
@@ -1680,7 +1737,7 @@ final class ConstructionService {
         worker.halt();
         current.state = state;
         current.reason = reason;
-        current.planning.invalidate(reason == null ? state.wire() : reason);
+        stopBrain(reason == null ? state.wire() : reason);
         if (state == State.COMPLETED && !current.verification.get("passed").getAsBoolean()) {
             current.state = State.FAILED;
             current.reason = "world_verification_failed";
@@ -1851,7 +1908,8 @@ final class ConstructionService {
     }
 
     boolean observationCheckpoint(UUID id) {
-        return id != null && id.equals(currentJobId()) && current.state != State.RUNNING;
+        return id != null && id.equals(currentJobId()) && current.state != State.RUNNING
+                && current.planning.action() == null;
     }
 
     record CheckpointView(BlockPos feet, BlockPos focus) {}
@@ -1928,10 +1986,46 @@ final class ConstructionService {
         return !journalBlocked && candidate == null && job != null && job.equals(currentJobId())
                 && !current.cancelling
                 && (!current.autonomous || autonomousAvailable())
-                && (current.state == State.RUNNING && current.cursor < current.steps.size()
+                && (current.planning.waiting() || current.state == State.RUNNING && current.cursor < current.steps.size()
                     && current.supplyChoice == null && !SCAFFOLD_DESCENT.equals(current.approach)
-                    || current.state == State.PAUSED && (scaffoldCleanupFailed()
-                        || current.cursor < current.steps.size() && recoverableFailure()));
+                    || current.state == State.PAUSED && (scaffoldCleanupFailed() || current.cursor < current.steps.size()
+                        && (recoverableFailure() || PLANNING_BLOCKED.equals(current.reason)
+                            || REOPENED_CHECKPOINT.stream().anyMatch(reason -> reason.equals(current.reason)))));
+    }
+
+    boolean brainControlling() {
+        return current != null && (current.planning.waiting() || current.planning.action() != null);
+    }
+
+    private boolean atBrainCheckpoint() {
+        return current.state == State.PAUSED || current.state == State.RUNNING && current.stepStarted < 0
+                && current.approach == null && !current.needsScaffoldDirt && !worker.status().get("moving").getAsBoolean()
+                && (current.supply == null || !Set.of("processing", "to_warehouse").contains(current.supply.phase));
+    }
+
+    void requestBrain(String event) {
+        if (pendingStockVisit != null) {
+            pendingStockVisit = null;
+            worker.halt();
+        }
+        current.planning.invalidate(event);
+        current.planning.request(event);
+        persist();
+    }
+
+    private void stopBrain(String reason) {
+        if (current.planning.action() != null) {
+            current.planning.resolved(current, reason, null);
+        }
+        current.planning.stop();
+        current.planning.invalidate(reason);
+    }
+
+    private void stopPlanningAtCheckpoint() {
+        current.planning.stop();
+        if (current.state == State.RUNNING) {
+            pause(PLANNING_BLOCKED);
+        }
     }
 
     private boolean recoverableFailure() {
@@ -1981,6 +2075,17 @@ final class ConstructionService {
         task.addProperty("remaining", current.steps.size() - current.cursor);
         task.addProperty("temporary_blocks", current.scaffolds.size());
         task.addProperty("revision_approved", current.approvedReview != null);
+        JsonObject blueprint = new JsonObject();
+        var box = current.plan.worldBounds();
+        var a = current.plan.localPosition(box.min());
+        var b = current.plan.localPosition(box.max());
+        blueprint.add("min_local", Wire.position(new BlockPos(Math.min(a.getX(), b.getX()), a.getY(), Math.min(a.getZ(), b.getZ()))));
+        blueprint.add("max_local", Wire.position(new BlockPos(Math.max(a.getX(), b.getX()), b.getY(), Math.max(a.getZ(), b.getZ()))));
+        task.add("blueprint", blueprint);
+        JsonObject outcome = current.planning.outcome();
+        if (outcome != null) {
+            task.add("last_action", outcome);
+        }
         if (current.reason != null) {
             task.addProperty("reason", current.reason);
         }
@@ -2042,8 +2147,8 @@ final class ConstructionService {
         return data;
     }
 
-    private JsonObject inspectTask(UUID owner, String topic) {
-        if (!Set.of("status", "failure", "supply", "world").contains(topic)) {
+    private JsonObject inspectTask(UUID owner, String topic, String group, boolean brain) {
+        if (!Set.of("status", "failure", "supply", "world", "blueprint").contains(topic)) {
             throw Wire.invalid("Unknown task topic");
         }
         JsonObject response = new JsonObject();
@@ -2066,8 +2171,17 @@ final class ConstructionService {
             }
             stock.add("tools", worker.status().get("tools"));
             response.add("supply", stock);
+        } else if (topic.equals("blueprint")) {
+            Map<Integer, Integer> layers = new java.util.TreeMap<>();
+            current.plan.targets().forEach(target -> layers.merge(target.local().getY(), 1, Integer::sum));
+            JsonObject counts = new JsonObject();
+            layers.forEach((y, count) -> counts.addProperty(y.toString(), count));
+            response.add("target_counts_by_local_y", counts);
         } else if (topic.equals("world") && (scaffoldCleanupFailed() || current.cursor < current.steps.size())) {
-            BlockPos target = scaffoldCleanupFailed() ? worker.scaffoldCleanupTarget() : current.steps.get(current.cursor).pos();
+            WorkStep focus = group != null ? current.planning.group(group).get(0)
+                    : current.cursor < current.steps.size() ? current.steps.get(current.cursor) : null;
+            BlockPos target = group == null && scaffoldCleanupFailed() ? worker.scaffoldCleanupTarget() : focus.pos();
+            response.add("focus_local", Wire.position(current.plan.localPosition(target)));
             JsonArray sample = new JsonArray();
             for (BlockPos pos : BlockPos.betweenClosed(target.offset(-1, -1, -1), target.offset(1, 1, 1))) {
                 if (site.area().contains(pos) && level.hasChunkAt(pos)) {
@@ -2083,6 +2197,17 @@ final class ConstructionService {
                 }
             }
             response.add("cells", sample);
+            if (brain && focus != null && target.equals(focus.pos())) {
+                JsonArray stances = new JsonArray();
+                for (var candidate : worker.workStances(focus)) {
+                    current.planning.offerStance(candidate.feet());
+                    JsonObject stance = new JsonObject();
+                    stance.add("local", Wire.position(current.plan.localPosition(candidate.feet())));
+                    stance.addProperty("can_reach_target", candidate.canWork());
+                    stances.add(stance);
+                }
+                response.add("stances", stances);
+            }
         }
         return response;
     }
@@ -2090,10 +2215,24 @@ final class ConstructionService {
     JsonObject planning(String operation, ServerPlayer player, JsonObject data, NpcObservations observations) {
         UUID owner = player.getUUID();
         if (operation.equals("claim")) {
-            if (!offerPlanning(currentJobId())) {
+            boolean brain = data.has("brain") && !data.has("request_id") && data.get("brain").getAsBoolean();
+            if (!offerPlanning(currentJobId()) || current.planning.action() != null) {
                 return new JsonObject();
             }
             requireCurrentWarehouse(owner);
+            if (brain) {
+                if (!current.planning.waiting() && (!current.planning.started() || current.planning.hasHint())
+                        && atBrainCheckpoint() && siteLoaded()) {
+                    current.planning.request(current.planning.hasHint() ? "player_hint" : "resume_checkpoint");
+                }
+                if (!current.planning.waiting() || !siteLoaded() || !worker.attach(current.npc)) {
+                    return new JsonObject();
+                }
+                if (pendingStockVisit != null) {
+                    pendingStockVisit = null;
+                    worker.halt();
+                }
+            }
             Set<String> choices = new LinkedHashSet<>();
             if (current.state == State.PAUSED) {
                 if (PLACEMENT_FAILURES.contains(current.reason)) {
@@ -2107,7 +2246,7 @@ final class ConstructionService {
                 }
             }
             JsonObject offer = current.planning.claim(current, owner, level.getGameTime(), data.has("request_id"),
-                    choices, this::readyForPriority);
+                    choices, this::readyForPriority, brain);
             if (offer.size() > 0) {
                 offer.addProperty("job_id", current.plan.id().toString());
                 offer.addProperty("building_version", current.plan.version());
@@ -2116,6 +2255,11 @@ final class ConstructionService {
                     offer.addProperty("site_authorization", site.scope().toString());
                 }
                 offer.addProperty("can_observe", observations != null && site.worldCopy());
+                if (brain) {
+                    offer.addProperty("can_move", current.cursor < current.steps.size());
+                    offer.addProperty("can_prepare", current.supply != null && warehouses.containsKey(owner)
+                            && current.cursor < current.steps.size() && supplyNeeded());
+                }
                 offer.add("task", taskContext());
                 persist();
             }
@@ -2129,7 +2273,16 @@ final class ConstructionService {
         }
         requireCurrentWarehouse(owner);
         if (operation.equals("inspect")) {
-            return inspectTask(owner, Wire.string(data.get("topic"), "topic"));
+            String topic = Wire.string(data.get("topic"), "topic");
+            boolean brain = data.has("lease") && current.planning.brainLease();
+            if (data.has("lease")) {
+                current.planning.require(current, owner, BuildPlan.id(data, "lease"), brain);
+            }
+            String group = data.has("group") ? Wire.string(data.get("group"), "group") : null;
+            if (group != null && (!brain || !topic.equals("world"))) {
+                throw Wire.conflict("invalid_planning_group", "请在当前施工检查点查询提供的工作组。");
+            }
+            return inspectTask(owner, topic, group, brain);
         }
         requireWritable();
         UUID lease = BuildPlan.id(data, "lease");
@@ -2138,9 +2291,13 @@ final class ConstructionService {
             String reply = planningText(data);
             boolean notify = data.has("notify") && data.get("notify").getAsBoolean();
             String event = current.planning.status().get("event").getAsString();
+            boolean brain = current.planning.brainLease();
             current.planning.finish(current, reply, level.getGameTime());
+            if (brain) {
+                stopPlanningAtCheckpoint();
+            }
             persist();
-            if (notify && !reply.isEmpty() && (event.startsWith("failure:") || current.planning.status()
+            if (notify && !reply.isEmpty() && (brain || event.startsWith("failure:") || current.planning.status()
                     .get("state").getAsString().equals("applied"))) {
                 ArchitectService.tell(player, reply);
             }
@@ -2168,10 +2325,13 @@ final class ConstructionService {
             current.planning.thinking(current, level.getGameTime(), id);
             return current.planning.status();
         }
-        if (!operation.equals("apply")) {
-            throw Wire.invalid("Unknown planning operation");
+        if (operation.equals("act") && current.planning.brainLease()) {
+            return startBrainAction(data, owner);
         }
-        return applyStrategy(data, owner);
+        if (operation.equals("apply") && !current.planning.brainLease()) {
+            return applyStrategy(data, owner);
+        }
+        throw Wire.invalid("Unknown planning operation");
     }
 
     private static String planningText(JsonObject data) {
@@ -2228,7 +2388,7 @@ final class ConstructionService {
         switch (strategy) {
             case "prioritize" -> {
                 group = Wire.string(data.get("group"), "group");
-                current.steps = current.planning.prioritize(current, group, this::readyForPriority);
+                current.steps = current.planning.prioritize(current, group, this::readyForPriority, false);
             }
             case "upper_stance", "scaffold", SCAFFOLD_DESCENT -> current.approach = strategy;
             case "open_access" -> {
@@ -2265,6 +2425,233 @@ final class ConstructionService {
         return result;
     }
 
+    private JsonObject startBrainAction(JsonObject data, UUID owner) {
+        var planning = current.planning;
+        String action = Wire.string(data.get("action"), "action");
+        String strategy = data.has("strategy") ? Wire.string(data.get("strategy"), "strategy") : null;
+        String reason = planningText(data);
+        if (action.equals("choose_work")) {
+            planning.requireStrategy(strategy);
+            action = switch (strategy) {
+                case "prioritize" -> "reorder_work";
+                case "collect", "craft" -> "prepare_materials";
+                default -> "choose_work";
+            };
+        }
+        if (current.autonomous) {
+            requireAutonomy();
+        }
+        site.requireLoaded(level);
+        requireCheckpointWorker();
+        int first = current.cursor;
+        int end = first;
+        BlockPos stance = null;
+        JsonObject details = new JsonObject();
+        String signature;
+        switch (action) {
+            case "move_to" -> {
+                BlockPos local = Wire.position(data.get("stance"), "stance");
+                stance = current.plan.worldPosition(local);
+                planning.requireStance(stance);
+                signature = action + ":" + stance.asLong();
+                planning.requireAttempt(current, signature);
+                worker.startSurvey();
+                worker.moveForSurvey(stance);
+                details.add("stance", Wire.position(local));
+                details.add("npc_before", Wire.position(current.plan.localPosition(BlockPos.containing(worker.position()))));
+            }
+            case "execute_group", "reorder_work" -> {
+                String group = Wire.string(data.get("group"), "group");
+                List<WorkStep> work = planning.group(group);
+                boolean execute = action.equals("execute_group");
+                if (!execute && group.equals("next")) {
+                    throw Wire.conflict("planning_order_unchanged", "这组已经排在队列前面。");
+                }
+                signature = action + ":" + work.stream().map(WorkStep::pos)
+                        .collect(java.util.stream.Collectors.toSet()).hashCode();
+                if (execute) {
+                    signature += ":" + BlockPos.containing(worker.position()).asLong();
+                }
+                planning.requireAttempt(current, signature);
+                if (!group.equals("next")) {
+                    current.steps = planning.prioritize(current, group, this::readyForPriority, execute);
+                }
+                details.addProperty("group", group);
+                details.addProperty("steps", work.size());
+                details.add("first_local", Wire.position(work.get(0).target().local()));
+                details.add("last_local", Wire.position(work.get(work.size() - 1).target().local()));
+                end = first + work.size();
+                if (execute) {
+                    resumeBrainWork();
+                }
+            }
+            case "prepare_materials" -> {
+                if (strategy == null || !Set.of("collect", "craft").contains(strategy) || current.supply == null
+                        || !warehouses.containsKey(owner) || first == current.steps.size()) {
+                    throw Wire.conflict("planning_supply_unavailable", "需要授权仓库和明确的下一步物料需求。");
+                }
+                if (!supplyNeeded()) {
+                    throw Wire.conflict("supply_already_ready", "下一步所需物品已经在 NPC 背包里。");
+                }
+                signature = action + ":" + strategy;
+                planning.requireAttempt(current, signature);
+                current.supplyChoice = strategy;
+            }
+            case "choose_work" -> {
+                signature = action + ":" + strategy;
+                planning.requireAttempt(current, signature);
+                if (!SCAFFOLD_DESCENT.equals(strategy)) {
+                    end = first + 1;
+                    if (strategy.equals("open_access")) {
+                        int oldSize = current.steps.size();
+                        if (!reopenAccess(current.steps.get(first))) {
+                            throw Wire.conflict("planning_access_unavailable", "目标上方没有可安全临时移开的自有覆盖物。");
+                        }
+                        end += current.steps.size() - oldSize;
+                    } else {
+                        current.approach = strategy;
+                    }
+                    resumeBrainWork();
+                }
+            }
+            default -> throw Wire.invalid("Unknown task action");
+        }
+        long now = level.getGameTime();
+        planning.start(current, new ConstructionPlanning.Action(action, strategy, first, end, stance, now),
+                signature, details, reason, now);
+        if (action.equals("reorder_work")) {
+            planning.resolved(current, null, null);
+        }
+        schedule();
+        persist();
+        JsonObject response = new JsonObject();
+        JsonObject outcome = planning.outcome();
+        response.addProperty("result", outcome.get("status").getAsString());
+        response.add("execution", outcome);
+        response.add("task", taskContext());
+        return response;
+    }
+
+    private void resumeBrainWork() {
+        if (current.state == State.PAUSED) {
+            current.state = State.RUNNING;
+            current.reason = null;
+            current.deferred = 0;
+            current.stepStarted = -1;
+            current.verification = null;
+            if (current.supply != null) {
+                current.supply.phase = "working";
+            }
+            startPerformance(0);
+        }
+    }
+
+    private boolean executeBrainAction() {
+        var planning = current.planning;
+        var action = planning.action();
+        if (action == null) {
+            return false;
+        }
+        planning.running();
+        if (action.kind().equals("move_to")) {
+            if (worker.surveyArrived()) {
+                String code = action.stance().equals(BlockPos.containing(worker.position())) ? null : "planning_stance_changed";
+                finishBrainAction(code, movementEvidence());
+            }
+            return true;
+        }
+        if (action.kind().equals("prepare_materials")) {
+            if (!supplyNeeded()) {
+                JsonObject evidence = new JsonObject();
+                WorkStep step = current.needsScaffoldDirt ? scaffoldDirt().get(0) : current.steps.get(current.cursor);
+                evidence.addProperty("item", Warehouse.id(Warehouse.item(step)));
+                evidence.addProperty("carried", Warehouse.carried(worker.inventory()).getOrDefault(Warehouse.item(step), 0));
+                finishBrainAction(null, evidence);
+            } else if (level.getGameTime() - action.started() >= PLACEMENT_LIMIT_TICKS) {
+                throw Wire.conflict("material_preparation_timeout", "NPC 未能在检查点前备齐下一步物料。");
+            } else {
+                List<WorkStep> steps = current.needsScaffoldDirt ? scaffoldDirt() : current.steps;
+                resupply(steps, current.needsScaffoldDirt ? 0 : current.cursor);
+            }
+            return true;
+        }
+        if (SCAFFOLD_DESCENT.equals(action.strategy())) {
+            if (worker.cleanScaffolds(true)) {
+                resumeBrainWork();
+                JsonObject evidence = new JsonObject();
+                evidence.addProperty("temporary_blocks", current.scaffolds.size());
+                finishBrainAction(null, evidence);
+            } else if (level.getGameTime() - action.started() >= PLACEMENT_LIMIT_TICKS) {
+                throw Wire.conflict(SCAFFOLD_CLEANUP_UNREACHABLE, "NPC 未能在限定时间内清理脚手架。");
+            } else {
+                checkpoint();
+            }
+            return true;
+        }
+        if (current.cursor < action.end()) {
+            return false;
+        }
+        JsonObject verification = verifyBrainGroup(current.steps.subList(action.first(), action.end()));
+        boolean passed = verification.get("checked").getAsInt() == verification.get("matched").getAsInt();
+        finishBrainAction(passed ? null : "planning_group_world_mismatch", verification);
+        return true;
+    }
+
+    private JsonObject movementEvidence() {
+        JsonObject evidence = new JsonObject();
+        if (worker.position() != null) {
+            evidence.add("npc_local", Wire.position(current.plan.localPosition(BlockPos.containing(worker.position()))));
+        }
+        return evidence;
+    }
+
+    private JsonObject verifyBrainGroup(List<WorkStep> steps) {
+        Map<BlockPos, WorkStep> finalSteps = new LinkedHashMap<>();
+        steps.forEach(step -> step.affected().forEach(pos -> finalSteps.put(pos, step)));
+        JsonArray sample = new JsonArray();
+        JsonArray conflicts = new JsonArray();
+        int matched = 0;
+        for (var entry : finalSteps.entrySet()) {
+            BlockPos pos = entry.getKey();
+            if (!level.hasChunkAt(pos)) {
+                throw Wire.conflict("site_not_loaded", "请加载工作组所在区块，以便核对施工结果。");
+            }
+            WorkStep step = entry.getValue();
+            var approved = current.plan.at(pos);
+            BlockState actual = level.getBlockState(pos);
+            boolean pass = step.remove() ? actual.isAir() || step.clearance() && approved != null && approved.matches(actual)
+                    : approved != null && (approved.matches(actual) || installedDoorMatches(
+                            pos.equals(step.pos()) ? step : new WorkStep(approved, AIR, false), actual));
+            if (pass) {
+                matched++;
+            }
+            JsonArray rows = pass ? sample : conflicts;
+            if (rows.size() < 3) {
+                JsonObject row = new JsonObject();
+                row.add("local", Wire.position(current.plan.localPosition(pos)));
+                row.add("actual", Wire.state(actual));
+                rows.add(row);
+            }
+        }
+        JsonObject result = new JsonObject();
+        result.addProperty("checked", finalSteps.size());
+        result.addProperty("matched", matched);
+        result.add("sample", sample);
+        result.add("mismatches", conflicts);
+        return result;
+    }
+
+    private void finishBrainAction(String code, JsonObject evidence) {
+        worker.halt();
+        current.supplyChoice = null;
+        current.planning.resolved(current, code, evidence);
+        if (code == null && current.cursor == current.steps.size() && current.state == State.RUNNING) {
+            current.planning.stop(); // The existing cleanup and final world verification still run.
+        }
+        schedule();
+        persist();
+    }
+
     JsonObject planningFrame(BlockPos sampleOrigin) {
         JsonObject frame = new JsonObject();
         frame.add("origin_from_scene", Wire.position(current.plan.origin().subtract(sampleOrigin)));
@@ -2272,8 +2659,11 @@ final class ConstructionService {
         return frame;
     }
 
-    void planningHint(String message) {
+    void planningHint(String message, boolean brain) {
         current.planning.hint(message);
+        if (brain && current.planning.action() == null && atBrainCheckpoint()) {
+            requestBrain("player_hint");
+        }
     }
 
     void invalidatePlanning(String reason) {

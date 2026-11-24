@@ -20,6 +20,7 @@ _CODES = {
     "stale_request": Diagnostic("version", "rejected", "需求已过期。请重新发出需求。"),
     "stale_approval": Diagnostic("version", "rejected", "确认已过期。请重新审阅当前候选。"),
     "stale_planning": Diagnostic("version", "rejected", "施工已进入下一阶段或版本已变更。本次策略已丢弃。"),
+    "planning_blocked": Diagnostic("construction", "condition", "Builder 停在检查点。可提供施工顺序建议，或在游戏内手动继续。"),
     "invalid_planning_output": Diagnostic("schema", "rejected", "模型策略未通过校验，施工沿用原顺序。"),
     "invalid_planning_group": Diagnostic("schema", "rejected", "工作组未获批准，施工沿用原顺序。"),
     "planning_world_changed": Diagnostic("protection", "rejected", "工作组现场已变化，施工沿用原有安全核验。"),

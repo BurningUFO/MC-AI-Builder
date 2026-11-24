@@ -251,6 +251,7 @@ final class ConstructionJob {
             job.state = State.PAUSED;
             job.reason = "restart_verification";
         }
+        job.planning.reopened(job);
         if (job.supply != null) {
             job.supply.phase = job.state.wire();
         }

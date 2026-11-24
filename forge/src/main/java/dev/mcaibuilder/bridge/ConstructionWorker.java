@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 
 interface ConstructionWorker {
     record Result(String status, String reason, JsonObject evidence) {}
+    record Stance(BlockPos feet, boolean canWork) {}
 
     void prepare(List<BuildPlan.Target> targets, boolean removals);
 
@@ -28,6 +29,8 @@ interface ConstructionWorker {
     Result act(WorkStep step, String approach);
 
     JsonObject routeEvidence(BlockPos target);
+
+    List<Stance> workStances(WorkStep step);
 
     void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets);
 

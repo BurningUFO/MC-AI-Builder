@@ -1,0 +1,301 @@
+{
+  "date": "2026-11-24",
+  "environment": {
+    "bmc4_mods": 387,
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "fake_players": "3.0.0",
+    "survival": true,
+    "live_bridge_jar_sha256": "3a5f04ba2c7a02ff1efffecc2719e39e46d62a90239af2098c4a7682f7b39d71",
+    "delivery_offline_jar_sha256": "c693ec7d966cc6af2b48351ccddb642187d7f612d59cd77fca38e8b6095362fe"
+  },
+  "codex": {
+    "model": "gpt-6.2-sol",
+    "effort": "medium",
+    "successful_turns": 9,
+    "successful_turn_tokens": 138063
+  },
+  "job": {
+    "project": "medieval_house",
+    "total": 1478,
+    "started_from": 552,
+    "saved_processed": 687,
+    "saved_placed": 685,
+    "same_npc": true,
+    "first_subgoals": {
+      "current_subgoal": "从东向西补齐第 5 层南侧的去皮深色橡木横梁。",
+      "pending_subgoals": [
+        "继续铺第 5 层的云杉木板；若再次遇到够不到的位置，先检查可用站位。",
+        "按蓝图完成上部结构和屋顶，再核查遗漏并清理临时方块。"
+      ]
+    },
+    "latest_subgoals": {
+      "current_subgoal": "用已取回的云杉木板继续铺第 5 层。",
+      "pending_subgoals": [
+        "补齐第 5 层剩余木板。",
+        "按蓝图完成上部结构和屋顶。",
+        "核查遗漏并清理临时方块（如有）。"
+      ]
+    }
+  },
+  "recovery": {
+    "runtime_restart_at": 556,
+    "runtime_exit": 0,
+    "last_receipt_before_restart": "99f4fe0d-5d3a-476d-9320-1f1820c3c503",
+    "bmc4_reopened_at": 565,
+    "no_replayed_placements": true,
+    "bmc4_exit": 0
+  },
+  "native_execution": {
+    "placements": 135,
+    "consumed": {
+      "minecraft:stripped_dark_oak_log": 12,
+      "chipped:stacked_spruce_planks": 26,
+      "minecraft:spruce_planks": 97
+    },
+    "saved_matching_block_ids": 135,
+    "saved_matching_exact_states": 135,
+    "reordered_examples": [
+      {
+        "planned_step": 604,
+        "actual_step": 564,
+        "local": [
+          2,
+          5,
+          10
+        ],
+        "saved": {
+          "id": "chipped:stacked_spruce_planks",
+          "properties": {}
+        }
+      },
+      {
+        "planned_step": 586,
+        "actual_step": 584,
+        "local": [
+          14,
+          5,
+          4
+        ],
+        "saved": {
+          "id": "minecraft:spruce_planks",
+          "properties": {}
+        }
+      },
+      {
+        "planned_step": 587,
+        "actual_step": 585,
+        "local": [
+          14,
+          5,
+          5
+        ],
+        "saved": {
+          "id": "minecraft:spruce_planks",
+          "properties": {}
+        }
+      }
+    ],
+    "warehouse_transfers": [
+      {
+        "minecraft:spruce_planks": 48
+      },
+      {
+        "minecraft:spruce_planks": 46,
+        "minecraft:stripped_dark_oak_log": 2
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "group": "g1",
+      "steps": 4,
+      "first_local": [
+        11,
+        5,
+        11
+      ],
+      "last_local": [
+        8,
+        5,
+        11
+      ],
+      "id": "99f4fe0d-5d3a-476d-9320-1f1820c3c503",
+      "action": "execute_group",
+      "status": "completed",
+      "processed_before": 552,
+      "placed_before": 550,
+      "processed": 556,
+      "placed": 554,
+      "evidence": {
+        "checked": 4,
+        "matched": 4
+      },
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "completed"
+      ]
+    },
+    {
+      "group": "g1",
+      "steps": 4,
+      "first_local": [
+        7,
+        5,
+        11
+      ],
+      "last_local": [
+        4,
+        5,
+        11
+      ],
+      "id": "e8adbbfc-1374-4ced-a224-0a491351e789",
+      "action": "execute_group",
+      "status": "completed",
+      "processed_before": 556,
+      "placed_before": 554,
+      "processed": 560,
+      "placed": 558,
+      "evidence": {
+        "checked": 4,
+        "matched": 4
+      },
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "completed"
+      ]
+    },
+    {
+      "group": "g1",
+      "steps": 5,
+      "first_local": [
+        3,
+        5,
+        11
+      ],
+      "last_local": [
+        2,
+        5,
+        10
+      ],
+      "id": "19ec0b7d-bbce-438a-a84d-af5294e79836",
+      "action": "execute_group",
+      "status": "completed",
+      "processed_before": 560,
+      "placed_before": 558,
+      "processed": 565,
+      "placed": 563,
+      "evidence": {
+        "checked": 5,
+        "matched": 5
+      },
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "completed"
+      ]
+    },
+    {
+      "group": "next",
+      "steps": 96,
+      "first_local": [
+        14,
+        5,
+        1
+      ],
+      "last_local": [
+        7,
+        5,
+        3
+      ],
+      "id": "dc9e79a5-d182-4e63-8817-285b893b42f3",
+      "action": "execute_group",
+      "status": "failed",
+      "processed_before": 565,
+      "placed_before": 563,
+      "processed": 591,
+      "placed": 589,
+      "code": "warehouse_unreachable",
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "failed"
+      ]
+    },
+    {
+      "id": "7ba016bf-bc4d-450a-8da2-6fdd3556bd73",
+      "action": "prepare_materials",
+      "status": "completed",
+      "processed_before": 591,
+      "placed_before": 589,
+      "strategy": "collect",
+      "processed": 591,
+      "placed": 589,
+      "evidence": {
+        "item": "minecraft:spruce_planks",
+        "carried": 48
+      },
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "completed"
+      ]
+    },
+    {
+      "group": "next",
+      "steps": 96,
+      "first_local": [
+        13,
+        5,
+        7
+      ],
+      "last_local": [
+        4,
+        5,
+        6
+      ],
+      "id": "90655ba5-0cb7-4b93-80f8-a1485bd8a088",
+      "action": "execute_group",
+      "status": "completed",
+      "processed_before": 591,
+      "placed_before": 589,
+      "processed": 687,
+      "placed": 685,
+      "evidence": {
+        "checked": 96,
+        "matched": 96
+      },
+      "observed_statuses": [
+        "accepted",
+        "running",
+        "completed"
+      ]
+    }
+  ],
+  "structural_observations": [
+    {
+      "topic": "world",
+      "group": "next",
+      "sampled_cells": 27,
+      "candidate_stances": 0,
+      "chosen_action": "execute_group",
+      "receipt_id": "dc9e79a5-d182-4e63-8817-285b893b42f3"
+    },
+    {
+      "topic": "supply",
+      "group": null,
+      "sampled_cells": 0,
+      "candidate_stances": 0,
+      "chosen_action": "prepare_materials",
+      "receipt_id": "7ba016bf-bc4d-450a-8da2-6fdd3556bd73",
+      "prior_failure": "warehouse_unreachable"
+    }
+  ],
+  "npc_first_person_shared": false,
+  "offline_verification": {
+    "python_targeted_tests_passed": 53,
+    "forge_build": "passed"
+  }
+}

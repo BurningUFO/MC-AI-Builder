@@ -14,9 +14,10 @@ from src.architect.grammar import GRAMMAR_PROMPT
 from src.construction.plan import VANILLA_BLOCKS
 
 DESIGN = frozenset(("create_design", "revise_design", "surgical_edit", "load_project"))
-TASK_TOPICS = ("status", "failure", "supply", "world", "work")
+TASK_TOPICS = ("status", "failure", "supply", "world", "work", "blueprint")
 WORK_STRATEGIES = ("prioritize", "upper_stance", "scaffold", "open_access", "scaffold_descent", "collect", "craft")
-SKILL_CALLS = {"inspect_task", "observe_task", "choose_work"}
+TASK_ACTIONS = {"move_to", "execute_group", "reorder_work", "prepare_materials"}
+SKILL_CALLS = {"inspect_task", "observe_task", "choose_work", "check_result", "set_subgoals"} | TASK_ACTIONS
 ACTIONS = DESIGN | {
     "get_world_context", "get_build_status", "preview_design", "review_changes",
     "request_approval", "pause_construction", "get_construction_progress",
@@ -54,16 +55,30 @@ def parse_intent(output: dict) -> dict:
         fields.add("topic")
         if output.get("topic") not in TASK_TOPICS:
             raise InvalidOutput("invalid task topic")
-    if action == "choose_work":
+    if action in {"choose_work", "prepare_materials"}:
         fields.add("strategy")
         strategy = output.get("strategy")
-        if strategy not in WORK_STRATEGIES:
+        if strategy not in (WORK_STRATEGIES if action == "choose_work" else ("collect", "craft")):
             raise InvalidOutput("invalid work strategy")
-        if strategy == "prioritize":
-            fields.add("group")
-            group = output.get("group")
-            if type(group) is not str or not re.fullmatch(r"[a-zA-Z0-9_-]{1,32}", group):
-                raise InvalidOutput("invalid work group")
+    if (action in {"execute_group", "reorder_work"} or action == "choose_work" and output["strategy"] == "prioritize"
+            or action == "inspect_task" and output["topic"] == "world" and "group" in output):
+        fields.add("group")
+        group = output.get("group")
+        if type(group) is not str or not re.fullmatch(r"[a-zA-Z0-9_-]{1,32}", group):
+            raise InvalidOutput("invalid work group")
+    if action == "move_to":
+        fields.add("stance")
+        stance = output.get("stance")
+        if (type(stance) is not list or len(stance) != 3
+                or any(type(axis) is not int or not -(2 ** 31) <= axis < 2 ** 31 for axis in stance)):
+            raise InvalidOutput("invalid work stance")
+    if action == "set_subgoals" or action in SKILL_CALLS and "current_subgoal" in output:
+        fields |= {"current_subgoal", "pending_subgoals"}
+        current = output.get("current_subgoal")
+        pending = output.get("pending_subgoals", [])
+        if (type(pending) is not list or len(pending) > 3
+                or any(type(goal) is not str or not goal.strip() or len(goal) > 140 for goal in [current, *pending])):
+            raise InvalidOutput("invalid construction subgoals")
     if action in ("create_design", "revise_design"):
         fields |= {"kind", "changes", "origin", "rotation"}
         if action == "revise_design":
@@ -158,10 +173,28 @@ and craft uses supported recipes. All work is scoped to the approved job.
 Use observe_task if work offers a new view and it would change your choice.
 Use task.memory and tool_results to avoid repeating failed choices under the same conditions.
 Route offsets use world axes relative to the failed target. Task and group positions use building axes.
-For a background event, decide whether to change the work or proceed, then use chat to finish.
+When work.brain is true you manage the approved building at a real checkpoint. Use task.goal,
+task.blueprint and the live groups to formulate a concrete current_subgoal and up to three pending_subgoals.
+Include these fields with a skill when you create or update the plan, or use set_subgoals.
+Choose subgoals for this building and site. They may take more than one group. Change them when
+verified results and new facts warrant it. Query inspect_task with topic blueprint for its layer summary,
+or with topic world and an optional offered group for actual blocks and safe candidate stances.
+move_to takes the exact stance array returned by Forge. A candidate may still fail native navigation.
+execute_group takes an offered group and runs only its approved steps. Prefer next for stable work that
+fits the current subgoal. Choose a specific alternative when its area or smaller scope matters.
+reorder_work moves an offered alternative ahead in the remaining queue and stops at the checkpoint.
+prepare_materials takes strategy collect or craft for the next step. The existing choose_work recovery
+skills are available when offered. Check work flags before proposing an action.
+An approved job may reopen with reason server_stopping or restart_verification. Use fresh Forge facts
+to decide how to continue that same job. A player-requested pause is a separate control.
+An accepted action ends this decision. The next event carries task.last_action with real completion
+or failure, and check_result reads that receipt again. A completed move or material batch is not a
+completed placement. If the facts already suffice, choose an action directly. Use chat or clarify to
+pause at a blocker and tell the player what is needed. On legacy construction events use choose_work or chat.
 Use clarify to ask the player for resources or an important decision. Explain any material gap
 using the observed inventory. Check results before claiming work is queued, running or finished.
 The host limits skill calls. Finish with a reply or a normal design/control action when ready.
+If a tool result reports invalid_model_output, retry with one action and its relevant arguments.
 For an ambiguous request ask a focused question. If dimensions or style can be sensibly inferred
 from the conversation, make a proposal that the player can adjust before approval."""
 
