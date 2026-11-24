@@ -35,8 +35,9 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             BuildPlan.Target wanted = next.at(pos);
             BlockState actual = level.getBlockState(pos);
             BlockState desired = goal(wanted);
-            boolean unchanged = ConstructionService.matches(actual, desired)
-                    || next.localized() && ConstructionService.matches(goal(old.at(pos)), desired);
+            boolean unchanged = next.terrain() != null ? actual == desired
+                    : ConstructionService.matches(actual, desired)
+                      || next.localized() && ConstructionService.matches(goal(old.at(pos)), desired);
             if (wanted == null && !snapshot.owns(pos)) {
                 continue;
             }
@@ -86,6 +87,10 @@ record ChangeReview(JsonObject report, List<WorkStep> steps, int conflicts) {
             row.add("old", Wire.state(goal(old.at(pos))));
             row.add("actual", Wire.state(actual));
             row.add("desired", Wire.state(desired));
+            if (next.terrain() != null && next.rotation() != net.minecraft.world.level.block.Rotation.NONE) {
+                row.add("local_actual", Wire.state(actual.rotate(next.inverseRotation())));
+                row.add("local_desired", Wire.state(desired.rotate(next.inverseRotation())));
+            }
             row.addProperty("npc_owned", snapshot.owns(pos));
             if (reason != null) {
                 row.addProperty("reason", reason);

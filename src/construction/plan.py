@@ -21,7 +21,7 @@ VANILLA_BLOCKS = frozenset(f"minecraft:{name}" for name in (
     "spruce_stairs", "dark_oak_stairs", "brick_stairs", "spruce_slab", "dark_oak_slab", "brick_slab",
     "white_stained_glass", "green_stained_glass", "brown_stained_glass",
     "stone_stairs", "stone_slab", "cobblestone_stairs", "cobblestone_slab", "torch", "wall_torch", "lantern",
-    *(f"{wood}_{piece}" for wood in WOOD_FAMILIES for piece in ("stairs", "slab", "log")),
+    *(f"{wood}_{piece}" for wood in WOOD_FAMILIES for piece in ("stairs", "slab", "log", "door")),
     "glass", "light_blue_stained_glass", "blue_stained_glass", "oak_stairs", "stone_brick_stairs", "oak_slab", "stone_brick_slab",
 ))
 

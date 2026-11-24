@@ -38,10 +38,11 @@ def roof_family(material, available_mod_blocks=()):
     return None
 
 
-def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks", ridge_axis=None, *, available_mod_blocks=()):
+def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks", ridge_axis=None, *,
+                  available_mod_blocks=(), hollow=False):
     """Return block states for a sealed roof with one continuous ceiling deck."""
     prefix = roof_family(material, available_mod_blocks)
-    if style not in ROOF_STYLES or prefix is None or type(overhang) is not int or not 0 <= overhang <= 2:
+    if style not in ROOF_STYLES or prefix is None or type(overhang) is not int or not 0 <= overhang <= 2 or type(hollow) is not bool:
         raise ValueError("屋顶需要人字顶、四面坡或女儿墙，以及一种受支持的木板或石材。")
     (x0, y, z0), (x1, upper, z1) = bounds
     if y != upper or x1 - x0 < 2 or z1 - z0 < 2:
@@ -69,11 +70,13 @@ def generate_roof(style, bounds, overhang=1, material="minecraft:spruce_planks",
         slope = tuple(edges) if style == "hip" else cross
         rise = min(edges[direction] for direction in slope)
         faces = [direction for direction in slope if edges[direction] == rise]
-        for step in range(rise):
+        along = ("east", "west") if ridge_axis == "x" else ("south", "north")
+        gable_end = style == "gable" and min(edges[direction] for direction in along) <= overhang
+        start = max(0, rise - 1) if hollow and not gable_end else 0
+        for step in range(start, rise):
             cells[x, y + step, z] = full
         peak = (edges[cross[0]] + edges[cross[1]]) // 2 if style == "gable" else min(x1 - x0, z1 - z0) // 2
         if rise == peak:
-            along = ("east", "west") if ridge_axis == "x" else ("south", "north")
             if style == "hip":
                 along = ("east", "west") if x1 - x0 >= z1 - z0 else ("south", "north")
             end = min(edges[direction] for direction in along) == (peak if style == "hip" else 0)

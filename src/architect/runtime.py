@@ -26,7 +26,7 @@ from src.construction.plan import make_plan
 from src.construction.review_preview import preview_review
 from src.core.building import Building, write_json
 from src.renderers.views import preview_for
-from src.architect import feedback, planning, surgical, survey
+from src.architect import feedback, planning, surgical, survey, terrain_design
 from src.architect.telemetry import Trace, timed
 
 PREVIEW_ACTIONS = {"preview_design", "review_changes", "request_approval"}
@@ -52,7 +52,9 @@ class ArchitectClient(BridgeClient):
     def survey(self, request_id, *, step=None, action=None, offset=None):
         body = {"request_id": request_id}
         if action is not None:
-            body.update(step=step, action=action)
+            body["action"] = action
+        if step is not None:
+            body["step"] = step
         if offset is not None:
             body["offset"] = offset
         return self._call("architect/survey", body)
@@ -64,10 +66,12 @@ class ArchitectClient(BridgeClient):
         endpoint = "architect/inbox?task_brain=1" if task_brain else "architect/inbox"
         return self._call(endpoint)["requests"]
 
-    def stage(self, request_id, mode, plan=None):
+    def stage(self, request_id, mode, plan=None, *, design_review=None):
         body = {"request_id": request_id, "mode": mode}
         if plan is not None:
             body["plan"] = plan
+        if design_review is not None:
+            body["design_review"] = design_review
         return self._call("architect/stage", body)
 
     def answer(self, request_id, message, *, review=False, control=None, visual=False, material_lines=()):
@@ -130,9 +134,14 @@ class SessionStore:
         return json.loads(row[0]) if row else None
 
     @local_db
+    def next_version(self, db, building_id, from_version):
+        largest, = db.execute("SELECT max(version) FROM designs WHERE building = ?", (building_id,)).fetchone()
+        return max(largest or 0, from_version) + 1
+
+    @local_db
     def reserve(self, db, plan_id, building_id, from_version, model, origin, rotation, parameters, action, *,
                 kind="window_wall", footing=None, worksite_order=None, edits=(), project_name=None, source_project=None,
-                goal="", player_update=""):
+                goal="", player_update="", terrain=None, terrain_design=None):
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT spec FROM designs WHERE plan_id = ?", (plan_id,)).fetchone()
         if row:
@@ -147,6 +156,9 @@ class SessionStore:
         if worksite_order is not None:
             plan["worksite_order"] = worksite_order
         spec = {"kind": kind, "parameters": params, "plan": plan, "action": action, "name": model.name}
+        if terrain is not None:
+            plan["terrain"] = terrain
+            spec["terrain_design"] = terrain_design
         if goal:
             spec["goal"] = goal
         if player_update:
@@ -339,7 +351,9 @@ class Runtime:
             "cottage": "木石小屋", "window_wall": "窗墙",
         }.get(spec.get("kind"), "当前建筑"))[:100]
         task["goal"] = self.clean(spec.get("goal") or f"完成已批准的{task['name']}")[:240]
-        if spec.get("player_update"):
+        if "terrain_design" in spec:
+            task["approved_terrain"] = terrain_design.task_facts(self.store.directory(job_id))
+        elif spec.get("player_update"):
             task["approved_player_update"] = self.clean(spec["player_update"])[:240]
         task["memory"], subgoals = self.store.task_memory(self.conversation_key(owner), job_id)
         if task.get("state") != "completed":
@@ -446,7 +460,10 @@ class Runtime:
         reply = None
         try:
             prepared = self.store.design(self.proposal_id(request_id))
-            if request.get("event") == "supply_update":
+            if request.get("terrain_design"):
+                reply = terrain_design.handle(self, request, message, prepared)
+                action = "terrain_edit" if request["terrain_design"] == "revise" else "terrain_design"
+            elif request.get("event") == "supply_update":
                 reply = self.material_reply(request, message)
                 action = "get_material_status"
             elif request.get("retry_worksite"):
@@ -482,14 +499,15 @@ class Runtime:
             else:
                 action = prepared["action"]
                 intent = {"action": action}
-            if not any(request.get(flag) for flag in ("survey", "feedback", "retry_worksite", "event")):
+            if not any(request.get(flag) for flag in ("survey", "feedback", "retry_worksite", "event", "terrain_design")):
                 reply = self.dispatch(request, intent, prepared)
         except BridgeError as error:
             code = error.body.get("error") or "bridge_error"
             diagnostic = self.record_diagnostic(code)
             if code == "stale_request":
                 return
-            message = error.body.get("message", diagnostic.recovery) if code.startswith("project_") else diagnostic.recovery
+            message = (error.body.get("message", diagnostic.recovery)
+                       if code.startswith("project_") or request.get("terrain_design") else diagnostic.recovery)
             self.client.answer(request_id, safe_message(message, self.redactions))
             action = code
         except (DesignError, ProjectError) as error:
@@ -657,9 +675,11 @@ class Runtime:
                                   source_project=plan.get("source_project"), edits=[*prior.get("edits", []), {"edit": edit, "gaze": gaze}],
                                   goal=prior.get("goal", ""), player_update=self.clean(request.get("message", "")))
 
-    def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message=""):
-        with timed("bridge_review"):
-            report = self.client.stage(request_id, mode, plan)
+    def review(self, request_id, mode, plan=None, *, observation_reason="", player_id=None, proposal_message="",
+               report=None, ready=False):
+        if report is None:
+            with timed("bridge_review"):
+                report = self.client.stage(request_id, mode, plan)
         version = report["new_version"]
         plan_id = version["plan_id"]
         self.trace.emit("proposal", request_id=request_id, plan_id=plan_id, building_version=version["building_version"])
@@ -680,7 +700,7 @@ class Runtime:
         if supply:
             details = describe_supply(supply, approval=True)
         project = version.get("source_project") or (plan or {}).get("source_project")
-        material_lines = project_material_lines(supply, materials) if project and len(details) > 235 else ()
+        material_lines = project_material_lines(supply, materials) if (project or ready) and len(details) > 235 else ()
         if material_lines:
             details = "明细见下方"
             if supply and not supply.get("warehouse_approved"):
@@ -707,7 +727,10 @@ class Runtime:
                                material_lines=[safe_message(line, self.redactions)[:300] for line in material_lines])
         else:
             self.client.answer(request_id, reply, review=True)
-        self.queue_preview(report, player_id)
+        if ready:
+            self.client.preview_ready(plan_id, player_id)
+        else:
+            self.queue_preview(report, player_id)
         return reply
 
     def queue_preview(self, report, player_id):

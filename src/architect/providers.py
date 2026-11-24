@@ -175,6 +175,10 @@ Use task.memory and tool_results to avoid repeating failed choices under the sam
 Route offsets use world axes relative to the failed target. Task and group positions use building axes.
 When work.brain is true you manage the approved building at a real checkpoint. Use task.goal,
 task.blueprint and the live groups to formulate a concrete current_subgoal and up to three pending_subgoals.
+task.approved_terrain records the final approved site design, including clearance and standing cells.
+Treat design-stage requests as already resolved in that approved version. Carry out the verified plan and
+check real passability at completion. Reopen a decision only when fresh work receipts show a blocker.
+If the first offered group is ready and no failure is reported, include the initial subgoals with execute_group.
 Include these fields with a skill when you create or update the plan, or use set_subgoals.
 Choose subgoals for this building and site. They may take more than one group. Change them when
 verified results and new facts warrant it. Query inspect_task with topic blueprint for its layer summary,

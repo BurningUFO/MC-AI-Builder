@@ -10,7 +10,7 @@ import bpy
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.construction.review_preview import interior_cutaway, models_for_review
+from src.construction.review_preview import interior_cutaway, models_for_review, terrain_cutaway
 from src.renderers.blender_preview import (
     add_block_mesh, add_camera, blender_space, choose_cycles_device, collection_for,
     configure_scene, pixel_material, set_initial_view, stage_scene,
@@ -75,6 +75,49 @@ def block_mesh(scene, name, model, index, root):
             add_block_mesh(mesh, name, rendered, rendered, baked, materials, opaque)
 
 
+def terrain_mesh(scene, columns, model, *, proposed=False, behind=None):
+    materials = {
+        "grass": (0.15, 0.23, 0.085, 1), "soil": (0.24, 0.16, 0.105, 1),
+        "stone": (0.21, 0.22, 0.21, 1), "sand": (0.41, 0.35, 0.24, 1),
+    }
+    y_index = 4 if proposed else 2
+    cells = {(x, z): (row[y_index], row[y_index + 1]) for row in columns
+             for x, z in [row[:2]] if row[y_index] is not None and (behind is None or z >= behind)}
+    if not cells:
+        return
+    bottom = min(y for y, _ in cells.values())
+    vertices, faces, kinds = [], [], []
+
+    def face(corners, kind):
+        start = len(vertices)
+        vertices.extend(blender_space(point) for point in corners)
+        faces.append(tuple(range(start, start + 4)))
+        kinds.append(kind)
+
+    for (x, z), (y, kind) in cells.items():
+        top = y + 1
+        if (x, y, z) not in model.blocks:
+            face(((x, top, z), (x, top, z + 1), (x + 1, top, z + 1), (x + 1, top, z)), kind)
+        for dx, dz, p, q in ((-1, 0, (x, z), (x, z + 1)), (1, 0, (x + 1, z + 1), (x + 1, z)),
+                              (0, -1, (x + 1, z), (x, z)), (0, 1, (x, z + 1), (x + 1, z + 1))):
+            base = cells.get((x + dx, z + dz), (bottom - 1, None))[0] + 1
+            if base < top:
+                face(((p[0], top, p[1]), (q[0], top, q[1]), (q[0], base, q[1]), (p[0], base, p[1])),
+                     "soil" if kind == "grass" else kind)
+    mesh = bpy.data.meshes.new("Surveyed surface")
+    mesh.from_pydata(vertices, [], faces)
+    indices = {}
+    for name, colour in materials.items():
+        material = bpy.data.materials.new("Terrain " + name)
+        material.diffuse_color = colour
+        material.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = colour
+        mesh.materials.append(material)
+        indices[name] = len(mesh.materials) - 1
+    for polygon, kind in zip(mesh.polygons, kinds, strict=True):
+        polygon.material_index = indices[kind]
+    collection_for(scene, "Forge terrain surface").objects.link(bpy.data.objects.new("Loaded terrain columns", mesh))
+
+
 def main():
     manifest, root, output = map(Path, sys.argv[sys.argv.index("--") + 1:])
     data = json.loads(manifest.read_text(encoding="utf-8"))
@@ -85,8 +128,11 @@ def main():
     centre = tuple((min(axis) + max(axis) + 1) / 2 for axis in limits)
     scale = max(max(axis) - min(axis) + 1 for axis in limits) * 1.45
     cottage = report["new_version"]["building_id"].startswith("cottage_")
-    offset = (scale * 0.52, scale if cottage else -scale, scale * 0.66)
+    terrain = report.get("terrain_scene")
+    offset = (scale * 0.52, scale if cottage or terrain else -scale, scale * 0.66)
     floor = min(limits[1]) - 0.03
+    if terrain:
+        floor = min(floor, min(row[2] for row in terrain) - 0.03)
     for obj in list(bpy.data.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
     bpy.context.preferences.filepaths.save_version = 0
@@ -100,11 +146,15 @@ def main():
         scene = bpy.context.scene if slot == 0 else bpy.data.scenes.new(name)
         scene.name = name
         scene["plan_id"] = report["new_version"]["plan_id"]
+        scene["model_sha256"] = report["new_version"]["model_sha256"]
         scene["minecraft_blocks"] = len(model.blocks)
         configure_scene(scene, "draft", device)
         block_mesh(scene, name, model, index, root)
         stage_scene(scene, model.blocks or models[1].blocks, centre, floor, (), None)
-        outlines(scene, report["changes"], categories)
+        if terrain:
+            terrain_mesh(scene, terrain, model, proposed=slot == 1)
+        if not terrain or slot == 0:
+            outlines(scene, report["changes"], categories)
         view = View(image, name, "Review", centre, offset, scale)
         scene.camera = add_camera(collection_for(scene, "Review camera"), view)
         scene.render.filepath = "//" + image
@@ -116,7 +166,7 @@ def main():
         rear_view = View("proposed-rear.png", "Rear review camera", "Review", centre,
                          (-offset[0], -offset[1], offset[2]), scale)
         rear = add_camera(collection_for(proposal, "Rear review camera"), rear_view)
-        cutaway = interior_cutaway(models[1]) if cottage else None
+        cutaway = terrain_cutaway(models[1], report) if terrain else interior_cutaway(models[1]) if cottage else None
         if cutaway is not None:
             interior = bpy.data.scenes.new("Interior cutaway")
             interior["plan_id"] = report["new_version"]["plan_id"]
@@ -125,8 +175,11 @@ def main():
             configure_scene(interior, "draft", device)
             block_mesh(interior, "Interior cutaway", cutaway, proposed_index, root)
             stage_scene(interior, cutaway.blocks, centre, floor, (), None)
+            if terrain:
+                terrain_mesh(interior, terrain, cutaway, proposed=True, behind=cutaway.bounds()[0][2])
             image = "proposed-interior.png"
-            interior_centre = (centre[0], max(limits[1]) - 1.75, centre[2])
+            interior_centre = (centre[0], (cutaway.bounds()[0][1] + cutaway.bounds()[1][1]) / 2
+                               if terrain else max(limits[1]) - 1.75, centre[2])
             camera = View(image, "Interior cutaway camera", "Review", interior_centre,
                           (scale * 0.39, scale * 0.92, scale * 0.92), scale * 0.93)
             interior.camera = add_camera(collection_for(interior, "Interior camera"), camera)

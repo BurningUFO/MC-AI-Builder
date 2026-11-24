@@ -3,6 +3,8 @@ package dev.mcaibuilder.bridge;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.ClickEvent;
@@ -17,9 +19,15 @@ import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,13 +38,16 @@ import java.util.UUID;
 /** All methods run on the Minecraft server thread. The model runtime only polls and stages. */
 final class ArchitectService {
     private static final long REQUEST_LIFETIME = Duration.ofMinutes(3).toMillis();
+    private static final long TERRAIN_REQUEST_LIFETIME = Duration.ofMinutes(18).toMillis();
     private static final long RUNTIME_HEARTBEAT = Duration.ofSeconds(6).toNanos();
     private static final Set<String> APPROVALS = Set.of("批准", "可以", "建吧", "同意", "开工", "approve", "go ahead");
     private static final Set<String> REJECTIONS = Set.of("拒绝", "先别建", "不批准", "取消", "取消方案", "reject", "cancel");
     private static final Set<String> RELOCATIONS = Set.of("换个地方", "换个位置", "换个施工点", "move it");
 
-    private record Draft(JsonObject plan, UUID base, boolean surveyed, String visualGoal, boolean autonomous) {
+    private record Draft(JsonObject plan, UUID base, boolean surveyed, String visualGoal, boolean autonomous,
+                         String terrainHash, String manifestHash) {
         UUID id() { return BuildPlan.id(plan, "plan_id"); }
+        boolean terrain() { return plan.has("terrain"); }
     }
 
     private record VisualWatch(String goal, boolean checkpoint, boolean failure, boolean finalReview) {
@@ -52,7 +63,7 @@ final class ArchitectService {
 
     private static final class Request {
         final UUID id = UUID.randomUUID();
-        final long expires = System.currentTimeMillis() + REQUEST_LIFETIME;
+        final long expires;
         final long started = BuildPerformance.clock();
         final JsonObject input;
         final UUID siteJob;
@@ -61,6 +72,7 @@ final class ArchitectService {
         Request(JsonObject input, UUID siteJob) {
             this.input = input;
             this.siteJob = siteJob;
+            expires = System.currentTimeMillis() + (input.has("terrain_design") ? TERRAIN_REQUEST_LIFETIME : REQUEST_LIFETIME);
             input.addProperty("request_id", id.toString());
         }
     }
@@ -139,6 +151,14 @@ final class ArchitectService {
                 } else {
                     request(player, parts[1], true, false, false, !reviewOnly(parts[1]));
                 }
+                return;
+            }
+            case "design" -> {
+                if (parts.length != 2) {
+                    throw Wire.invalid("请提供在地形上设计的建筑需求。");
+                }
+                boolean amend = session.active != null && session.active.equals(currentJob()) && construction.terrainJob();
+                requestTerrain(player, session, parts[1].strip(), amend);
                 return;
             }
             case "worksite" -> {
@@ -245,6 +265,14 @@ final class ArchitectService {
         }
         Session session = sessions.computeIfAbsent(player.getUUID(), ignored -> new Session());
         String reply = chatReply(input);
+        boolean terrainPending = session.request != null && session.request.input.has("terrain_design");
+        if (terrainPending && (APPROVALS.contains(reply) || REJECTIONS.contains(reply))) {
+            if (REJECTIONS.contains(reply)) {
+                discardTerrainRequest(player, session);
+                return;
+            }
+            throw Wire.conflict("stale_approval", "正在审阅新方案。请等最终预览出来后再批准。");
+        }
         if (!surveyed && !watch && !inspect && session.reviewing && session.draft != null
                 && (APPROVALS.contains(reply) || REJECTIONS.contains(reply))) {
             decide(player, session, session.draft.id(), APPROVALS.contains(reply), false);
@@ -257,6 +285,10 @@ final class ArchitectService {
         }
         if (!surveyed && !watch && !inspect && materialNotice(input)) {
             shareMaterials(player, session, player.blockPosition());
+            return;
+        }
+        if (!surveyed && !watch && !inspect && session.draft != null && session.draft.terrain()) {
+            requestTerrain(player, session, input, true);
             return;
         }
         UUID job = currentJob();
@@ -286,9 +318,53 @@ final class ArchitectService {
         tell(player, "收到，正在处理。");
     }
 
+    private void requestTerrain(ServerPlayer player, Session session, String message, boolean revise) {
+        if (!site.worldCopy()) {
+            throw Wire.conflict("survey_requires_copy", "地形设计需要使用获准的世界副本。");
+        }
+        if (message.isBlank() || message.length() > 600) {
+            throw Wire.invalid("请输入 1–600 个字符的建筑需求。");
+        }
+        if (!runtimeOnline()) {
+            tell(player, "Agent 未连接。请查看启动器。");
+            return;
+        }
+        if (revise && session.draft == null) {
+            JsonObject job = ownedJob(session);
+            if (job != null && job.get("state").getAsString().equals("running")) {
+                construction.control("pause", session.active, player.getUUID());
+            }
+        }
+        session.reviewing = false;
+        GhostPreview.clear(player);
+        persist();
+        stopSurvey();
+        queue(player, session, message, false, false, null, revise ? "revise" : "new");
+        tell(player, revise ? "正在按这份候选修改并重新检查。" : "正在勘察地形、设计并进行 Blender 审阅。");
+    }
+
+    private void discardTerrainRequest(ServerPlayer player, Session session) {
+        if (session.draft != null) discardRevision(session.draft);
+        session.draft = null;
+        session.request = null;
+        session.reviewing = false;
+        stopSurvey();
+        GhostPreview.clear(player);
+        persist();
+        tell(player, "已取消这份设计。");
+    }
+
     private void queue(ServerPlayer player, Session session, String input,
                        boolean surveyed, boolean watch, String feedback) {
-        JsonObject context = worldContext(player, surveyed);
+        queue(player, session, input, surveyed, watch, feedback, null);
+    }
+
+    private void queue(ServerPlayer player, Session session, String input,
+                       boolean surveyed, boolean watch, String feedback, String terrainMode) {
+        JsonObject context = worldContext(player, surveyed || terrainMode != null);
+        if (terrainMode != null) {
+            context.addProperty("terrain_design", terrainMode);
+        }
         context.addProperty("player_id", player.getUUID().toString());
         context.addProperty("message", input);
         context.addProperty("phase", phase(session, true));
@@ -485,8 +561,13 @@ final class ArchitectService {
     JsonObject survey(JsonObject body, NpcObservations observations) {
         Pending pending = requireRequest(body);
         Request request = pending.session.request;
+        boolean terrain = request.input.has("terrain_design");
+        if (terrain && "terrain_map".equals(body.has("action") ? body.get("action").getAsString() : null)
+                && request.stagedReport == null) {
+            return construction.surveyTerrain();
+        }
         boolean passive = request.input.has("feedback");
-        if (observations == null || !(request.input.has("survey") || passive) || request.stagedReport != null
+        if (observations == null || !(request.input.has("survey") || passive || terrain) || request.stagedReport != null
                 || passive && !construction.observationCheckpoint(request.siteJob)) {
             throw Wire.conflict("survey_not_requested", "这条游戏内需求没有请求主动观察。");
         }
@@ -611,12 +692,15 @@ final class ArchitectService {
         Session session = pending.session;
         Request request = session.request;
         String mode = Wire.string(body.get("mode"), "mode");
+        if (request.input.has("terrain_design")) {
+            return stageTerrain(body, pending, mode);
+        }
         if (request.input.has("feedback") && (!mode.equals("revise")
                 || request.input.get("feedback").getAsString().equals("final"))) {
             throw Wire.conflict("visual_revision_only", "施工观测只能提出当前版本的修改。");
         }
         if (mode.equals("review")) {
-            if (session.draft == null) {
+            if (session.draft == null || session.draft.terrain()) {
                 throw Wire.conflict("no_draft", "没有待审阅的设计。");
             }
             JsonObject report = inspect(session.draft, true, pending.player.getUUID());
@@ -627,6 +711,9 @@ final class ArchitectService {
             throw Wire.invalid("Only new, revise and review may stage a design");
         }
         JsonObject plan = Wire.object(body.get("plan"), "plan");
+        if (plan.has("terrain")) {
+            throw Wire.conflict("terrain_review_required", "地形蓝图需要使用已完成 Blender 自检的候选流程。");
+        }
         if (request.stagedReport != null) {
             if (!session.draft.plan.equals(plan)) {
                 throw Wire.conflict("request_already_staged", "本条需求已有候选。");
@@ -670,7 +757,7 @@ final class ArchitectService {
             visualGoal = request.input.get("message").getAsString();
         }
         boolean autonomous = base == null && request.input.has("worksite");
-        Draft next = new Draft(plan.deepCopy(), base, surveyed, visualGoal, autonomous);
+        Draft next = new Draft(plan.deepCopy(), base, surveyed, visualGoal, autonomous, null, null);
         if (base == null) {
             construction.inspectInitial(plan, pending.player.getUUID(), surveyed, autonomous);
         } else {
@@ -686,6 +773,71 @@ final class ArchitectService {
         persist();
         JsonObject report = inspect(next, true, pending.player.getUUID());
         request.stagedReport = report;
+        return report;
+    }
+
+    private JsonObject stageTerrain(JsonObject body, Pending pending, String mode) {
+        Session session = pending.session;
+        Request request = session.request;
+        boolean check = mode.equals("check");
+        String operation = request.input.get("terrain_design").getAsString();
+        if (!check && !mode.equals(operation)) {
+            throw Wire.invalid("Terrain candidate operation does not match the player request");
+        }
+        JsonObject plan = Wire.object(body.get("plan"), "plan");
+        if (!plan.has("terrain")) {
+            throw Wire.invalid("A terrain candidate needs explicit terrain data");
+        }
+        if (request.stagedReport != null) {
+            if (!check && session.draft != null && session.draft.plan.equals(plan)) {
+                return request.stagedReport;
+            }
+            throw Wire.conflict("request_already_staged", "本条需求已有已审阅的最终候选。");
+        }
+        UUID base = null;
+        if (operation.equals("revise")) {
+            JsonObject prior;
+            if (session.draft != null && session.draft.terrain()) {
+                prior = session.draft.plan;
+                base = session.draft.base;
+            } else if (session.active != null && session.active.equals(currentJob()) && construction.terrainJob()
+                    && request.input.has("job")) {
+                base = session.active;
+                prior = request.input.getAsJsonObject("job");
+            } else {
+                throw Wire.conflict("no_draft", "没有可修改的地形候选。");
+            }
+            for (String key : List.of("building_id", "origin", "rotation")) {
+                if (!prior.get(key).equals(plan.get(key))) {
+                    throw Wire.conflict("placement_scope", "局部改图须沿用已有建筑的原点和朝向。");
+                }
+            }
+            if (Wire.integer(plan.get("building_version"), "building_version") <= prior.get("building_version").getAsInt()) {
+                throw Wire.conflict("stale_version", "改图必须推进当前版本。");
+            }
+        }
+        boolean autonomous = construction.autonomousAvailable();
+        UUID owner = pending.player.getUUID();
+        JsonObject report = base == null ? construction.inspectInitial(plan, owner, true, autonomous)
+                : construction.inspectTerrainRevision(base, plan, owner);
+        if (check) return report;
+        JsonObject proof = Wire.object(body.get("design_review"), "design_review");
+        String terrainHash = report.get("terrain_sha256").getAsString();
+        String manifestHash = Wire.string(proof.get("manifest_sha256"), "design_review.manifest_sha256");
+        if (!Wire.sha256(plan).equals(Wire.string(proof.get("plan_sha256"), "design_review.plan_sha256"))
+                || !terrainHash.equals(Wire.string(proof.get("terrain_sha256"), "design_review.terrain_sha256"))
+                || !manifestHash.matches("[a-f0-9]{64}")
+                || !manifestHash.equals(previewManifest(BuildPlan.id(plan, "plan_id")))
+                || report.getAsJsonObject("counts").get("conflict").getAsInt() != 0) {
+            throw Wire.conflict("terrain_review_stale", "现场或最终蓝图已变化，请重新生成预览并核对。");
+        }
+        if (session.draft != null) discardRevision(session.draft);
+        if (base != null) report = construction.propose(base, plan, owner);
+        session.draft = new Draft(plan.deepCopy(), base, true, null, autonomous, terrainHash, manifestHash);
+        session.reviewing = false;
+        request.stagedReport = report;
+        stopSurvey();
+        persist();
         return report;
     }
 
@@ -738,7 +890,9 @@ final class ArchitectService {
             }
         }
         if (body.has("review") && body.get("review").getAsBoolean()) {
-            if (session.request.stagedReport == null || session.draft == null) {
+            if (session.request.stagedReport == null || session.draft == null
+                    || !session.draft.id().equals(BuildPlan.id(session.request.stagedReport.getAsJsonObject("new_version"), "plan_id"))
+                    || session.draft.terrain() && (!session.request.input.has("terrain_design") || session.draft.terrainHash == null)) {
                 throw Wire.conflict("no_draft", "这条请求没有已暂存的设计。");
             }
             session.reviewing = true;
@@ -781,7 +935,8 @@ final class ArchitectService {
         Session session = sessions.get(owner);
         ServerPlayer player = level.getServer().getPlayerList().getPlayer(owner);
         if (session != null && permitted(player)
-                && (id.equals(session.active) || session.draft != null && id.equals(session.draft.id()))) {
+                && (id.equals(session.active) || session.draft != null && id.equals(session.draft.id())
+                        && (!session.draft.terrain() || session.reviewing))) {
             if (body.has("project")) {
                 JsonObject project = Wire.object(body.get("project"), "project");
                 var links = new GhostPreview.ProjectLinks(Wire.string(project.get("name"), "project.name"),
@@ -789,24 +944,81 @@ final class ArchitectService {
                 if (!GhostPreview.sendLinks(player, links)) {
                     tell(player, "Blender 工程已归档 previews/" + links.name() + "/");
                 }
+            } else if (session.draft != null && session.draft.terrain() && id.equals(session.draft.id())) {
+                Path folder = previewFolder(id);
+                var links = Component.literal("Blender 最终预览  ").append(fileLink(folder.resolve("proposed.png"), "正面"))
+                        .append("  ").append(fileLink(folder.resolve("proposed-rear.png"), "背面"));
+                if (Files.isRegularFile(folder.resolve("proposed-interior.png"))) {
+                    links.append("  ").append(fileLink(folder.resolve("proposed-interior.png"), "剖面"));
+                }
+                tell(player, links.append("  ").append(fileLink(folder.resolve("revision-review.blend"), "Blender 工程")));
             } else {
-                String file = FMLPaths.GAMEDIR.get().resolve("architect-previews").resolve(id.toString())
-                        .resolve("proposed.png").toAbsolutePath().toString();
-                tell(player, Component.literal("预览图已生成 ")
-                        .append(Component.literal("[打开图片]").withStyle(style -> style.withUnderlined(true)
-                                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file)))));
+                tell(player, Component.literal("预览图已生成 ").append(fileLink(previewFolder(id).resolve("proposed.png"), "打开图片")));
             }
         }
         return ok();
     }
 
+    private static Path previewFolder(UUID id) {
+        return FMLPaths.GAMEDIR.get().resolve("architect-previews").resolve(id.toString()).toAbsolutePath();
+    }
+
+    private static MutableComponent fileLink(Path file, String label) {
+        return Component.literal("[" + label + "]").withStyle(style -> style.withUnderlined(true)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file.toString())));
+    }
+
+    private static String previewManifest(UUID id) {
+        Path folder = previewFolder(id);
+        Path manifest = folder.resolve("preview-manifest.json");
+        try {
+            if (!Files.isRegularFile(manifest) || Files.size(manifest) > 8192) return "";
+            byte[] bytes = Files.readAllBytes(manifest);
+            JsonObject proof = Wire.object(JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)), "preview manifest");
+            JsonObject checksums = Wire.object(proof.get("files"), "preview manifest files");
+            var names = new ArrayList<>(List.of("proposed.png", "proposed-rear.png", "revision-review.blend",
+                    "materials.json", "reflection.json"));
+            if (checksums.has("proposed-interior.png")) names.add("proposed-interior.png");
+            for (String name : names) {
+                String expected = Wire.string(checksums.get(name), "preview checksum");
+                if (!expected.equals(previewDigest(folder.resolve(name)))) return "";
+            }
+            if (!Wire.string(proof.get("building_sha256"), "building checksum")
+                    .equals(previewDigest(folder.resolve("building.json")))) return "";
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (IOException | NoSuchAlgorithmException | JsonParseException | Wire.Problem unavailable) {
+            return "";
+        }
+    }
+
+    private static String previewDigest(Path path) throws IOException, NoSuchAlgorithmException {
+        if (!Files.isRegularFile(path) || Files.size(path) > 32L * 1024 * 1024) return "";
+        var hash = MessageDigest.getInstance("SHA-256");
+        byte[] buffer = new byte[16384];
+        try (var stream = Files.newInputStream(path)) {
+            for (int n; (n = stream.read(buffer)) != -1;) hash.update(buffer, 0, n);
+        }
+        return HexFormat.of().formatHex(hash.digest());
+    }
+
     private void decide(ServerPlayer player, Session session, UUID id, boolean approve, boolean delegated) {
+        if (!approve && session.draft != null && session.draft.terrain() && session.draft.id().equals(id)) {
+            discardTerrainRequest(player, session);
+            return;
+        }
         if (!session.reviewing || session.draft == null || !session.draft.id().equals(id)) {
             throw Wire.conflict("stale_approval", "请先审阅当前方案，再回复「建吧」或点击批准。");
         }
         Draft draft = session.draft;
         if (approve) {
             JsonObject live = inspect(draft, false, player.getUUID());
+            if (draft.terrain() && (!Objects.equals(draft.terrainHash, live.get("terrain_sha256").getAsString())
+                    || !Objects.equals(draft.manifestHash, previewManifest(draft.id())))) {
+                session.reviewing = false;
+                persist();
+                GhostPreview.clear(player);
+                throw Wire.conflict("terrain_review_stale", "现场已经变化。请对当前候选重新提出修改，再审阅新预览。");
+            }
             if (live.getAsJsonObject("counts").get("conflict").getAsInt() != 0) {
                 throw Wire.conflict("change_conflicts", "方案会碰到保护资产。请让我换个位置或调整布局。");
             }
@@ -852,6 +1064,9 @@ final class ArchitectService {
         stopSurvey();
         construction.control(action, id, player.getUUID());
         session.request = null;
+        if (action.equals("resume") && taskBrain && runtimeOnline() && construction.terrainJob()) {
+            construction.requestBrain("resumed");
+        }
         if (action.equals("cancel")) {
             GhostPreview.clear(player);
             session.draft = null;
@@ -1016,8 +1231,9 @@ final class ArchitectService {
                 String goal = data.has("visual_goal") ? Wire.string(data.get("visual_goal"), "visual goal") : null;
                 boolean autonomous = data.has("autonomous") && data.get("autonomous").getAsBoolean();
                 session.draft = new Draft(plan, data.has("base") ? BuildPlan.id(data, "base") : null,
-                        surveyed, goal, autonomous);
+                        surveyed, goal, autonomous, null, null);
                 session.reviewing = data.has("reviewing") ? data.get("reviewing").getAsBoolean() : data.has("code");
+                if (session.draft.terrain()) session.reviewing = false;
                 if (session.draft.id().equals(currentJob())) {
                     session.active = session.draft.id();
                     session.draft = null;

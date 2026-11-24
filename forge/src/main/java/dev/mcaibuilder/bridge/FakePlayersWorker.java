@@ -85,6 +85,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private BlockPos mining;
     private long miningSince;
     private Map<BlockPos, BlockState> scaffolds = new LinkedHashMap<>();
+    private boolean gatherScaffoldSoil = true;
     private Set<BlockPos> designCells = Set.of();
     private final Set<BlockPos> skippedStock = new HashSet<>();
     private BlockPos supplyCenter;
@@ -554,9 +555,10 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets) {
+    public void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean gatherSoil) {
         scaffolds = blocks;
         designCells = targets;
+        gatherScaffoldSoil = gatherSoil;
     }
 
     @Override
@@ -855,6 +857,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public boolean gatherScaffoldMaterial(int amount) {
+        if (!gatherScaffoldSoil) return true;
         if (count(Items.DIRT) >= amount) {
             dirtTarget = null;
             unreachableSoil.clear();
@@ -904,7 +907,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private boolean scaffoldSoilAt(BlockPos pos, Clearance guard) {
-        if (!site.canWorkAt(level, pos) || designCells.contains(pos) || scaffolds.containsKey(pos)) {
+        if (!gatherScaffoldSoil || !site.canWorkAt(level, pos) || designCells.contains(pos) || scaffolds.containsKey(pos)) {
             return false;
         }
         var actual = level.getBlockState(pos);
@@ -1681,6 +1684,14 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     private boolean canStand(BlockPos position) {
         return BuildTerrain.canStand(level, position);
+    }
+
+    @Override
+    public boolean canNavigateTo(BlockPos feet) {
+        if (npc == null || !site.area().contains(feet) || !canStand(feet)) return false;
+        if (npc.blockPosition().equals(feet)) return true;
+        Path path = npc.getNavigation().createPath(feet, 0);
+        return path != null && path.canReach() && insideSite(path);
     }
 
     private List<BlockPos> stances(BlockPos target, Vec3 current) {

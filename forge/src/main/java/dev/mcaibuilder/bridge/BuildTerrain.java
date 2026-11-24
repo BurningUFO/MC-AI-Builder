@@ -44,14 +44,18 @@ final class BuildTerrain {
     }
 
     static boolean canStand(ServerLevel level, BlockPos feet) {
+        return canStand(level, feet, level::getBlockState);
+    }
+
+    static boolean canStand(ServerLevel level, BlockPos feet, Function<BlockPos, BlockState> blocks) {
         if (!level.hasChunkAt(feet)) {
             return false;
         }
         BlockPos floor = feet.below();
         BlockPos head = feet.above();
-        BlockState ground = level.getBlockState(floor);
-        BlockState lower = level.getBlockState(feet);
-        BlockState upper = level.getBlockState(head);
+        BlockState ground = blocks.apply(floor);
+        BlockState lower = blocks.apply(feet);
+        BlockState upper = blocks.apply(head);
         var floorShape = ground.getCollisionShape(level, floor);
         return ground.getFluidState().isEmpty() && !WorldObservation.hazard(ground)
                 && (ground.isFaceSturdy(level, floor, Direction.UP) || !floorShape.isEmpty()

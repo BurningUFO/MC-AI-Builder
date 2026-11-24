@@ -29,10 +29,11 @@ interface ConstructionWorker {
     Result act(WorkStep step, String approach);
 
     JsonObject routeEvidence(BlockPos target);
+    boolean canNavigateTo(BlockPos feet);
 
     List<Stance> workStances(WorkStep step);
 
-    void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets);
+    void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean gatherSoil);
 
     BlockPos scaffoldCleanupTarget();
 

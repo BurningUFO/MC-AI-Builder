@@ -13,12 +13,12 @@ MAX_WIDTH, MAX_HEIGHT = 768, 432
 PNG = b"\x89PNG\r\n\x1a\n"
 
 
-def rgb_png(image: bytes) -> tuple[bytes, int, int]:
+def rgb_png(image: bytes, *, max_bytes=MAX_IMAGE_BYTES, max_width=MAX_WIDTH, max_height=MAX_HEIGHT) -> tuple[bytes, int, int]:
     """Validate the complete RGB frame and retain only its pixel-bearing chunks."""
-    if type(image) is not bytes or not 33 <= len(image) <= MAX_IMAGE_BYTES or image[:16] != PNG + b"\x00\x00\x00\x0dIHDR":
+    if type(image) is not bytes or not 33 <= len(image) <= max_bytes or image[:16] != PNG + b"\x00\x00\x00\x0dIHDR":
         raise ValueError("Invalid observation PNG header or size.")
     width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", image[16:29])
-    if not (1 <= width <= MAX_WIDTH and 1 <= height <= MAX_HEIGHT
+    if not (1 <= width <= max_width and 1 <= height <= max_height
             and (depth, color, compression, filtering, interlace) == (8, 2, 0, 0, 0)):
         raise ValueError("Expected a bounded, non-interlaced RGB observation.")
     keep = [PNG]

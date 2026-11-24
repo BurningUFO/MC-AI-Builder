@@ -22,7 +22,7 @@ final class ArchitectCommand {
         event.getDispatcher().register(Commands.literal("architect")
                 .executes(ctx -> {
                     ctx.getSource().sendSystemMessage(Component.literal(
-                            "[Architect] @Builder <需求>  |  /architect link  |  /architect observe  |  /architect survey <需求>  |  /architect supervise <需求>  |  /architect supply  |  /architect approve"));
+                            "[Architect] @Builder <需求>  |  /architect link  |  /architect design <需求>  |  /architect observe  |  /architect survey <需求>  |  /architect supervise <需求>  |  /architect supply  |  /architect approve"));
                     return 1;
                 })
                 .then(Commands.literal("ask")

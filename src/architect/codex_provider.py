@@ -26,7 +26,7 @@ from src.architect.providers import (ACTIONS, PROMPT, TASK_TOPICS, WORK_STRATEGI
 from src.architect.providers import _bad_constant, _unique_pairs
 from src.architect.grammar import LIGHTING, ROOF_STYLES
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
-from src.architect import feedback, survey
+from src.architect import feedback, survey, terrain_design
 
 DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "medium"
@@ -231,6 +231,48 @@ class CodexProvider:
             raise ValueError("Feedback prompt exceeds its input limit")
         return self._vision_decision(message, image, observation_id, allow_upload, self._feedback_turn, "feedback")
 
+    def terrain_with_metrics(self, purpose, payload, *, observation=None, previews=()):
+        from openai_codex import ExternalMessage
+
+        message = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        if len(message.encode("utf-8")) > 140_000:
+            raise InvalidOutput("Terrain design context exceeds its input limit")
+        metrics = {"requested_model": self.model, "requested_effort": self.effort, "status": "reserved",
+                   "context_bytes": len(message.encode("utf-8")), "context_sha256": sha256(message.encode()).hexdigest()}
+        images = []
+        if purpose == "reflect":
+            if observation is not None or not 2 <= len(previews) <= 3:
+                raise ValueError("A Blender review needs two or three candidate images.")
+            for name, image in previews:
+                png, width, height = rgb_png(image, max_bytes=2_000_000, max_width=1024, max_height=768)
+                images.append((name, png, width, height))
+            metrics["purpose"] = "blender_design_review"
+        elif observation is not None:
+            observation_id, image = observation
+            if str(UUID(observation_id)) != observation_id:
+                raise ValueError("A paired NPC observation is required.")
+            png, width, height = rgb_png(image)
+            images.append(("NPC first-person observation", png, width, height))
+            metrics["observation_id"] = observation_id
+        content = [{"type": "input_text", "text": message}]
+        for name, png, _, _ in images:
+            content.extend((
+                {"type": "input_text", "text": name},
+                {"type": "input_image", "image_url": "data:image/png;base64," + b64encode(png).decode("ascii"),
+                 "detail": "auto"},
+            ))
+        if images:
+            metrics["images"] = [{"name": name, "sha256": sha256(png).hexdigest(), "size": [width, height]}
+                                 for name, png, width, height in images]
+        inputs = ExternalMessage(tool_name="blender_design" if purpose == "reflect" else "terrain_design",
+                                 content=content if images else message)
+        instructions = terrain_design.instructions(purpose)
+        schema = terrain_design.schema(purpose, MODULE_FIELDS)
+        timeout = max(self.timeout, 230 if purpose == "design" else 155)
+        return self._metered(metrics, lambda: self._sdk_turn(inputs, instructions, schema,
+                             lambda output: terrain_design.decode(output, purpose), metrics, timeout=timeout),
+                             f"terrain_{purpose}")
+
     def _vision_decision(self, payload, image, observation_id, allow_upload, invoke, kind):
         if allow_upload is not True:
             raise ValueError("Explicit image-sharing approval is required.")
@@ -317,14 +359,14 @@ class CodexProvider:
         return await self._sdk_turn(scene_input(payload, image), feedback.PROMPT, feedback.schema(DESIGN_FIELDS),
                                     lambda output: feedback.decode(output, DESIGN_FIELDS), metrics)
 
-    async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
+    async def _sdk_turn(self, inputs, instructions, schema, decode, metrics, *, timeout=None):
         from openai_codex import AsyncCodex, AsyncThread
         from openai_codex._run import _collect_async_turn_result
         from openai_codex.generated.v2_all import ConfigReadResponse
 
         WORK_ROOT.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix="intent-", dir=WORK_ROOT) as folder:
-            async with asyncio.timeout(self.timeout):
+            async with asyncio.timeout(timeout or self.timeout):
                 async with AsyncCodex(sdk_config(Path(folder))) as codex:
                     metrics["account"] = auth_summary(await codex.account(refresh_token=False))
                     if metrics["account"]["mode"] != "chatgpt":

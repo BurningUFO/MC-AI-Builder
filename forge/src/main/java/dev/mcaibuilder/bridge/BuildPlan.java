@@ -10,6 +10,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -29,7 +31,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotation rotation, String modelHash,
-                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds, boolean lighting, boolean localized, String sourceProject) {
+                 List<Target> targets, Map<BlockPos, Target> byPosition, BuildSite.Box worldBounds, boolean lighting,
+                 boolean localized, String sourceProject, TerrainDesign terrain) {
     static final int MAX_ACTIONS = 4096;
     static final List<String> WOOD_FAMILIES = List.of("oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry");
     static final boolean LEGACY_EXECUTION = "1".equals(System.getenv("MC_AI_BUILDER_LEGACY_EXECUTOR"));
@@ -96,13 +99,16 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
     }
 
     BlockPos localPosition(BlockPos world) {
-        Rotation inverse = switch (rotation) {
+        return world.subtract(origin).rotate(inverseRotation());
+    }
+
+    Rotation inverseRotation() {
+        return switch (rotation) {
             case NONE -> Rotation.NONE;
             case CLOCKWISE_90 -> Rotation.COUNTERCLOCKWISE_90;
             case CLOCKWISE_180 -> Rotation.CLOCKWISE_180;
             case COUNTERCLOCKWISE_90 -> Rotation.CLOCKWISE_90;
         };
-        return world.subtract(origin).rotate(inverse);
     }
 
     boolean samePlacement(BuildPlan other) {
@@ -190,7 +196,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 Blocks.OAK_SLAB, Blocks.STONE_BRICK_SLAB, Blocks.COBBLESTONE_STAIRS, Blocks.COBBLESTONE_SLAB,
                 Blocks.STONE_STAIRS, Blocks.STONE_SLAB, Blocks.TORCH, Blocks.WALL_TORCH, Blocks.LANTERN));
         for (String wood : WOOD_FAMILIES) {
-            for (String piece : List.of("log", "stairs", "slab")) {
+            for (String piece : List.of("log", "stairs", "slab", "door")) {
                 blocks.add(ForgeRegistries.BLOCKS.getValue(ResourceLocation.tryParse("minecraft:" + wood + "_" + piece)));
             }
         }
@@ -252,6 +258,10 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             throw Wire.conflict("placement_scope", "拟建原点超出了施工区授权。");
         }
         String project = data.has("source_project") ? ProjectBlocks.name(Wire.string(data.get("source_project"), "source_project")) : null;
+        boolean terrainDesign = data.has("terrain");
+        if (terrainDesign && (project != null || !buildingId.startsWith("voxel_"))) {
+            throw Wire.invalid("Terrain changes belong to an original voxel design");
+        }
         BuildSite.Box declared = BuildSite.Box.read(data.get("local_bounds"), "local_bounds");
         JsonArray actions = Wire.array(data.get("actions"), "actions");
         if (actions.isEmpty() || actions.size() > MAX_ACTIONS) {
@@ -275,16 +285,24 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
                 throw Wire.invalid("M1 cannot place block entity data at " + local.toShortString());
             }
             BlockState state = (project == null ? readState(action, palette) : ProjectBlocks.read(action)).rotate(rotation);
+            // A horizontal timber can start on a pier, and a top slab can start on its floor.
+            // Use the existing native BlockItem state tag and inventory accounting for those placements.
+            boolean replica = project != null || terrainDesign && (state.getBlock() instanceof DoorBlock
+                    || state.getBlock() instanceof RotatedPillarBlock
+                    || state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.TOP);
+            if (ProjectBlocks.doubleHigh(state) && !replica) {
+                throw Wire.invalid("Paired blocks require a paired placement plan");
+            }
             Item item = ProjectBlocks.primaryItem(state);
             ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(item);
             JsonElement declaredItem = action.get("item_id");
             boolean resolveItem = project != null || !ForgeRegistries.BLOCKS.getKey(state.getBlock()).getNamespace().equals("minecraft");
-            if (!ProjectBlocks.placementItem(state, item, project != null)
+            if (!ProjectBlocks.placementItem(state, item, replica)
                     || itemId == null || (!(resolveItem && (declaredItem == null || declaredItem.isJsonNull()))
                     && !itemId.toString().equals(Wire.string(declaredItem, "action.item_id")))) {
                 throw Wire.invalid("Incorrect or unsupported placement item at " + local.toShortString());
             }
-            Target target = new Target(local, world, state, item, project != null);
+            Target target = new Target(local, world, state, item, replica);
             targets.add(target);
             byPosition.put(world, target);
             JsonObject block = new JsonObject();
@@ -293,7 +311,7 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
             block.add("properties", action.get("properties"));
             model.put(local, block);
         }
-        if (project != null) {
+        if (project != null || terrainDesign) {
             for (Target target : targets) {
                 if (target.upper() || target.paired()) {
                     Target other = byPosition.get(target.upper() ? target.world().below() : target.world().above());
@@ -319,7 +337,8 @@ record BuildPlan(UUID id, String buildingId, int version, BlockPos origin, Rotat
 
                 Map.copyOf(byPosition), bounds(byPosition.keySet()),
                 data.has("lighting") && data.get("lighting").getAsBoolean(),
-                data.has("localized") && data.get("localized").getAsBoolean(), project);
+                data.has("localized") && data.get("localized").getAsBoolean(), project,
+                terrainDesign ? TerrainDesign.read(Wire.object(data.get("terrain"), "terrain"), site, origin, rotation, byPosition) : null);
     }
 
     static UUID id(JsonObject data, String key) {
