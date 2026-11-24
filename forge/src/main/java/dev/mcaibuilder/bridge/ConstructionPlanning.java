@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 final class ConstructionPlanning {
     private static final long LIFETIME = Duration.ofSeconds(120).toNanos();
     private static final int LOOKAHEAD = 96;
+    private static final int TERRAIN_GROUP_LIMIT = 160;
     private static final int PROGRESS_INTERVAL = 256;
     private static final int IN_FLIGHT_BUFFER = 12;
     private static final int MAX_EVENTS = 16;
@@ -83,11 +84,14 @@ final class ConstructionPlanning {
         Map<String, List<WorkStep>> groups = new LinkedHashMap<>();
         if (brain && first < job.steps.size()) {
             WorkStep head = job.steps.get(first);
+            boolean terrain = job.plan.terrain() != null;
+            int groupLimit = terrain ? TERRAIN_GROUP_LIMIT : LOOKAHEAD;
             int boundary = first + 1;
-            while (boundary < job.steps.size() && boundary - first < LOOKAHEAD) {
+            while (boundary < job.steps.size() && boundary - first < groupLimit) {
                 WorkStep step = job.steps.get(boundary);
                 if (step.clearance() != head.clearance() || step.remove() != head.remove()
-                        || step.pos().getY() != head.pos().getY() || step.target().light() != head.target().light()) {
+                        || (!terrain && step.pos().getY() != head.pos().getY())
+                        || step.target().light() != head.target().light()) {
                     break;
                 }
                 boundary++;

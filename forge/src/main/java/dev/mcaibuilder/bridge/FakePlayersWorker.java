@@ -85,7 +85,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private BlockPos mining;
     private long miningSince;
     private Map<BlockPos, BlockState> scaffolds = new LinkedHashMap<>();
-    private boolean gatherScaffoldSoil = true;
+    private boolean surveyedTerrain;
     private Set<BlockPos> designCells = Set.of();
     private final Set<BlockPos> skippedStock = new HashSet<>();
     private BlockPos supplyCenter;
@@ -555,10 +555,10 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean gatherSoil) {
+    public void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean surveyedTerrain) {
         scaffolds = blocks;
         designCells = targets;
-        gatherScaffoldSoil = gatherSoil;
+        this.surveyedTerrain = surveyedTerrain;
     }
 
     @Override
@@ -591,7 +591,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private boolean findScaffold(WorkStep step, ItemStack stack) {
         BlockPos target = step.pos();
         int feetY = npc.blockPosition().getY();
-        if (target.getY() < feetY + 2) {
+        if (!surveyedTerrain && target.getY() < feetY + 2) {
             return false;
         }
         int highest = Math.min(target.getY() + 1, site.area().max().getY() - 1);
@@ -857,7 +857,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     @Override
     public boolean gatherScaffoldMaterial(int amount) {
-        if (!gatherScaffoldSoil) return true;
+        if (surveyedTerrain) return true;
         if (count(Items.DIRT) >= amount) {
             dirtTarget = null;
             unreachableSoil.clear();
@@ -907,7 +907,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private boolean scaffoldSoilAt(BlockPos pos, Clearance guard) {
-        if (!gatherScaffoldSoil || !site.canWorkAt(level, pos) || designCells.contains(pos) || scaffolds.containsKey(pos)) {
+        if (surveyedTerrain || !site.canWorkAt(level, pos) || designCells.contains(pos) || scaffolds.containsKey(pos)) {
             return false;
         }
         var actual = level.getBlockState(pos);

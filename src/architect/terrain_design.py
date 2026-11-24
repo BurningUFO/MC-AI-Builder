@@ -494,7 +494,14 @@ def handle(runtime, request, message, prepared=None):
     model.write(folder / "building.json")
     write_json(folder / "materials.json", {"model_sha256": plan["model_sha256"], "plan_id": plan_id,
                                            "requirements": report.get("supply", {}).get("requirements", {})})
-    summary = f"{runtime.clean(decision['reason'])[:95]} {note} {runtime.clean(reflection['reason'])[:95]}"
+    descriptions = []
+    for result in (decision, reflection):
+        reason = runtime.clean(result["reason"])
+        if len(reason) > 95:
+            sentences = list(re.finditer(r"[。！？]", reason[:95]))
+            reason = reason[:sentences[-1].end()] if sentences else reason[:94] + "…"
+        descriptions.append(reason)
+    summary = f"{descriptions[0]} {note} {descriptions[1]}"
     if changed:
         summary = f"局部改图改动 {changed} 格。 {summary}"
     elif changed == 0:

@@ -33,7 +33,7 @@ interface ConstructionWorker {
 
     List<Stance> workStances(WorkStep step);
 
-    void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean gatherSoil);
+    void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean surveyedTerrain);
 
     BlockPos scaffoldCleanupTarget();
 

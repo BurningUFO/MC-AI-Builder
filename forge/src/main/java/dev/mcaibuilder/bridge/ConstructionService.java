@@ -128,7 +128,7 @@ final class ConstructionService {
         current.autonomous = autonomous;
         current.supply = site.survival() ? new SupplyCheckpoint(owner) : null;
         updateSupplyArea();
-        worker.useScaffolds(current.scaffolds, plan.byPosition().keySet(), plan.terrain() == null);
+        worker.useScaffolds(current.scaffolds, plan.byPosition().keySet(), plan.terrain() != null);
         checkSupply();
         startPerformance(approvalStarted);
         schedule();
@@ -990,7 +990,7 @@ final class ConstructionService {
         }
         updateSupplyArea();
         current.scaffolds.putAll(scaffolds);
-        worker.useScaffolds(current.scaffolds, next.byPosition().keySet(), next.terrain() == null);
+        worker.useScaffolds(current.scaffolds, next.byPosition().keySet(), next.terrain() != null);
         checkSupply();
         startPerformance(approvalStarted);
         registered.put(id, candidate.withDisposition("approved"));
@@ -3056,7 +3056,7 @@ final class ConstructionService {
             if (current.plan.lighting() && current.state == State.COMPLETED) {
                 completedLighting.put(current.plan.buildingId(), current.plan);
             }
-            worker.useScaffolds(current.scaffolds, current.plan.byPosition().keySet(), current.plan.terrain() == null);
+            worker.useScaffolds(current.scaffolds, current.plan.byPosition().keySet(), current.plan.terrain() != null);
             updateSupplyArea();
         }
         if (data.has("candidate")) {
