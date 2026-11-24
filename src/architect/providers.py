@@ -33,6 +33,10 @@ class ModelBudgetExhausted(ModelError):
     pass
 
 
+class ModelRateLimited(ModelError):
+    pass
+
+
 class ModelTimeout(ModelError):
     pass
 

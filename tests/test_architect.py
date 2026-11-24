@@ -166,6 +166,7 @@ class ArchitectTests(unittest.TestCase):
         }
         for outcome, response in (
             (TimeoutError(), "响应超时"),
+            (RuntimeError("429 Too Many Requests"), "ChatGPT 服务端"),
             ({"action": "approve"}, "未通过建筑意图校验"),
             ({"action": "create_design", "kind": "window_wall", "changes": {"wood": "minecraft:tnt"}}, "请选择橡木"),
             ({"action": "create_design", "kind": "window_wall", "changes": {"width": 50}}, "宽度需在 5–12 格"),

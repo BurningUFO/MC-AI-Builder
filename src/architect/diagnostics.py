@@ -13,7 +13,8 @@ class Diagnostic:
 _CODES = {
     "model_timeout": Diagnostic("model", "fault", "模型服务响应超时。请重发需求，施工状态保持原样。"),
     "invalid_model_output": Diagnostic("model", "fault", "模型输出未通过建筑意图校验。请重述尺寸或材料。"),
-    "model_budget_exhausted": Diagnostic("model", "condition", "本地 Codex 预算已用完。请在启动器查看请求数和 Token 用量。"),
+    "model_budget_exhausted": Diagnostic("model", "condition", "当前任务的本地 Codex 预算已用完。请在启动器查看回合和 Token 用量。"),
+    "model_rate_limited": Diagnostic("model", "condition", "ChatGPT 服务端当前限制了 Codex 使用。请等额度恢复后再试。"),
     "model_unavailable": Diagnostic("model", "fault", "模型服务暂时不可用。请检查 ChatGPT 登录及 agent.log 后重试。"),
     "bridge_unavailable": Diagnostic("bridge", "condition", "Forge Bridge 暂未连接。检查游戏是否已进入副本并取消暂停。"),
     "stale_request": Diagnostic("version", "rejected", "需求已过期。请重新发出需求。"),

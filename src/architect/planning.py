@@ -6,7 +6,7 @@ from time import monotonic, sleep
 
 from src.architect.observations import observation_image
 from src.architect.providers import (SKILL_CALLS, InvalidOutput, ModelBudgetExhausted, ModelError,
-                                     ModelTimeout, parse_intent)
+                                     ModelRateLimited, ModelTimeout, parse_intent)
 from src.architect.scene import scene_context_message, world_context
 from src.construction.client import BridgeError
 
@@ -57,7 +57,7 @@ def error_code(error):
     if isinstance(error, OSError):
         return "bridge_unavailable"
     return {ModelTimeout: "model_timeout", ModelBudgetExhausted: "model_budget_exhausted",
-            InvalidOutput: "invalid_model_output"}.get(type(error), "model_unavailable")
+            ModelRateLimited: "model_rate_limited", InvalidOutput: "invalid_model_output"}.get(type(error), "model_unavailable")
 
 
 def decide(runtime, context, *, request=None, offer=None):

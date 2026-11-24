@@ -19,7 +19,7 @@ from zipfile import BadZipFile
 from src.__main__ import render_project
 from src.architect.design import DESIGNS, ROTATION, DesignError, fitted_origin, placement, voxel_footings
 from src.architect.diagnostics import diagnose
-from src.architect.providers import DESIGN, FixtureProvider, InvalidOutput, ModelBudgetExhausted, ModelError, ModelTimeout
+from src.architect.providers import DESIGN, FixtureProvider, ModelError
 from src.assets.projects import ProjectError
 from src.construction.client import BridgeClient, BridgeError
 from src.construction.plan import make_plan
@@ -471,9 +471,8 @@ class Runtime:
             self.client.answer(request_id, safe_message(str(error), self.redactions))
             action = "design_error"
             self.record_diagnostic(action)
-        except (ModelTimeout, InvalidOutput, ModelBudgetExhausted, ModelError) as error:
-            action = {ModelTimeout: "model_timeout", InvalidOutput: "invalid_model_output",
-                      ModelBudgetExhausted: "model_budget_exhausted"}.get(type(error), "model_unavailable")
+        except ModelError as error:
+            action = planning.error_code(error)
             self.client.answer(request_id, self.record_diagnostic(action).recovery)
         except (subprocess.SubprocessError, BadZipFile, FileNotFoundError, ValueError):
             action = "design_error"
@@ -488,8 +487,8 @@ class Runtime:
             intent = planning.decide(self, self.language_context(request, message), request=request)
             if intent["action"] in {"get_material_status", "chat", "clarify"}:
                 opening = safe_message(intent.get("message", ""), self.redactions)
-        except ModelError:
-            pass
+        except ModelError as error:
+            opening = self.record_diagnostic(planning.error_code(error)).recovery
         reply = safe_message(" ".join(filter(None, (opening, describe_supply(supply)))), self.redactions)
         self.client.answer(request["request_id"], reply)
         return reply

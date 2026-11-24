@@ -12,7 +12,7 @@ from threading import Lock
 from time import perf_counter
 from uuid import UUID
 
-from src.architect.codex_budget import CodexBudget
+from src.architect.codex_budget import DEFAULT_MAX_TOKENS, DEFAULT_MAX_TURNS, CodexBudget
 from src.architect.codex_sdk import (
     WORK_ROOT, auth_summary, config_request, require_safe_config, safe_failure,
     safety_options, sdk_config, summarize_config,
@@ -22,7 +22,7 @@ from src.architect.design import (COTTAGE_ROOFS, COTTAGE_SIZES, DESIGNS, ENTRIES
 from src.architect.observations import rgb_png
 from src.architect.telemetry import model_turn
 from src.architect.providers import (ACTIONS, PROMPT, TASK_TOPICS, WORK_STRATEGIES, InvalidOutput,
-                                     ModelBudgetExhausted, ModelError, ModelTimeout, parse_intent)
+                                     ModelBudgetExhausted, ModelError, ModelRateLimited, ModelTimeout, parse_intent)
 from src.architect.providers import _bad_constant, _unique_pairs
 from src.architect.grammar import LIGHTING, ROOF_STYLES
 from src.architect.scene import SCENE_SCHEMA, VISION_PROMPT, decode_scene, scene_context_message
@@ -168,8 +168,8 @@ def scene_input(payload, image):
 class CodexProvider:
     """One short-lived, read-only Codex thread per bounded M3 request."""
 
-    def __init__(self, *, model=None, effort=DEFAULT_EFFORT, timeout=30.0, max_turns=12,
-                 budget_log=None, max_tokens=150_000):
+    def __init__(self, *, model=None, effort=DEFAULT_EFFORT, timeout=30.0, max_turns=DEFAULT_MAX_TURNS,
+                 budget_log=None, max_tokens=DEFAULT_MAX_TOKENS):
         if find_spec("openai_codex") is None:
             raise ValueError("Install the optional openai-codex package before selecting the Codex provider.")
         if not 0 < timeout <= 120 or not 1 <= max_turns <= 100:
@@ -265,9 +265,13 @@ class CodexProvider:
             raise ModelTimeout("Codex turn timed out") from None
         except ModelError as error:
             metrics.update(status="rejected", error=metrics.get("error", {"kind": type(error).__name__}))
+            if metrics["error"]["kind"] == "rate_or_usage_limit":
+                raise ModelRateLimited("ChatGPT service rate or usage limit reached") from None
             raise
         except Exception as error:
             metrics.update(status="failed", error=safe_failure(error))
+            if metrics["error"]["kind"] == "rate_or_usage_limit":
+                raise ModelRateLimited("ChatGPT service rate or usage limit reached") from None
             raise ModelError(f"Codex {metrics['error']['kind']}") from None
         finally:
             metrics["elapsed_ms"] = round((perf_counter() - started) * 1000)
@@ -313,7 +317,7 @@ class CodexProvider:
     async def _sdk_turn(self, inputs, instructions, schema, decode, metrics):
         from openai_codex import AsyncCodex, AsyncThread
         from openai_codex._run import _collect_async_turn_result
-        from openai_codex.generated.v2_all import ConfigReadResponse, ThreadStartParams
+        from openai_codex.generated.v2_all import ConfigReadResponse
 
         WORK_ROOT.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix="intent-", dir=WORK_ROOT) as folder:
@@ -329,12 +333,7 @@ class CodexProvider:
                     require_safe_config(metrics["tools"])
                     # The SDK's high-level thread_start drops the protocol reply.
                     # Check the actual model, effort and permissions before running.
-                    started = await codex._client.thread_start(ThreadStartParams(
-                        cwd=folder, ephemeral=True, model=self.model, model_provider="openai",
-                        config={"model_reasoning_effort": self.effort},
-                        sandbox="read-only", approval_policy="never",
-                        base_instructions=instructions,
-                    ))
+                    started = await codex._client.thread_start(self.thread_params(folder, instructions))
                     self.verify_thread(started, metrics)
                     thread = AsyncThread(codex, started.thread.id)
                     turn = await thread.turn(
@@ -353,6 +352,13 @@ class CodexProvider:
                     if status != "completed" or not result.final_response or set(item_types) - NON_TOOL_ITEMS:
                         raise InvalidOutput("Codex did not return a text-only completed result")
                     return decode(result.final_response)
+
+    def thread_params(self, workspace, instructions):
+        from openai_codex.generated.v2_all import ThreadStartParams
+
+        return ThreadStartParams(cwd=str(workspace), ephemeral=True, model=self.model, model_provider="openai",
+                                 config={"model_reasoning_effort": self.effort},
+                                 sandbox="read-only", approval_policy="never", base_instructions=instructions)
 
     def verify_thread(self, started, metrics):
         sandbox = started.sandbox.root

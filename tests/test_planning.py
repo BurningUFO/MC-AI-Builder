@@ -41,6 +41,7 @@ class SimulatedBridge(ArchitectClient):
         self.processed = 507
         self.state = "paused"
         self.reason = "placement_stalled"
+        self.strategies = ["prioritize", "upper_stance", "collect", "craft"]
         self.claimed = False
         self.commands = []
         self.answers = []
@@ -53,7 +54,7 @@ class SimulatedBridge(ArchitectClient):
                 "activity": "navigating" if self.state == "running" else "paused:" + self.reason,
                 "npc": {"present": True, "local": [2, 3, 6], "moving": self.state == "running"},
                 "next_step": {"local": [3, 4, 7], "block": "minecraft:spruce_log"},
-                "last_failure": {"reason": "placement_stalled", "route": {"failed_scaffold_offsets": [[0, -3, 1]]}},
+                "last_failure": {"reason": self.reason, "route": {"failed_scaffold_offsets": [[0, -3, 1]]}},
                 "strategy": self.strategy.copy()}
 
     def request(self, message):
@@ -80,7 +81,7 @@ class SimulatedBridge(ArchitectClient):
             self.claimed = True
             return {"job_id": self.job_id, "lease": self.lease, "player_id": self.player_id, "building_version": self.version,
                     "site_authorization": self.site, "event": "failure:507", "task": self.task(), "can_observe": True,
-                    "strategies": ["prioritize", "upper_stance", "collect", "craft"],
+                    "strategies": self.strategies,
                     "groups": [{"group": "g1", "placements": 2}, {"group": "g2", "placements": 2}]}
         if "lease" in body and (body["job_id"], body["building_version"], body["lease"]) != (
                 self.job_id, self.version, self.lease):
@@ -100,8 +101,10 @@ class SimulatedBridge(ArchitectClient):
                 future = self.queue[1:]
                 self.queue[1:] = [step for step in future if step.startswith(region)]
                 self.queue.extend(step for step in future if not step.startswith(region))
-            else:
+            elif body["strategy"] in {"collect", "craft"}:
                 self.supply["materials_prepared"] = body["strategy"]
+            else:
+                assert body["strategy"] == "scaffold_descent"
             self.state = "running"
             self.strategy = {"strategy": body["strategy"], "group": body.get("group")}
             return {"result": "running", "task": self.task()}
@@ -174,6 +177,18 @@ class PlannerTest(unittest.TestCase):
         self.assertEqual(self.contexts[-1]["task"]["strategy"]["group"], "g2")
         self.assertEqual(self.contexts[-1]["task"]["memory"][-1]["group"], "g2")
         self.assertEqual(self.client.processed, 507)
+
+    def test_scaffold_cleanup_recovery_passes_the_bridge_receipt_to_the_model(self):
+        self.client.reason = "scaffold_cleanup_unreachable"
+        self.client.strategies = ["scaffold_descent", "prioritize"]
+        self.script(choose("scaffold_descent"), say("我先从低处拆除临时脚手架。"))
+        run_once(self.runtime)
+        action = next(body for operation, body in self.client.commands if operation == "apply")
+        self.assertEqual(action["strategy"], "scaffold_descent")
+        self.assertEqual(action["job_id"], self.client.job_id)
+        self.assertEqual(self.contexts[0]["task"]["last_failure"]["reason"], "scaffold_cleanup_unreachable")
+        self.assertEqual(self.contexts[1]["tool_results"][-1]["result"], "running")
+        self.assertEqual(self.contexts[1]["task"]["state"], "running")
 
     def test_supply_choices_reach_the_real_adapter(self):
         for strategy in ("collect", "craft"):

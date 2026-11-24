@@ -120,6 +120,15 @@ final class ProjectBlocks {
         return Items.AIR;
     }
 
+    /** A hand-opened door still represents both installed parts of the same block. */
+    static BlockState alignDoorOpen(BlockState actual, BlockState desired) {
+        if (actual.is(desired.getBlock()) && actual.getBlock() instanceof DoorBlock door && door.type().canOpenByHand()
+                && !actual.getValue(DoorBlock.POWERED) && !desired.getValue(DoorBlock.POWERED)) {
+            return actual.setValue(DoorBlock.OPEN, desired.getValue(DoorBlock.OPEN));
+        }
+        return actual;
+    }
+
     static int units(BlockState state) {
         if (state.hasProperty(BlockStateProperties.FLOWER_AMOUNT)) {
             return state.getValue(BlockStateProperties.FLOWER_AMOUNT);

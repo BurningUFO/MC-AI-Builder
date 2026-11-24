@@ -81,7 +81,9 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("status", "login", "sdk", "provider"), default="status", nargs="?")
     args = parser.parse_args()
-    from openai_codex import Codex
+    from openai_codex import Codex, Thread
+
+    from src.architect.codex_provider import CodexProvider
 
     WORK_ROOT.mkdir(parents=True, exist_ok=True)
     report = {
@@ -100,7 +102,9 @@ def main():
     try:
         with TemporaryDirectory(prefix="isolated-", dir=WORK_ROOT) as folder:
             workspace = Path(folder)
-            with Codex(sdk_config(workspace)) as codex:
+            sdk = sdk_config(workspace)
+            report["codex_home"] = sdk.env["CODEX_HOME"]
+            with Codex(sdk) as codex:
                 account = auth_summary(codex.account(refresh_token=False))
                 report["account"] = account
                 config = inspect_config(codex._client, workspace)
@@ -121,9 +125,15 @@ def main():
                     report["account"] = account
                 if account["mode"] != "chatgpt":
                     report["error"] = {"kind": "chatgpt_login_required"}
-                elif args.mode in ("status", "login"):
-                    report["passed"] = True
                 else:
+                    provider = CodexProvider(max_turns=1)
+                    thread_params = provider.thread_params(workspace, "Interpret synthetic building text. Use no tools.")
+                    started = codex._client.thread_start(thread_params)
+                    provider.verify_thread(started, report)
+                    if args.mode in ("status", "login"):
+                        report["passed"] = True
+                        write_report(WORK_ROOT / f"{args.mode}.json", report)
+                        return 0
                     try:
                         report["quota_before"] = rate_limits_summary(codex._client)
                     except Exception as error:
@@ -131,12 +141,11 @@ def main():
                     if any(bucket.get("used_percent", 0) >= 100 for bucket in report.get("quota_before", {}).values()):
                         raise RuntimeError("The ChatGPT usage limit has already been reached")
                     options = safety_options()
-                    thread = codex.thread_start(cwd=folder, ephemeral=True, model_provider="openai",
-                                                **options, base_instructions="Interpret synthetic building text. Use no tools.")
+                    thread = Thread(codex._client, started.thread.id)
                     report["model_turns"] = 1
                     (WORK_ROOT / "sdk.json").write_text(json.dumps(report) + "\n", encoding="utf-8")
                     started = perf_counter()
-                    turn = thread.run(PROMPT, effort="low", output_schema=PROBE_SCHEMA,
+                    turn = thread.run(PROMPT, effort=provider.effort, output_schema=PROBE_SCHEMA,
                                       turn_service_tier="default", **options)
                     report["elapsed_ms"] = round((perf_counter() - started) * 1000)
                     report["sdk_duration_ms"] = turn.duration_ms

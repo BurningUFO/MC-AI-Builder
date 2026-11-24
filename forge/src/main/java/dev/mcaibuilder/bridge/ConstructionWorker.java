@@ -38,6 +38,7 @@ interface ConstructionWorker {
     }
 
     boolean cleanScaffolds(boolean descendFirst);
+    boolean cleanDoors();
 
     void useSupplyArea(BlockPos center);
 

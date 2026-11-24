@@ -4,6 +4,7 @@ from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
 import sys
 
+from src.architect.codex_budget import DEFAULT_MAX_TOKENS, DEFAULT_MAX_TURNS, task_budget_log
 from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL, REASONING_EFFORTS, CodexProvider
 from src.architect.providers import FixtureProvider, HttpProvider
 from src.architect.runtime import ArchitectClient, Runtime, SessionStore
@@ -23,9 +24,9 @@ def main():
     parser.add_argument("--timeout", type=float, default=15.0, help="Model connection and response timeout")
     parser.add_argument("--codex-model", default=DEFAULT_MODEL, help="Model for the Codex provider")
     parser.add_argument("--codex-effort", choices=REASONING_EFFORTS, default=DEFAULT_EFFORT)
-    parser.add_argument("--codex-budget-log", type=Path, help="Shared local SQLite ledger for Codex turn and token limits")
-    parser.add_argument("--codex-max-tokens", type=int, default=150_000, help="Token limit for the Codex budget ledger")
-    parser.add_argument("--codex-max-turns", type=int, default=12, help="Maximum Codex turns per ledger, or per process without a ledger")
+    parser.add_argument("--codex-budget-log", type=Path, help="Persistent SQLite ledger for this Codex task")
+    parser.add_argument("--codex-max-tokens", type=int, default=DEFAULT_MAX_TOKENS, help="Token limit for the Codex budget ledger")
+    parser.add_argument("--codex-max-turns", type=int, default=DEFAULT_MAX_TURNS, help="Maximum Codex turns per task ledger")
     parser.add_argument("--share-observations", action="store_true",
                         help="Permit explicit NPC surveys and supervised builds to send their local images to Codex")
     parser.add_argument("--planning", action=BooleanOptionalAction, default=None,
@@ -36,17 +37,16 @@ def main():
         parser.error("--share-observations requires the Codex provider")
     if parallel and options.provider == "fixture":
         parser.error("--planning requires a real model provider")
-    if options.provider == "codex" and (options.share_observations or parallel) and options.codex_budget_log is None:
-        options.codex_budget_log = ROOT / ".cache" / "m5-launcher" / "codex-turns.sqlite3"
     try:
         config = options.config.resolve(strict=True)
         client = ArchitectClient(config)
         if options.provider == "http":
             provider = HttpProvider.from_environment(options.timeout)
         elif options.provider == "codex":
+            ledger = options.codex_budget_log or task_budget_log(ROOT / ".cache" / "m5-launcher")
             provider = CodexProvider(model=options.codex_model, effort=options.codex_effort,
                                      timeout=options.timeout, max_turns=options.codex_max_turns,
-                                     budget_log=options.codex_budget_log, max_tokens=options.codex_max_tokens)
+                                     budget_log=ledger, max_tokens=options.codex_max_tokens)
         else:
             provider = FixtureProvider()
         storage = SessionStore(config.parent.parent / "architect-previews")

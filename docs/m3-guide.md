@@ -33,22 +33,21 @@ $config = '.\mc-test\architect-client\config\mcaibuilder-architect.json'
 
 仅 `/architect` 后的需求和完成它所需的范围、位置、近期设计对话进入模型请求。Runtime 会过滤常见密钥、本机绝对路径和当前已知的令牌。Blender 使用本机资源生成文件。因权限和世界状态的变化，Forge 可能要求再审阅一次。
 
-### 使用已登录的 Codex 账号
+### 登录 Builder 的 Codex 账号
 
-Codex Provider 通过官方 Python SDK 使用本机已有的 ChatGPT 登录。它接受同一套建筑意图并复用 M3 的校验和审批。对话状态来自 Runtime 保存的近期对话和最新设计，最多四轮历史。每次提交意图使用隔离的只读会话，默认提供方仍是 `http`。 [官方 Python SDK](https://github.com/openai/codex/tree/main/sdk/python)
+Codex Provider 通过官方 Python SDK 使用 Builder 在 `%LOCALAPPDATA%\MC-AI-Builder\codex-home` 中的 ChatGPT 登录。它接受同一套建筑意图并复用 M3 的校验和审批。对话状态来自 Runtime 保存的近期对话和最新设计，最多四轮历史。每次提交意图使用隔离的只读会话，默认提供方仍是 `http`。 [官方 Python SDK](https://github.com/openai/codex/tree/main/sdk/python)
 
 ~~~powershell
 & $py -m pip install -r .\requirements-codex.txt
 & $py -B -m tools.codex_sdk_probe status
 $budget = '.\.cache\m3-codex-sdk\architect-turns.sqlite3'
 & $py -B -m src.architect --config $config --instance $instance --provider codex --timeout 50 `
-    --codex-model gpt-6.2-sol --codex-effort medium --codex-max-turns 10 `
-    --codex-max-tokens 150000 --codex-budget-log $budget
+    --codex-model gpt-6.2-sol --codex-effort medium --codex-budget-log $budget
 ~~~
 
 需要重新登录时，可运行 `& $py -B -m tools.codex_sdk_probe login`，在打开的官方网页亲自完成登录。Codex 模式使用 ChatGPT 登录，模型和思考深度默认分别为 `gpt-6.2-sol` 和 `medium`。Runtime 在请求前核对 SDK 回报的模型、深度、只读沙箱和审批策略。SDK 关闭命令工具、MCP 和网页搜索。转给 SDK 的建筑上下文限制为 4 KiB。
 
-同一账本路径在 Runtime 重启后继续计数。每次请求预留 24,000 Token，收到 SDK 用量后按实际值记账，缺少用量的回合继续计入预留值。`--codex-max-tokens` 与 `--codex-budget-log` 一起使用。账本不足以再预留一个回合、实测超过上限或账户用量达到限制时，游戏会提示模型暂不可用，已生成的审批仍由 Forge 校验。
+本地预算默认每任务 100 回合和 3,000,000 Token。同一账本路径在 Runtime 重启后继续计数。使用命令行开启新任务时，可以为 `--codex-budget-log` 指定新路径。每次请求预留 24,000 Token，收到 SDK 用量后按实际值记账，缺少用量的回合继续计入预留值。游戏分别报告本地预算耗尽和账户服务端限制，已生成的审批仍由 Forge 校验。
 
 用 `tools.codex_sdk_probe sdk` 和 `tools.codex_sdk_probe provider` 分别重现独立调用与多轮意图到 `Building` 的测试。各命令发起一个回合，报告保存在被 Git 忽略的 `.cache/m3-codex-sdk`，使用合成数据。 [Codex SDK 实测结果](m3-codex-sdk-validation.md)
 

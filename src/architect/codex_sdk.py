@@ -17,15 +17,24 @@ DISABLED_FEATURES = (
 CHATGPT_URL = "https://chatgpt.com/backend-api/"
 
 
+def builder_codex_home() -> Path:
+    local = os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"
+    return Path(local) / "MC-AI-Builder" / "codex-home"
+
+
 def sdk_config(workspace: Path):
     from openai_codex import CodexConfig
 
+    profile = builder_codex_home().resolve()
+    if profile.is_relative_to((Path.home() / ".codex").resolve()) or profile.is_relative_to(ROOT):
+        raise RuntimeError("Codex isolation settings require an independent Builder profile outside the repository")
+    profile.mkdir(parents=True, exist_ok=True)
     # An empty map in Codex configuration does not erase inherited entries.
-    config_path = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+    config_path = profile / "config.toml"
     servers = tomllib.loads(config_path.read_text(encoding="utf-8")).get("mcp_servers", {}) if config_path.is_file() else {}
     if any(not re.fullmatch(r"[A-Za-z0-9_-]+", server) for server in servers):
         raise RuntimeError("Codex isolation settings cannot override this MCP configuration")
-    # Per-process overrides. The existing login store remains available to the SDK.
+    # Keep both credentials and instruction discovery in Builder's profile.
     return CodexConfig(
         cwd=str(workspace),
         config_overrides=(
@@ -48,6 +57,7 @@ def sdk_config(workspace: Path):
             *(f"features.{feature}=false" for feature in DISABLED_FEATURES),
         ),
         env={
+            "CODEX_HOME": str(profile),
             "OPENAI_API_KEY": "", "CODEX_API_KEY": "", "CODEX_ACCESS_TOKEN": "",
             "OPENAI_BASE_URL": "", "MC_ARCHITECT_API_KEY": "",
         },

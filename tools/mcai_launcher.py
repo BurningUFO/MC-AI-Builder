@@ -13,10 +13,15 @@ import subprocess
 import sys
 from threading import Thread
 from time import monotonic, sleep
+from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
-from src.architect.codex_budget import CodexBudget
+from src.architect.codex_budget import (
+    BUDGET_TASK_FILE, DEFAULT_MAX_TOKENS as MAX_TOKENS, DEFAULT_MAX_TURNS as MAX_TURNS,
+    CodexBudget, task_budget_log,
+)
 from src.architect.codex_provider import DEFAULT_EFFORT, DEFAULT_MODEL
+from src.architect.codex_sdk import builder_codex_home
 from src.architect.diagnostics import diagnose
 from src.construction.client import BridgeClient, BridgeError
 from src.core.building import write_json
@@ -26,11 +31,10 @@ from tools.world_copy import MARKER, copy_root, create_copy, existing_copies, re
 
 HOME = ROOT / ".cache" / "m5-launcher"
 PYTHON = Path(sys.executable).with_name("python.exe")
-MAX_TURNS, MAX_TOKENS = 10, 150_000
 SETUP = HOME / "settings.json"
 DEFAULT_BLENDER = ROOT / "tools" / "blender" / "blender.exe"
 INPUT_LABELS = {"java": "Java 17 JDK 文件夹", "instance": "Minecraft Forge 版本文件夹", "blender": "blender.exe（可选）"}
-ACTIONS = {"start", "stop_agent", "exit_game", "login", "close"}
+ACTIONS = {"start", "stop_agent", "exit_game", "login", "new_task_budget", "close"}
 
 
 def read_object(path):
@@ -231,7 +235,7 @@ class Launcher:
         self.game_exit_code = self.agent_exit_code = None
         self.state = {}
         self.next_poll = 0
-        self.budget = self.home / "codex-turns.sqlite3"
+        self.budget = task_budget_log(self.home)
         self.stop_agent = self.home / "stop-agent"
         self.login_status = ""
         self.last_error = ""
@@ -294,7 +298,8 @@ class Launcher:
     def spawn(self, command, log_name, mode="wb"):
         with (self.home / log_name).open(mode) as log:
             return subprocess.Popen([str(PYTHON), "-B", "-m", *command], cwd=ROOT, stdin=subprocess.DEVNULL,
-                                    stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
+                                    stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW,
+                                    env={**os.environ, "CODEX_HOME": str(builder_codex_home())})
 
     def check_login(self, login=False):
         if self.auth:
@@ -382,12 +387,14 @@ class Launcher:
         write_json(SETUP, self.settings)
         self.last_error = ""
         self.live_site = None
+        self.execution = None
 
     def start_agent(self, runtime_polls):
         copied_world = (self.game_dir / MARKER).is_file()
         share = self.settings.get("share_observations") is True and copied_world
         planning = self.settings.get("parallel_planning", True) is True
         self.agent_start_poll = runtime_polls
+        self.budget = task_budget_log(self.home)
         self.stop_agent.unlink(missing_ok=True)
         self.agent = self.spawn([
             "src.architect", "--config", str(self.game_dir / "config" / "mcaibuilder-architect.json"),
@@ -401,6 +408,22 @@ class Launcher:
             *(["--no-planning"] if not planning else []),
         ], "agent.log", "ab")
         self.agent_deadline = monotonic() + 30
+
+    def new_task_budget(self):
+        execution = self.execution or {}
+        if self.bridge:
+            try:
+                execution = self.bridge.health()["execution"]
+            except (OSError, BridgeError, KeyError) as error:
+                raise ValueError("等待 Forge Bridge 就绪后再开始新任务预算。") from error
+        if execution.get("state") in {"running", "paused"} or execution.get("awaiting_approval"):
+            raise ValueError("当前工程仍在进行，请在开始下一项工程时切换预算。")
+        write_json(self.home / BUDGET_TASK_FILE, {"task": uuid4().hex})
+        if self.agent:
+            self.stop_agent.touch()
+        else:
+            self.budget = task_budget_log(self.home)
+        self.last_error = ""
 
     def stop_runtime(self):
         self.want_agent = False
@@ -423,11 +446,12 @@ class Launcher:
                 self.login_ok = code == 0
                 self.login_status = "ChatGPT 已登录" if self.login_ok else "登录检查失败，可重试或点击「ChatGPT 登录」"
         if self.agent and (code := self.agent.poll()) is not None:
-            if self.want_agent:
+            if self.want_agent and (code != 0 or not self.stop_agent.is_file()):
                 self.last_error = f"Architect Runtime 已退出（{code}）。详情见 agent.log。"
                 self.stop_runtime()
             self.agent_exit_code = code
             self.agent = None
+            self.budget = task_budget_log(self.home)
         if self.game and (code := self.game.poll()) is not None:
             self.game_exit_code = code
             self.game = self.bridge = None
@@ -473,7 +497,7 @@ class Launcher:
         polls = status["architect_runtime_polls"]
         if self.want_agent and self.login_ok and not self.agent:
             self.start_agent(polls)
-        if self.agent and not self.want_agent:
+        if self.agent and (not self.want_agent or self.stop_agent.is_file()):
             self.publish("stopping_agent", "正在停止 Agent。Minecraft 保持运行。")
         elif self.agent and status.get("architect_runtime_online") and polls > self.agent_start_poll:
             self.publish("ready", "Minecraft、Forge Bridge、Fake Players 和 Architect Runtime 已连接。")
@@ -499,6 +523,12 @@ class Launcher:
         elif action == "login":
             if not self.agent and not self.closing:
                 self.check_login(login=True)
+        elif action == "new_task_budget":
+            if not self.closing and not self.exiting_game:
+                try:
+                    self.new_task_budget()
+                except ValueError as error:
+                    self.last_error = str(error)
         elif action == "close":
             self.closing = True
             self.exit_game()
@@ -620,6 +650,7 @@ def window(app):
     button(shortcuts, "Minecraft 日志", lambda: open_local(Path(app.state["game_dir"]) / "console.log")
            if app.state.get("game_dir") else detail.set("Minecraft 尚未启动。"))
     button(shortcuts, "设置", settings)
+    task_button = button(shortcuts, "新任务预算", lambda: app.commands.put("new_task_budget"))
 
     def worlds():
         if app.game or app.agent:
@@ -679,13 +710,17 @@ def window(app):
                 execution.set(describe_execution(state.get("execution")))
                 login.set(state["login"])
                 usage.set("本地预算账本不可读取，请查看 Agent 日志。" if state.get("budget_error") else
-                          f"本地预算已用 {state.get('turns', 0)}/{MAX_TURNS} 回合，"
+                          f"当前任务预算已用 {state.get('turns', 0)}/{MAX_TURNS} 回合，"
                           f"{state.get('tokens', 0):,}/{MAX_TOKENS:,} Tokens")
                 start_button.config(state="disabled" if phase in (
                     "checking", "building", "copying", "starting", "agent_starting", "ready", "stopping", "stopping_agent"
                 ) else "normal")
                 agent_button.config(state="normal" if state.get("agent_pid") else "disabled")
                 game_button.config(state="normal" if state.get("game_pid") else "disabled")
+                current = state.get("execution") or {}
+                task_button.config(state="disabled" if phase in (
+                    "checking", "building", "copying", "starting", "agent_starting", "stopping", "stopping_agent"
+                ) or current.get("state") in {"running", "paused"} or current.get("awaiting_approval") else "normal")
                 world_button.config(state="disabled" if state.get("game_pid") or phase in (
                     "checking", "copying", "building", "starting", "stopping"
                 ) else "normal")

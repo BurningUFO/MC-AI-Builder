@@ -2,14 +2,30 @@
 
 from contextlib import closing
 import json
+import re
 import sqlite3
 
 from src.architect.providers import ModelBudgetExhausted
 
 
+DEFAULT_MAX_TURNS = 100
+DEFAULT_MAX_TOKENS = 3_000_000
+BUDGET_TASK_FILE = "codex-task.json"
+
 # Account for a full attempted turn until SDK usage arrives. Unreported turns
 # keep their reservation, including an interrupted runtime or connection.
 TOKEN_RESERVATION = 24_000
+
+
+def task_budget_log(directory):
+    try:
+        selected = json.loads((directory / BUDGET_TASK_FILE).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return directory / "codex-turns.sqlite3"
+    task = selected.get("task") if isinstance(selected, dict) else None
+    if not isinstance(task, str) or not re.fullmatch(r"[0-9a-f]{32}", task):
+        raise ValueError("无效的 Codex 任务预算记录。")
+    return directory / "codex-task-budgets" / f"{task}.sqlite3"
 
 
 class CodexBudget:

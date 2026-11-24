@@ -18,9 +18,11 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -1339,7 +1341,7 @@ final class ConstructionService {
             return;
         }
         if (current.cancelling || current.cursor == current.steps.size()) {
-            if (!worker.cleanScaffolds() || !worker.cleanWorkshop()) {
+            if (!worker.cleanScaffolds() || !worker.cleanWorkshop() || !worker.cleanDoors()) {
                 checkpoint();
                 return;
             }
@@ -1405,7 +1407,7 @@ final class ConstructionService {
         BlockState actual = level.getBlockState(step.pos());
         var following = current.plan.at(step.pos());
         ConstructionWorker.Result result;
-        if ((step.remove() ? matches(actual, step.after()) : step.target().matches(actual))
+        if ((step.remove() ? matches(actual, step.after()) : step.target().matches(actual) || installedDoorMatches(step, actual))
                 || step.clearance() && following != null && following.matches(actual)) {
             result = new ConstructionWorker.Result("already_present", null, null);
             worker.halt();
@@ -1508,6 +1510,12 @@ final class ConstructionService {
             schedule();
         }
         checkpoint();
+    }
+
+    private boolean installedDoorMatches(WorkStep step, BlockState actual) {
+        return step.target().replica() && actual.getBlock() instanceof DoorBlock
+                && current.snapshot.owns(step.target().upper() ? step.pos().below() : step.pos())
+                && ProjectBlocks.alignDoorOpen(actual, step.after()) == step.after();
     }
 
     static boolean matches(BlockState actual, BlockState wanted) {
@@ -1701,8 +1709,20 @@ final class ConstructionService {
                 continue;
             }
             BlockState actual = level.getBlockState(pos);
+            if (target.paired() && actual != target.state() && actual.getBlock() instanceof DoorBlock door
+                    && ProjectBlocks.alignDoorOpen(actual, target.state()) == target.state()) {
+                BlockPos above = pos.above();
+                var top = current.plan.at(above);
+                if (top != null && site.canWorkAt(level, above)
+                        && ProjectBlocks.alignDoorOpen(level.getBlockState(above), top.state()) == top.state()
+                        && level.isUnobstructed(target.state(), pos, CollisionContext.empty())
+                        && level.isUnobstructed(top.state(), above, CollisionContext.empty())) {
+                    door.setOpen(null, level, actual, pos, target.state().getValue(DoorBlock.OPEN));
+                }
+                continue;
+            }
             BlockState aligned = ProjectBlocks.alignJoins(actual, target.state());
-            if (aligned != actual && level.isUnobstructed(aligned, pos, net.minecraft.world.phys.shapes.CollisionContext.empty())) {
+            if (aligned != actual && level.isUnobstructed(aligned, pos, CollisionContext.empty())) {
                 level.setBlock(pos, aligned, net.minecraft.world.level.block.Block.UPDATE_CLIENTS
                         | net.minecraft.world.level.block.Block.UPDATE_KNOWN_SHAPE);
             }

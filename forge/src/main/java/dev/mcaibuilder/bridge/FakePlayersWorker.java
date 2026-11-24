@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
@@ -27,13 +28,16 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.eventbus.api.Event;
@@ -57,6 +61,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private static final int STANCE_RADIUS = 4;
     private static final int NUDGE_AFTER_TICKS = 8;
     private static final int DEFER_AFTER_TICKS = 24;
+    private static final int MAX_BLOCKED_SCAFFOLD_TARGETS = 128;
     private static final BlockState TEMPORARY_BLOCK = Blocks.DIRT.defaultBlockState();
     private BlockPos obstruction;
     private long obstructionSince;
@@ -89,7 +94,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private BlockPos jumpBlock;
     private long jumpStarted;
     private boolean recoveringScaffold;
-    private boolean soughtScaffold;
+    private final Map<BlockPos, Set<BlockPos>> blockedScaffoldBases = new LinkedHashMap<>();
     private int scaffoldDirtCollected;
     private BlockPos dirtTarget;
     private final Set<BlockPos> unreachableSoil = new HashSet<>();
@@ -111,8 +116,12 @@ final class FakePlayersWorker implements ConstructionWorker {
     private Vec3 ceremonyLook;
     private long ceremonyMoveUntil;
     private long ceremonyLookUntil;
+    private final Map<BlockPos, OpenDoor> openDoors = new LinkedHashMap<>();
+    private int doorsOpened;
+    private int doorsRestored;
 
     private record ScaffoldRoute(BlockPos base, int workY) {}
+    private record OpenDoor(BlockState lower, BlockState upper) {}
     private record Descent(BlockPos edge, BlockPos landing, long deadline) {}
     private Descent descent;
     private final Set<BlockPos> triedDescents = new HashSet<>();
@@ -132,6 +141,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public void prepare(List<BuildPlan.Target> targets, boolean removals) {
         ceremonyLook = null;
+        blockedScaffoldBases.clear();
         if (npc == null || !npc.isAlive()) {
             spawn();
         }
@@ -340,6 +350,10 @@ final class FakePlayersWorker implements ConstructionWorker {
         // Construction owns movement. Keep floating and looking while paths and collisions remain native.
         npc.removeAllGoals(goal -> !(goal instanceof net.minecraft.world.entity.ai.goal.FloatGoal
                 || goal instanceof net.minecraft.world.entity.ai.goal.LookAtPlayerGoal));
+        if (npc.getNavigation() instanceof GroundPathNavigation ground) {
+            ground.setCanPassDoors(true);
+            ground.setCanOpenDoors(true);
+        }
         for (BlockPathTypes hazard : List.of(BlockPathTypes.LAVA, BlockPathTypes.DAMAGE_FIRE,
                 BlockPathTypes.DANGER_FIRE, BlockPathTypes.POWDER_SNOW)) {
             npc.setPathfindingMalus(hazard, -1.0F);
@@ -446,7 +460,11 @@ final class FakePlayersWorker implements ConstructionWorker {
             }
             obstruction = null;
             stopNavigation();
-            return step.remove() ? mine(step, slot, aim) : useItem(step.target(), slot, aim);
+            Result result = step.remove() ? mine(step, slot, aim) : useItem(step.target(), slot, aim);
+            if (result != null && result.status().equals("placed")) {
+                blockedScaffoldBases.remove(step.pos());
+            }
+            return result;
         }
         if (scaffoldRoute != null) {
             return climbScaffold();
@@ -473,12 +491,6 @@ final class FakePlayersWorker implements ConstructionWorker {
             triedStances.clear();
             deadline = 0;
             return null;
-        }
-        if (!soughtScaffold && npc.onGround() && step.pos().getY() >= feet.getY() + 4) {
-            soughtScaffold = true;
-            if (findScaffold(step, stack)) {
-                return climbScaffold();
-            }
         }
         String trouble = navigate(step.pos(), current, stance -> (!upper || stance.y >= platformY)
                 && chooseAim(step, stack, stance) != null, unreachable);
@@ -568,6 +580,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         int highest = Math.min(target.getY() + 1, site.area().max().getY() - 1);
         int lowest = Math.max(Math.max(feetY - 6, site.area().min().getY()), target.getY() - 128);
         List<ScaffoldRoute> routes = new ArrayList<>();
+        Set<BlockPos> blocked = blockedScaffoldBases.getOrDefault(target, Set.of());
         BlockPos center = new BlockPos(target.getX(), 0, target.getZ());
         for (BlockPos horizontal : BlockPos.withinManhattan(center, STANCE_RADIUS, 0, STANCE_RADIUS)) {
             if (horizontal.distSqr(center) > 18) {
@@ -575,7 +588,7 @@ final class FakePlayersWorker implements ConstructionWorker {
             }
             for (int y = highest - 1; y >= lowest; y--) {
                 BlockPos base = new BlockPos(horizontal.getX(), y, horizontal.getZ());
-                if (!site.area().contains(base) || !canStand(base)) {
+                if (blocked.contains(base) || !site.area().contains(base) || !canStand(base)) {
                     continue;
                 }
                 ScaffoldRoute route = scaffoldRouteAt(step, stack, base, highest);
@@ -616,6 +629,9 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private ScaffoldRoute scaffoldRouteAt(WorkStep step, ItemStack stack, BlockPos base, int highest) {
+        if (blockedScaffoldBases.getOrDefault(step.pos(), Set.of()).contains(base)) {
+            return null;
+        }
         for (int workY = base.getY() + 1; workY <= highest; workY++) {
             BlockPos feet = new BlockPos(base.getX(), workY, base.getZ());
             if (!scaffoldCell(feet.below()) || !freeColumn(feet)) {
@@ -640,7 +656,7 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     private Result climbScaffold() {
         if (deadline > 0 && level.getGameTime() >= deadline) {
-            return deferred("scaffold_route_blocked");
+            return abandonScaffold("scaffold_route_blocked");
         }
         BlockPos feet = npc.blockPosition();
         BlockPos base = scaffoldRoute.base();
@@ -650,17 +666,16 @@ final class FakePlayersWorker implements ConstructionWorker {
                 npc.getMoveControl().setWantedPosition(approach.x, approach.y, approach.z, 0.85);
                 return null;
             }
-            return npc.getNavigation().isDone() ? deferred("scaffold_route_blocked") : null;
+            return npc.getNavigation().isDone() ? abandonScaffold("scaffold_route_blocked") : null;
         }
         if (!npc.onGround()) {
             return null;
         }
         if (feet.getY() >= scaffoldRoute.workY()) {
-            scaffoldRoute = null;
-            return deferred("scaffold_aim_changed");
+            return abandonScaffold("scaffold_aim_changed");
         }
         if (!scaffoldCell(feet) || !freeColumn(feet.above())) {
-            return deferred("scaffold_route_blocked");
+            return abandonScaffold("scaffold_route_blocked");
         }
         int rise = scaffoldRoute.workY() - feet.getY();
         if (count(Items.DIRT) < rise) {
@@ -731,7 +746,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private Result finishScaffoldJump() {
         BlockPos pos = jumpBlock;
         if (level.getGameTime() - jumpStarted > 20 || !scaffoldCell(pos)) {
-            return deferred("scaffold_jump_blocked");
+            return abandonScaffold("scaffold_jump_blocked");
         }
         if (npc.getBoundingBox().minY < pos.getY() + 1.0) {
             return null;
@@ -749,16 +764,26 @@ final class FakePlayersWorker implements ConstructionWorker {
         ScaffoldRoute route = scaffoldRoute;
         long scaffoldDeadline = deadline;
         useItem(target, slot, aim);
-        if (!level.getBlockState(pos).is(Blocks.DIRT)) {
-            return deferred("scaffold_jump_blocked");
-        }
-        scaffolds.put(pos, TEMPORARY_BLOCK);
         scaffoldRoute = route;
         deadline = scaffoldDeadline;
+        if (!level.getBlockState(pos).is(Blocks.DIRT)) {
+            return abandonScaffold("scaffold_jump_blocked");
+        }
+        scaffolds.put(pos, TEMPORARY_BLOCK);
         jumpBlock = null;
         performance.event("scaffold_placed");
         sayOccasionally("这边有点高，我先垫几格，做完再收走。");
         return null;
+    }
+
+    private Result abandonScaffold(String reason) {
+        if (actionTarget != null && scaffoldRoute != null) {
+            blockedScaffoldBases.computeIfAbsent(actionTarget, ignored -> new HashSet<>()).add(scaffoldRoute.base());
+            if (blockedScaffoldBases.size() > MAX_BLOCKED_SCAFFOLD_TARGETS) {
+                blockedScaffoldBases.remove(blockedScaffoldBases.keySet().iterator().next());
+            }
+        }
+        return deferred(reason);
     }
 
     @Override
@@ -1327,6 +1352,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!available()) {
             return;
         }
+        walkThroughDoors();
         long now = level.getGameTime();
         if (ceremonyLook != null) {
             if (!idle) {
@@ -1363,6 +1389,109 @@ final class FakePlayersWorker implements ConstructionWorker {
                 greetingAfter = now + 180;
             }
         }
+    }
+
+    private void walkThroughDoors() {
+        Path path = npc.getNavigation().getPath();
+        boolean walking = path != null && !path.isDone();
+        restoreDoors(!walking);
+        if (!walking) {
+            return;
+        }
+        int next = path.getNextNodeIndex();
+        for (int i = Math.max(0, next - 2); i < Math.min(path.getNodeCount(), next + 3); i++) {
+            BlockPos node = path.getNode(i).asBlockPos();
+            if (openDoor(node) || openDoor(node.above())) {
+                return;
+            }
+        }
+    }
+
+    private boolean openDoor(BlockPos node) {
+        if (!node.closerToCenterThan(npc.position(), 1.85) || !level.hasChunkAt(node)) {
+            return false;
+        }
+        BlockState state = level.getBlockState(node);
+        if (!(state.getBlock() instanceof DoorBlock door) || !door.type().canOpenByHand()
+                || state.getValue(DoorBlock.OPEN) || state.getValue(DoorBlock.POWERED)) {
+            return false;
+        }
+        BlockPos pos = state.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? node.below() : node;
+        if (!canUseDoor(pos)) {
+            return false;
+        }
+        BlockState lower = level.getBlockState(pos);
+        BlockState upper = level.getBlockState(pos.above());
+        if (!lower.is(door) || !upper.is(door) || lower.getValue(DoorBlock.HALF) != DoubleBlockHalf.LOWER
+                || upper.getValue(DoorBlock.HALF) != DoubleBlockHalf.UPPER
+                || lower.getValue(DoorBlock.OPEN) || upper.getValue(DoorBlock.OPEN)
+                || lower.getValue(DoorBlock.POWERED) || upper.getValue(DoorBlock.POWERED)) {
+            return false;
+        }
+        door.setOpen(npc, level, lower, pos, true);
+        openDoors.put(pos, new OpenDoor(level.getBlockState(pos), level.getBlockState(pos.above())));
+        doorsOpened++;
+        npc.swing(InteractionHand.MAIN_HAND);
+        return true;
+    }
+
+    private boolean canUseDoor(BlockPos pos) {
+        return site.canWorkAt(level, pos) && site.canWorkAt(level, pos.above())
+                && level.mayInteract(actor, pos) && level.mayInteract(actor, pos.above());
+    }
+
+    private void restoreDoors(boolean finish) {
+        var entries = openDoors.entrySet().iterator();
+        while (entries.hasNext()) {
+            var entry = entries.next();
+            BlockPos pos = entry.getKey();
+            OpenDoor opened = entry.getValue();
+            if (!level.hasChunkAt(pos)) {
+                continue;
+            }
+            if (!canUseDoor(pos) || level.getBlockState(pos) != opened.lower()
+                    || level.getBlockState(pos.above()) != opened.upper()) {
+                entries.remove();
+                continue;
+            }
+            if (!finish && pos.closerToCenterThan(npc.position(), 2.4)) {
+                continue;
+            }
+            if (level.isUnobstructed(opened.lower().setValue(DoorBlock.OPEN, false), pos, CollisionContext.empty())
+                    && level.isUnobstructed(opened.upper().setValue(DoorBlock.OPEN, false), pos.above(), CollisionContext.empty())) {
+                ((DoorBlock) opened.lower().getBlock()).setOpen(npc, level, opened.lower(), pos, false);
+                doorsRestored++;
+                entries.remove();
+            }
+        }
+    }
+
+    @Override
+    public boolean cleanDoors() {
+        restoreDoors(true);
+        if (openDoors.isEmpty()) {
+            return true;
+        }
+        if (available() && npc.getNavigation().isDone()) {
+            for (var entry : openDoors.entrySet()) {
+                BlockPos door = entry.getKey();
+                if (!new AABB(door).expandTowards(0, 1, 0).intersects(npc.getBoundingBox())) {
+                    continue;
+                }
+                Direction facing = entry.getValue().lower().getValue(DoorBlock.FACING);
+                for (Direction side : List.of(facing, facing.getOpposite())) {
+                    BlockPos away = door.relative(side, 2);
+                    if (!canStand(away)) {
+                        continue;
+                    }
+                    Path path = npc.getNavigation().createPath(away, 0);
+                    if (path != null && path.canReach() && insideSite(path) && npc.getNavigation().moveTo(path, 1.0)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void skipStock(Warehouse.Stock stock) {
@@ -1904,7 +2033,6 @@ final class FakePlayersWorker implements ConstructionWorker {
         triedStances.clear();
         deadline = 0;
         scaffoldRoute = null;
-        soughtScaffold = false;
         jumpBlock = null;
         obstruction = null;
     }
@@ -1940,6 +2068,8 @@ final class FakePlayersWorker implements ConstructionWorker {
             data.addProperty("npc_id", npc.getUUID().toString());
             data.addProperty("walked_blocks", walked);
             data.addProperty("moving", destination != null);
+            data.addProperty("doors_opened", doorsOpened);
+            data.addProperty("doors_restored", doorsRestored);
             data.addProperty("scaffold_dirt_collected", scaffoldDirtCollected);
             if (scaffoldRoute != null) {
                 data.add("scaffold_base", Wire.position(scaffoldRoute.base()));
@@ -1974,6 +2104,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     @Override
     public void close() {
         halt();
+        restoreDoors(true);
     }
 
     private record Aim(BlockHitResult hit, float yaw, float pitch, double distance) {}
