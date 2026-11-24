@@ -1,0 +1,482 @@
+{
+  "date": "2026-11-25",
+  "full_acceptance_passed": false,
+  "environment": {
+    "mods": 387,
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "generator": "minecraft:noise",
+    "supply_mode": "survival",
+    "source_world_unchanged": true,
+    "reopen_bridge_sha256": "82997991639a1ea0ab4a5597c6315ec0cb17eecd42dca3010436bffb4997ae48"
+  },
+  "model": {
+    "configuration": {
+      "model": "gpt-6.2-sol",
+      "model_provider": "openai",
+      "effort": "medium",
+      "sandbox": "readOnly",
+      "sandbox_network": false,
+      "approval": "never",
+      "ephemeral": true,
+      "instruction_sources": 0
+    },
+    "turns_charged": 100,
+    "turn_limit": 100,
+    "tokens_charged": 1701256,
+    "token_limit": 3000000
+  },
+  "original_survey": {
+    "footprint": {
+      "min": [
+        245,
+        83,
+        32
+      ],
+      "max": [
+        268,
+        83,
+        43
+      ]
+    },
+    "surface_min_y": 77,
+    "surface_max_y": 82,
+    "observed_features_in_site": {
+      "logs": 4,
+      "vegetation": 452
+    },
+    "model_reason": "原点取标记相对坐标(-9,1,-5)，北向入户。24×12格主体跨越地面Y=-5至0的五格高差，以分段石墩和托梁架空，不削坡、不伐树。深橡木框架、石墙裙、灰白填墙和空心人字顶围合两层；双宽楼梯通往上层，茶色与透明玻璃分区采光，内设餐厅、壁炉和书房。按几何估算，主体不含基础超过1478格；已静态核对通行，Blender自检尚未运行，本版不作最终审批稿。",
+    "foundation_contact_count": 30
+  },
+  "review": {
+    "initial_model_reason": "正背面的人字顶、深木框架和顺坡石墩协调，剖面可见双宽楼梯接上二层。门外落脚点（14,-2,-3）初检不可站立，仅清理脚部和头部两格，保留原地面与石阶。",
+    "initial_changed_building_cells": 0,
+    "initial_edit_affected_physical_site": false,
+    "player_glass_cells": [
+      [
+        12,
+        8,
+        0
+      ],
+      [
+        12,
+        9,
+        0
+      ],
+      [
+        12,
+        10,
+        0
+      ],
+      [
+        14,
+        8,
+        0
+      ],
+      [
+        14,
+        9,
+        0
+      ],
+      [
+        14,
+        10,
+        0
+      ]
+    ],
+    "stale_preview_approval_rejected": true,
+    "player_entrance_landing": [
+      13,
+      -2,
+      -3
+    ],
+    "player_compatible_tabletop_cells": [
+      [
+        4,
+        1,
+        4
+      ],
+      [
+        5,
+        1,
+        4
+      ],
+      [
+        5,
+        7,
+        3
+      ],
+      [
+        6,
+        1,
+        4
+      ],
+      [
+        6,
+        7,
+        3
+      ],
+      [
+        7,
+        7,
+        3
+      ],
+      [
+        13,
+        7,
+        7
+      ],
+      [
+        14,
+        7,
+        7
+      ]
+    ],
+    "final_images": [
+      {
+        "name": "proposed.png",
+        "sha256": "fb85face61750196eb04d72b478f9f95f26845805bda3936c3c22fef1e442d4b",
+        "size": [
+          720,
+          600
+        ]
+      },
+      {
+        "name": "proposed-rear.png",
+        "sha256": "90c24e7bf99506f05a81881a0b0d908fb9afc27f2b67c6201db22f08dca5c30b",
+        "size": [
+          720,
+          600
+        ]
+      },
+      {
+        "name": "proposed-interior.png",
+        "sha256": "dd66e13c7f5584e11e96ed7fee20faa0df95cc42cd6a4e399e4830429217b9ed",
+        "size": [
+          720,
+          600
+        ]
+      }
+    ],
+    "final_model_reason": "Blender 复核通过：剖视图可见楼上桌面和椅子；蓝图确认原位 8 格桌面均已换为云杉木上半砖，轮廓不变。窗户、入口、地基及原开挖范围保留，未作额外修改，待你批准后再施工。",
+    "plan_id": "9723d278-e773-5c83-a4e3-c5b504e58d5d",
+    "version": 4,
+    "model_sha256": "ac02ea79f391cc5db0e7809e97c5f5d9e4a802d40d1e1d1883093b55fa56b1bc",
+    "plan_sha256": "cd7d7c57911d5fc1b0fbe09b71eb329fc070425a1f7557b021a041b05dce5e8d",
+    "files": {
+      "revision-review.blend": "f50144c5b725f71a42b314062496b2a228f6cfb1c42ed6006f1e481c3de70bde",
+      "current.png": "a3ff8b784f3dc3dde114916101044a4ca00f5ed3c5a30987be24df1a75b4040b",
+      "proposed.png": "17ededd4a4c0b175c1ddce3c4bb4dc195834d5fadb5da4885d59bc5f4d5fd8f2",
+      "proposed-rear.png": "8809f6992fe89cf99cd41cdc33233dc432806a23a8b21f58ecbf310c8a6a191c",
+      "proposed-interior.png": "7894137e8d7b6b32a4937273d65db33869a161635cea29efae2adf3c7cee3e22",
+      "review.json": "786b40c8b2b15eace0cac52275fa2b301374adbb51adbd43e2ccd31abe9f4009",
+      "reflection.json": "9408e91078c888850744cb63087d8446f0c94aed472e8c70734bd1abadb6695f",
+      "materials.json": "c0cf3fd4c896386b5a5a733c114e90e62f7be05372ad045075c4555f988c69dd"
+    },
+    "signed_approval_reply": [
+      "[Architect] MC Builder 已批准 V4。我来开工。"
+    ]
+  },
+  "construction": {
+    "state": "paused",
+    "reason": "protected_facility",
+    "processed": 1652,
+    "queued_steps": 2667,
+    "approved_targets": 2677,
+    "foundation_native_placements": 105,
+    "structure_native_placements": 1555,
+    "clearance": {
+      "total": 30,
+      "cleared": 30,
+      "replans": 0,
+      "phase": "build"
+    },
+    "native_break_actions": 27,
+    "temporary_blocks": 1,
+    "retained_from_previous_approved_version": 37,
+    "same_fake_player": true,
+    "consumed_items_with_receipts": {
+      "minecraft:cobblestone": 29,
+      "minecraft:stone_brick_stairs": 4,
+      "minecraft:stone_bricks": 129,
+      "minecraft:dark_oak_log": 297,
+      "minecraft:spruce_planks": 457,
+      "minecraft:polished_andesite": 11,
+      "minecraft:dark_oak_door": 2,
+      "minecraft:oak_planks": 381,
+      "minecraft:spruce_stairs": 12,
+      "handcrafted:spruce_chair": 4,
+      "quark:spruce_bookshelf": 16,
+      "minecraft:spruce_slab": 16,
+      "minecraft:brown_stained_glass": 26,
+      "minecraft:glass": 102,
+      "minecraft:bricks": 14,
+      "minecraft:white_terracotta": 142,
+      "minecraft:dark_oak_planks": 12,
+      "minecraft:light_blue_stained_glass": 6
+    },
+    "placement_examples": [
+      {
+        "local": [
+          23,
+          -1,
+          11
+        ],
+        "world": [
+          268,
+          82,
+          43
+        ],
+        "actual": {
+          "id": "minecraft:dark_oak_log",
+          "properties": {
+            "axis": "x"
+          }
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 31,
+          "item_after": 30,
+          "reach": 4.086157847391583,
+          "clicked": [
+            268,
+            81,
+            43
+          ],
+          "npc_position": [
+            268,
+            81,
+            39
+          ],
+          "face": "up"
+        }
+      },
+      {
+        "local": [
+          4,
+          1,
+          4
+        ],
+        "world": [
+          249,
+          84,
+          36
+        ],
+        "actual": {
+          "id": "minecraft:spruce_slab",
+          "properties": {
+            "type": "top",
+            "waterlogged": "false"
+          }
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 44,
+          "item_after": 43,
+          "reach": 4.438985701025739,
+          "clicked": [
+            249,
+            83,
+            36
+          ],
+          "npc_position": [
+            250,
+            84,
+            40
+          ],
+          "face": "up"
+        }
+      },
+      {
+        "local": [
+          13,
+          7,
+          7
+        ],
+        "world": [
+          258,
+          90,
+          39
+        ],
+        "actual": {
+          "id": "minecraft:spruce_slab",
+          "properties": {
+            "type": "top",
+            "waterlogged": "false"
+          }
+        },
+        "interaction_evidence": {
+          "method": "ServerPlayerGameMode.useItemOn",
+          "right_click_events": 1,
+          "place_events": 1,
+          "interaction": "CONSUME",
+          "item_before": 33,
+          "item_after": 32,
+          "reach": 3.5169429318177623,
+          "clicked": [
+            258,
+            89,
+            39
+          ],
+          "npc_position": [
+            255,
+            90,
+            38
+          ],
+          "face": "up"
+        }
+      }
+    ],
+    "test_player_material_restock": {
+      "chest": [
+        258,
+        80,
+        26
+      ],
+      "white_terracotta": 128,
+      "method": "ServerPlayerGameMode.useItemOn + ChestMenu.quickMoveStack"
+    },
+    "one_verified_task_brain_group": {
+      "group": "next",
+      "steps": 160,
+      "processed_before": 62,
+      "processed": 222,
+      "evidence": {
+        "checked": 160,
+        "matched": 160,
+        "sample": [
+          {
+            "local": [
+              22,
+              -1,
+              0
+            ],
+            "actual": {
+              "id": "minecraft:dark_oak_log",
+              "properties": {
+                "axis": "x"
+              }
+            }
+          },
+          {
+            "local": [
+              22,
+              -1,
+              11
+            ],
+            "actual": {
+              "id": "minecraft:dark_oak_log",
+              "properties": {
+                "axis": "x"
+              }
+            }
+          },
+          {
+            "local": [
+              21,
+              -1,
+              11
+            ],
+            "actual": {
+              "id": "minecraft:dark_oak_log",
+              "properties": {
+                "axis": "x"
+              }
+            }
+          }
+        ],
+        "mismatches": []
+      }
+    },
+    "one_verified_scaffold_recovery": {
+      "strategy": "scaffold_descent",
+      "processed": 767,
+      "evidence": {
+        "temporary_blocks": 0
+      }
+    },
+    "forge_verified": null,
+    "forge_reachable_landings": null,
+    "reopened_checkpoint": {
+      "job_id": "9723d278-e773-5c83-a4e3-c5b504e58d5d",
+      "state": "paused",
+      "processed": 1652,
+      "placed": 1623,
+      "reason": "protected_facility",
+      "temporary_blocks": 1
+    },
+    "reopened_forge_verified": null,
+    "reopened_spot_check": {
+      "protected_supply_chest": [
+        254,
+        80,
+        29
+      ],
+      "protected_supply_chest_state": "minecraft:chest",
+      "remaining_temporary_scaffold": [
+        253,
+        80,
+        29
+      ],
+      "scaffold_state": "minecraft:dirt",
+      "light_blue_glass_world_positions": [
+        [
+          257,
+          91,
+          32
+        ],
+        [
+          257,
+          92,
+          32
+        ],
+        [
+          257,
+          93,
+          32
+        ],
+        [
+          259,
+          91,
+          32
+        ],
+        [
+          259,
+          92,
+          32
+        ],
+        [
+          259,
+          93,
+          32
+        ]
+      ]
+    },
+    "disk_exact_states": {
+      "expected": {
+        "foundation": 105,
+        "structure": 2572,
+        "clearance": 30
+      },
+      "matched": {
+        "foundation": 105,
+        "structure": 1557,
+        "clearance": 30
+      },
+      "mismatch_count": 1015
+    }
+  },
+  "delivery_checks": {
+    "python_tests_passed": 105,
+    "offline_forge_build_passed": true,
+    "new_scaffold_site_guard_loaded_on_reopen": true,
+    "new_scaffold_site_guard_live_placement_retested": false
+  },
+  "gameplay_screenshot_sha256": "841cf3ec47ff617c81f7a21a0258423ee0549af57e1b937054cb3bb62151a712"
+}

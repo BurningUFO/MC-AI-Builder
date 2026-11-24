@@ -682,7 +682,9 @@ final class FakePlayersWorker implements ConstructionWorker {
 
     private boolean scaffoldCell(BlockPos pos) {
         return site.canWorkAt(level, pos) && !designCells.contains(pos) && level.getBlockState(pos).isAir()
-                && (site.area().contains(pos.below()) || !level.getBlockState(pos.below()).is(Blocks.GRASS_BLOCK));
+                && (site.area().contains(pos.below()) || !level.getBlockState(pos.below()).is(Blocks.GRASS_BLOCK))
+                && (!surveyedTerrain
+                        || new Clearance(level, site).mutationRisk(pos, TEMPORARY_BLOCK, true, Set.of()) == null);
     }
 
     private Result climbScaffold() {

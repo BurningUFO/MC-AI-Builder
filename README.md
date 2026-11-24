@@ -29,7 +29,7 @@ M7-P 改进住宅的连续施工和分批供料。启动器可选开启并行规
 
 M7-Q 可在已签署自主许可的 BMC4 副本工作区中批量清除普通植被、整理表层土石，并按许可处理确认的天然小树。玩家可预先标记保护区，Builder 将现场出现的重要资产汇总后询问。 [工作区使用与验证](docs/m7-q-validation.md)
 
-M10 在获准的 BMC4 副本中使用 `/architect design <需求>`。Codex 根据 Forge 标记周围的真实高度、支撑和障碍设计建筑、永久基础与开挖范围，并审阅 Blender 正面、背面和适用的室内剖面。收到最终预览后可用 `@Builder` 指定局部修改，再用当前版本的按钮批准。Task Brain 管理批准计划中的场地处理、供料和施工。清障完成后也可用 `/architect design` 提议更换原目标格的材料或状态，经重新审阅后从已有施工进度继续。
+M10 在获准的 BMC4 副本中使用 `/architect design <需求>`。Codex 根据 Forge 标记周围的真实高度、支撑和障碍设计建筑、永久基础与开挖范围，并审阅 Blender 正面、背面和适用的室内剖面。收到最终预览后可用 `@Builder` 指定局部修改，再用当前版本的按钮批准。Task Brain 管理批准计划中的场地处理、供料和施工。清障完成后也可用 `/architect design` 提议更换原目标格的材料或状态，经重新审阅后从已有施工进度继续。 [M10 实机验收记录](docs/m10-evidence.json)
 
 施工 NPC 可由授权玩家用 `/architect observe` 观察第一人称视角。图像与姿态元数据保存到本地缓存，并与同一观测 ID 的局部 Forge 样本配对。 [NPC 观测说明](docs/m6-a-validation.md) · [视觉与世界状态](docs/m6-b-validation.md)
 

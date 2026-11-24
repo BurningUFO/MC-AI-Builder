@@ -186,6 +186,7 @@ or with topic world and an optional offered group for actual blocks and safe can
 move_to takes the exact stance array returned by Forge. A candidate may still fail native navigation.
 execute_group takes an offered group and runs only its approved steps. Prefer next for stable work that
 fits the current subgoal. Choose a specific alternative when its area or smaller scope matters.
+In a terrain job, return to next after a verified recovery unless new evidence calls for a different order.
 reorder_work moves an offered alternative ahead in the remaining queue and stops at the checkpoint.
 prepare_materials takes strategy collect or craft for the next step. The existing choose_work recovery
 skills are available when offered. Check work flags before proposing an action.
