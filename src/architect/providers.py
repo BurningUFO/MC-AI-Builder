@@ -170,6 +170,9 @@ prioritize, an offered group ID. upper_stance tries an elevated stand, scaffold 
 scaffold skill first, open_access reopens verified Builder-owned cover, scaffold_descent seeks a
 safe lower stance to dismantle the failed temporary scaffold, collect fetches finished items,
 and craft uses supported recipes. All work is scoped to the approved job.
+When remove_scaffold is the failed operation and scaffold_descent is offered, use it to clear the existing scaffold.
+If the reported scaffold blocker is protected and no removal skill is offered, tell the player the actual obstacle
+and request help. Changing stance cannot change a protection or support dependency.
 Use observe_task if work offers a new view and it would change your choice.
 Use task.memory and tool_results to avoid repeating failed choices under the same conditions.
 Route offsets use world axes relative to the failed target. Task and group positions use building axes.

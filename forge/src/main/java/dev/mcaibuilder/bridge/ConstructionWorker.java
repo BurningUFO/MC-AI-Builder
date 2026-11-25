@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 interface ConstructionWorker {
     record Result(String status, String reason, JsonObject evidence) {}
     record Stance(BlockPos feet, boolean canWork) {}
+    record ScaffoldCleanup(BlockPos pos, Clearance.BlockedMutation blocked) {}
 
     void prepare(List<BuildPlan.Target> targets, boolean removals);
 
@@ -28,6 +29,8 @@ interface ConstructionWorker {
     // Null means the NPC is still moving, mining or adjusting its stance.
     Result act(WorkStep step, String approach);
 
+    boolean canPlaceHere(WorkStep step);
+
     JsonObject routeEvidence(BlockPos target);
     boolean canNavigateTo(BlockPos feet);
 
@@ -35,7 +38,7 @@ interface ConstructionWorker {
 
     void useScaffolds(Map<BlockPos, BlockState> blocks, Set<BlockPos> targets, boolean surveyedTerrain);
 
-    BlockPos scaffoldCleanupTarget();
+    ScaffoldCleanup scaffoldCleanup();
 
     default boolean cleanScaffolds() {
         return cleanScaffolds(false);

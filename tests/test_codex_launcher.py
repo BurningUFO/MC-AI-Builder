@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from src.architect.codex_budget import TOKEN_RESERVATION, CodexBudget
+from src.architect.codex_provider import CodexProvider
 from src.architect.codex_sdk import sdk_config
 from src.architect.providers import ModelBudgetExhausted
 from tools import mcai_launcher
@@ -51,8 +52,8 @@ class CodexLauncherTest(unittest.TestCase):
         self.assertNotIn("mcp_servers.development.enabled=false", config.config_overrides)
         arguments = spawn.call_args.args[0]
         self.assertEqual(arguments[arguments.index("--provider") + 1], "codex")
-        self.assertEqual(arguments[arguments.index("--codex-max-turns") + 1], "100")
-        self.assertEqual(arguments[arguments.index("--codex-max-tokens") + 1], "3000000")
+        self.assertEqual(arguments[arguments.index("--codex-max-turns") + 1], "200")
+        self.assertEqual(arguments[arguments.index("--codex-max-tokens") + 1], "5000000")
         self.assertEqual(arguments[arguments.index("--codex-effort") + 1], "medium")
 
     def test_restart_retains_exhausted_ledger_and_new_task_uses_a_fresh_one(self):
@@ -91,3 +92,20 @@ class CodexLauncherTest(unittest.TestCase):
         self.assertTrue(self.launcher.want_agent)
         self.assertIsNone(self.launcher.agent)
         self.assertNotEqual(self.launcher.budget, old)
+
+    def test_larger_defaults_continue_a_ledger_at_the_previous_turn_limit(self):
+        path = self.launcher.budget
+        previous = CodexBudget(path, 100, 3_000_000)
+        for _ in range(100):
+            previous.reserve({"status": "reserved"})
+        history = previous.records()
+        with self.assertRaises(ModelBudgetExhausted):
+            previous.reserve({})
+        with patch("src.architect.codex_provider.find_spec", return_value=object()):
+            provider = CodexProvider(budget_log=mcai_launcher.Launcher("").budget)
+            configured = CodexProvider(max_turns=240, max_tokens=6_000_000)
+        self.assertEqual(configured.max_turns, 240)
+        self.assertEqual(provider.max_turns, 200)
+        self.assertEqual(provider.budget.max_tokens, 5_000_000)
+        self.assertEqual(provider.budget.reserve({"status": "reserved"}), 101)
+        self.assertEqual(provider.budget.records()[:100], history)

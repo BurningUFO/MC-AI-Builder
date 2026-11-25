@@ -47,7 +47,7 @@ $budget = '.\.cache\m3-codex-sdk\architect-turns.sqlite3'
 
 需要重新登录时，可运行 `& $py -B -m tools.codex_sdk_probe login`，在打开的官方网页亲自完成登录。Codex 模式使用 ChatGPT 登录，模型和思考深度默认分别为 `gpt-6.2-sol` 和 `medium`。Runtime 在请求前核对 SDK 回报的模型、深度、只读沙箱和审批策略。SDK 关闭命令工具、MCP 和网页搜索。转给 SDK 的建筑上下文限制为 4 KiB。
 
-本地预算默认每任务 100 回合和 3,000,000 Token。同一账本路径在 Runtime 重启后继续计数。使用命令行开启新任务时，可以为 `--codex-budget-log` 指定新路径。每次请求预留 24,000 Token，收到 SDK 用量后按实际值记账，缺少用量的回合继续计入预留值。游戏分别报告本地预算耗尽和账户服务端限制，已生成的审批仍由 Forge 校验。
+本地预算默认每任务 200 回合和 5,000,000 Token。同一账本路径在 Runtime 重启后继续计数。可通过 `--codex-max-turns` 和 `--codex-max-tokens` 调整上限。使用命令行开启新任务时，可以为 `--codex-budget-log` 指定新路径。每次请求预留 24,000 Token，收到 SDK 用量后按实际值记账，缺少用量的回合继续计入预留值。游戏分别报告本地预算耗尽和账户服务端限制，已生成的审批仍由 Forge 校验。
 
 用 `tools.codex_sdk_probe sdk` 和 `tools.codex_sdk_probe provider` 分别重现独立调用与多轮意图到 `Building` 的测试。各命令发起一个回合，报告保存在被 Git 忽略的 `.cache/m3-codex-sdk`，使用合成数据。 [Codex SDK 实测结果](m3-codex-sdk-validation.md)
 

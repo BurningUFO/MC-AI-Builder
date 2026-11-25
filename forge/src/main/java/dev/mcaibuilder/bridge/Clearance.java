@@ -10,6 +10,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BasePressurePlateBlock;
 import net.minecraft.world.level.block.ButtonBlock;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.block.FallingBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraftforge.common.IPlantable;
@@ -50,6 +52,8 @@ final class Clearance {
             return new Finding(reason, Set.of());
         }
     }
+
+    record BlockedMutation(String code, BlockPos position) {}
 
     private final ServerLevel level;
     private final BuildSite site;
@@ -274,32 +278,51 @@ final class Clearance {
     }
 
     String mutationRisk(BlockPos pos, BlockState state, boolean breaking, Set<BlockPos> removedTogether) {
+        BlockedMutation blocked = blockedMutation(pos, state, breaking, removedTogether, false);
+        return blocked == null ? null : blocked.code();
+    }
+
+    BlockedMutation scaffoldRemovalRisk(BlockPos pos, BlockState state) {
+        return blockedMutation(pos, state, true, Set.of(), state.is(Blocks.DIRT));
+    }
+
+    private BlockedMutation blockedMutation(BlockPos pos, BlockState state, boolean breaking,
+                                            Set<BlockPos> removedTogether, boolean ownedScaffold) {
+        if (ownedScaffold && !level.hasChunkAt(pos)) {
+            return new BlockedMutation("site_not_loaded", pos);
+        }
         String risk = protectedReason(pos, state);
         if (risk != null || !breaking) {
-            return risk;
+            return risk == null ? null : new BlockedMutation(risk, pos);
         }
         for (Direction direction : Direction.values()) {
             BlockPos neighbor = pos.relative(direction);
             if (!level.hasChunkAt(neighbor)) {
-                return "site_not_loaded";
+                return new BlockedMutation("site_not_loaded", neighbor);
             }
             BlockState adjacent = level.getBlockState(neighbor);
             if (adjacent.isAir() || removedTogether.contains(neighbor)) {
                 continue;
             }
             if (!adjacent.getFluidState().isEmpty() || WorldObservation.hazard(adjacent)) {
-                return "hazardous_terrain";
+                return new BlockedMutation("hazardous_terrain", neighbor);
             }
             boolean attached = !Block.isShapeFullBlock(adjacent.getCollisionShape(level, neighbor));
             boolean supported = direction == Direction.UP || attached && direction.getAxis().isHorizontal();
             if (adjacent.is(Blocks.NETHER_PORTAL) || adjacent.is(Blocks.END_PORTAL)
-                    || supported && (managed(adjacent) || level.getBlockEntity(neighbor) != null
-                    || site.worksite().protectedAt(neighbor))) {
-                return "protected_facility";
+                    || supported && site.worksite().protectedAt(neighbor)) {
+                return new BlockedMutation("protected_facility", neighbor);
+            }
+            // A dry, single vanilla chest has no horizontal support or partner dependency on dirt.
+            // Keep the conservative dependency check for unknown blocks and for every other removal.
+            boolean independentChest = ownedScaffold && direction.getAxis().isHorizontal()
+                    && adjacent.is(Blocks.CHEST) && adjacent.getValue(ChestBlock.TYPE) == ChestType.SINGLE;
+            if (supported && !independentChest && (managed(adjacent) || level.getBlockEntity(neighbor) != null)) {
+                return new BlockedMutation("protected_facility", neighbor);
             }
             if (direction == Direction.UP && adjacent.getBlock() instanceof FallingBlock
                     || supported && !site.area().contains(neighbor) && attached) {
-                return "outside_effect";
+                return new BlockedMutation("outside_effect", neighbor);
             }
         }
         return null;

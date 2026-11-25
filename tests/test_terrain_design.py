@@ -1,9 +1,15 @@
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from src.architect.design import DesignError
 from src.architect.grammar import generate_roof
-from src.architect.terrain_design import apply_patch, build_candidate, scene_terrain
+from src.architect.runtime import SessionStore
+from src.architect.terrain_design import ARTIFACTS, apply_patch, build_candidate, handle, json_hash, scene_terrain, verify_effect
+from src.core.building import Building, write_json
 
 
 def fill(block, start, end):
@@ -63,6 +69,93 @@ class TerrainDesignTests(unittest.TestCase):
         self.assertEqual(solid[(8, 15, 6)], hollow[(8, 15, 6)])
         self.assertIn((8, 14, 6), hollow)
         self.assertNotIn((8, 9, 6), hollow)
+
+    def test_barn_wall_effect_needs_the_blockstate_inside_the_reported_scope(self):
+        before, unrelated, after = [Building("Barn partition") for _ in range(3)]
+        for model, axis in ((before, "y"), (unrelated, "y"), (after, "x")):
+            model.place((1, 3, 1), "minecraft:oak_log", axis=axis)
+        unrelated.place((4, 3, 1), "minecraft:oak_log", axis="x")
+        effect = {"kind": "blocks", "box": {"from": [1, 3, 1], "to": [1, 3, 1]},
+                  "block": "minecraft:oak_log", "properties": [{"name": "axis", "value": "x"}]}
+        with self.assertRaisesRegex(DesignError, "改图后符合 0 格"):
+            verify_effect(effect, before, unrelated, {}, {})
+        proof = verify_effect(effect, before, after, {}, {})
+        self.assertEqual((proof["before"], proof["after"], proof["expected"]), (0, 1, "minecraft:oak_log[axis=x]"))
+
+    def test_clearance_needs_a_real_obstacle_in_the_forge_delta(self):
+        model = Building("Terrace")
+        cell = [2, 1, 0]
+        effect = {"kind": "clearance", "at": cell}
+        air = {"id": "minecraft:air", "properties": {}}
+        before = {"changes": []}
+        fake = {"changes": [{"local": cell, "category": "remove", "actual": air, "desired": air}]}
+        with self.assertRaisesRegex(DesignError, "未产生新的有效清障"):
+            verify_effect(effect, model, model, before, fake)
+        obstacle = {"id": "minecraft:grass", "properties": {}}
+        changed = {"changes": [{**fake["changes"][0], "actual": obstacle}]}
+        self.assertEqual(verify_effect(effect, model, model, before, changed)["before"], obstacle)
+
+    def test_landing_metadata_alone_cannot_prove_existing_footing(self):
+        model = Building("Shed")
+        effect = {"kind": "landing", "at": [1, 0, -1], "footing": "existing"}
+
+        def facts(pos, ground):
+            return {"terrain": {"landings": [{"local": pos, "initially_standable": ground, "planned_standable": True}]}}
+
+        before = facts([1, 0, -1], False)
+        with self.assertRaisesRegex(DesignError, "更新点"):
+            verify_effect(effect, model, model, before, facts([2, 0, -1], False))
+        proof = verify_effect(effect, model, model, before, facts([2, -1, -1], True))
+        self.assertEqual(proof["after"]["local"], [2, -1, -1])
+
+    def test_reflection_gets_one_correction_for_the_same_unmet_condition(self):
+        original = {**self.design, "action": "design", "reason": "地形设计",
+                    "placement": {"origin": [0, 0, 0], "rotation": 0, "footprint": self.design["footprint"]}}
+        area = {"from": [2, 1, 0], "to": [2, 2, 0]}
+
+        def edit(material):
+            return {"action": "edit", "reason": "窗玻璃",
+                    "sections": [{**self.window, "modules": [fill(material, area["from"], area["to"])]}]}
+
+        issue = {"finding": "窗玻璃颜色偏深", "effect": {"kind": "blocks", "box": area,
+                 "block": "minecraft:light_blue_stained_glass", "properties": []}}
+
+        def stage(_, mode, plan, **kwargs):
+            return {"new_version": {"origin": plan["origin"], "rotation": plan["rotation"]},
+                    "changes": [], "terrain_sha256": json_hash(plan["terrain"]),
+                    "terrain": {"foundation_contacts": [], "structure_blocks": 18, "foundation_blocks": 2}}
+
+        def render(_, folder, _field, _mark, _plan, report):
+            write_json(folder / "review.json", report)
+            for name in ARTIFACTS:
+                (folder / name).write_bytes(b"test artifact")
+            return ARTIFACTS
+
+        for material, expected in (("light_blue_stained_glass", "revised"), ("brown_stained_glass", "retained_after_invalid_edit")):
+            with self.subTest(expected=expected), TemporaryDirectory() as temp:
+                identifier = str(uuid4())
+                runtime = Mock(store=SessionStore(Path(temp)), projects=None, share_observations=False, clean=str)
+                runtime.proposal_id.return_value = identifier
+                runtime.client.survey.return_value = {"features": []}
+                runtime.client.stage.side_effect = stage
+                runtime.provider.terrain_with_metrics.side_effect = [
+                    (original, {}), ({**edit("brown_stained_glass"), "issue": issue}, {}), (edit(material), {}),
+                ]
+                request = {"request_id": str(uuid4()), "terrain_design": "new", "suggested_origin": [0, 50, 0], "player_id": "tester"}
+                with patch("src.architect.terrain_design.render", side_effect=render):
+                    handle(runtime, request, "浅蓝窗")
+                calls = runtime.provider.terrain_with_metrics.call_args_list
+                self.assertEqual([call.args[0] for call in calls], ["design", "reflect", "correct"])
+                self.assertEqual(calls[2].args[1]["issue"], issue)
+                self.assertIn("改图后符合 0 格", calls[2].args[1]["failed_condition"])
+                self.assertFalse(calls[2].kwargs)
+                out = Path(temp) / identifier
+                proof = json.loads((out / "reflection.json").read_bytes())
+                self.assertEqual(proof["outcome"], expected)
+                self.assertEqual(proof["attempts"][0]["outcome"], "rejected")
+                saved = Building.read(out / "building.json")
+                self.assertEqual(saved.blocks[(2, 1, 0)].state.block_id,
+                                 "minecraft:light_blue_stained_glass" if expected == "revised" else "minecraft:glass")
 
 
 if __name__ == "__main__":

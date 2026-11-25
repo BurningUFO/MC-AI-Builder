@@ -444,6 +444,16 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
+    public boolean canPlaceHere(WorkStep step) {
+        if (!available() || !npc.onGround() || new AABB(step.pos()).intersects(npc.getBoundingBox())) {
+            return false;
+        }
+        int slot = supplySlot(step);
+        return slot >= 0 && chooseAim(step, npc.getInventory().getItem(slot), npc.position()) != null
+                && level.isUnobstructed(step.after(), step.pos(), net.minecraft.world.phys.shapes.CollisionContext.of(actor));
+    }
+
+    @Override
     public Result act(WorkStep step, String approach) {
         if (tickDescent()) {
             return null;
@@ -683,8 +693,7 @@ final class FakePlayersWorker implements ConstructionWorker {
     private boolean scaffoldCell(BlockPos pos) {
         return site.canWorkAt(level, pos) && !designCells.contains(pos) && level.getBlockState(pos).isAir()
                 && (site.area().contains(pos.below()) || !level.getBlockState(pos.below()).is(Blocks.GRASS_BLOCK))
-                && (!surveyedTerrain
-                        || new Clearance(level, site).mutationRisk(pos, TEMPORARY_BLOCK, true, Set.of()) == null);
+                && new Clearance(level, site).mutationRisk(pos, TEMPORARY_BLOCK, true, Set.of()) == null;
     }
 
     private Result climbScaffold() {
@@ -820,12 +829,29 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     @Override
-    public BlockPos scaffoldCleanupTarget() {
+    public ScaffoldCleanup scaffoldCleanup() {
         BlockPos underfoot = npc == null ? null : npc.blockPosition().below();
-        if (underfoot != null && scaffolds.containsKey(underfoot) && !scaffolds.containsKey(underfoot.above())) {
-            return underfoot;
+        List<BlockPos> tips = scaffolds.keySet().stream().filter(this::stillScaffold)
+                .filter(pos -> !stillScaffold(pos.above()))
+                .sorted(Comparator.comparing((BlockPos pos) -> !pos.equals(underfoot))
+                        .thenComparingInt(pos -> -pos.getY())).toList();
+        Clearance guard = new Clearance(level, site);
+        ScaffoldCleanup firstBlocked = null;
+        for (BlockPos pos : tips) {
+            var blocked = guard.scaffoldRemovalRisk(pos, scaffolds.get(pos));
+            if (blocked == null) {
+                return new ScaffoldCleanup(pos, null);
+            }
+            if (firstBlocked == null) {
+                firstBlocked = new ScaffoldCleanup(pos, blocked);
+            }
         }
-        return scaffolds.keySet().stream().max(Comparator.comparingInt(BlockPos::getY)).orElse(null);
+        return firstBlocked;
+    }
+
+    private boolean stillScaffold(BlockPos pos) {
+        BlockState expected = scaffolds.get(pos);
+        return expected != null && (!level.hasChunkAt(pos) || level.getBlockState(pos) == expected);
     }
 
     @Override
@@ -841,11 +867,14 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!npc.onGround()) {
             return false;
         }
-        BlockPos pos = scaffoldCleanupTarget();
+        ScaffoldCleanup cleanup = scaffoldCleanup();
+        if (cleanup == null) {
+            return false;
+        }
+        BlockPos pos = cleanup.pos();
         BlockState state = scaffolds.get(pos);
-        String risk = new Clearance(level, site).mutationRisk(pos, state, true, Set.of());
-        if (risk != null) {
-            throw Wire.conflict(risk, "临时施工位置旁出现了保护设施，需要留出清理空间。");
+        if (cleanup.blocked() != null) {
+            throw Wire.conflict("scaffold_cleanup_blocked", "临时方块无法安全移除，请处理现场标出的实际阻碍。");
         }
         Vec3 current = trackPosition();
         Aim aim = chestAim(pos, current);
@@ -865,6 +894,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (result != null && level.getBlockState(pos).isAir()) {
             scaffolds.remove(pos);
             performance.event("scaffold_removed");
+            if (descendFirst) {
+                ForgeBridge.LOGGER.info("scaffold_cleanup_verified {} {}", pos, result.evidence().get("method"));
+            }
         } else if (result != null) {
             throw Wire.conflict("scaffold_cleanup_denied", "这里的临时方块暂时无法拆除。");
         }

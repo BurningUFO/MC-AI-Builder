@@ -12,7 +12,7 @@ from threading import Lock
 from time import perf_counter
 from uuid import UUID
 
-from src.architect.codex_budget import DEFAULT_MAX_TOKENS, DEFAULT_MAX_TURNS, CodexBudget
+from src.architect.codex_budget import DEFAULT_MAX_TOKENS, DEFAULT_MAX_TURNS, CodexBudget, validate_limits
 from src.architect.codex_sdk import (
     WORK_ROOT, auth_summary, config_request, require_safe_config, safe_failure,
     safety_options, sdk_config, summarize_config,
@@ -175,8 +175,9 @@ class CodexProvider:
                  budget_log=None, max_tokens=DEFAULT_MAX_TOKENS):
         if find_spec("openai_codex") is None:
             raise ValueError("Install the optional openai-codex package before selecting the Codex provider.")
-        if not 0 < timeout <= 120 or not 1 <= max_turns <= 100:
-            raise ValueError("Codex timeout must be in (0, 120] seconds and the turn budget in 1–100.")
+        if not 0 < timeout <= 120:
+            raise ValueError("Codex timeout must be in (0, 120] seconds.")
+        validate_limits(max_turns, max_tokens)
         if effort not in REASONING_EFFORTS:
             raise ValueError("Unsupported Codex reasoning effort.")
         self.model = model or DEFAULT_MODEL
@@ -247,6 +248,10 @@ class CodexProvider:
                 png, width, height = rgb_png(image, max_bytes=2_000_000, max_width=1024, max_height=768)
                 images.append((name, png, width, height))
             metrics["purpose"] = "blender_design_review"
+        elif purpose == "correct":
+            if observation is not None or previews:
+                raise ValueError("Patch correction uses the original issue and its verification report.")
+            metrics["purpose"] = "blender_patch_correction"
         elif observation is not None:
             observation_id, image = observation
             if str(UUID(observation_id)) != observation_id:

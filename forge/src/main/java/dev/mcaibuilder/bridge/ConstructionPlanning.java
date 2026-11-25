@@ -51,7 +51,7 @@ final class ConstructionPlanning {
     private final Set<BlockPos> stances = new LinkedHashSet<>();
 
     JsonObject claim(ConstructionJob job, UUID owner, long tick, boolean manual, Set<String> recovery,
-                     Predicate<WorkStep> ready, boolean brain) {
+                     Predicate<WorkStep> ready, boolean brain, boolean cleanupOnly) {
         if (active != null || action != null || brain != waiting()) {
             return new JsonObject();
         }
@@ -69,7 +69,7 @@ final class ConstructionPlanning {
         int first = Math.min(job.steps.size(), job.cursor + (paused || brain ? 0 : IN_FLIGHT_BUFFER));
         int end = first;
         Map<BlockPos, List<WorkStep>> cells = new LinkedHashMap<>();
-        while (end < job.steps.size() && end - first < LOOKAHEAD) {
+        while (!cleanupOnly && end < job.steps.size() && end - first < LOOKAHEAD) {
             WorkStep step = job.steps.get(end);
             if (!movable(step) || step.pos().getY() != job.steps.get(first).pos().getY()) {
                 break;
@@ -82,7 +82,7 @@ final class ConstructionPlanning {
             end++;
         }
         Map<String, List<WorkStep>> groups = new LinkedHashMap<>();
-        if (brain && first < job.steps.size()) {
+        if (brain && !cleanupOnly && first < job.steps.size()) {
             WorkStep head = job.steps.get(first);
             boolean terrain = job.plan.terrain() != null;
             int groupLimit = terrain ? TERRAIN_GROUP_LIMIT : LOOKAHEAD;

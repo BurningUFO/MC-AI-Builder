@@ -42,6 +42,7 @@ final class ConstructionService {
     private static final int NEARBY_PLACEMENT_INTERVAL_TICKS = 2;
     private static final int PLACEMENT_LIMIT_TICKS = 1200;
     private static final String SCAFFOLD_CLEANUP_UNREACHABLE = "scaffold_cleanup_unreachable";
+    private static final String SCAFFOLD_CLEANUP_BLOCKED = "scaffold_cleanup_blocked";
     private static final String SCAFFOLD_DESCENT = "scaffold_descent";
     private static final String PLANNING_BLOCKED = "planning_blocked";
     private static final Set<String> REOPENED_CHECKPOINT = Set.of("restart_verification", "server_stopping");
@@ -1456,7 +1457,8 @@ final class ConstructionService {
                 current.planning.invalidate("planning_world_changed");
                 current.planning.resetAttempts();
                 if (current.planning.started() && current.state == State.PAUSED && candidate == null
-                        && current.planning.action() == null && (recoverableFailure() || PLANNING_BLOCKED.equals(current.reason))) {
+                        && current.planning.action() == null && (recoverableFailure() || scaffoldCleanupFailed()
+                                || PLANNING_BLOCKED.equals(current.reason))) {
                     current.planning.request("site_changed");
                 }
             }
@@ -1508,12 +1510,12 @@ final class ConstructionService {
                     finishBrainAction(problem.code, movementEvidence());
                     return;
                 }
-                if (SCAFFOLD_CLEANUP_UNREACHABLE.equals(problem.code)) {
-                    BlockPos target = worker.scaffoldCleanupTarget();
-                    if (target != null) {
-                        current.lastFailure = scaffoldFailure(target);
+                if (Set.of(SCAFFOLD_CLEANUP_UNREACHABLE, SCAFFOLD_CLEANUP_BLOCKED, "scaffold_cleanup_denied").contains(problem.code)) {
+                    var cleanup = worker.scaffoldCleanup();
+                    if (cleanup != null) {
+                        current.lastFailure = scaffoldFailure(cleanup, problem.code);
                         current.lastFailure.addProperty("tick", level.getGameTime());
-                        current.lastFailure.add("route", worker.routeEvidence(target));
+                        current.lastFailure.add("route", worker.routeEvidence(cleanup.pos()));
                     }
                 } else if (current.cursor < current.steps.size()) {
                     WorkStep step = current.steps.get(current.cursor);
@@ -1548,6 +1550,7 @@ final class ConstructionService {
     private void executeNext() {
         if (SCAFFOLD_DESCENT.equals(current.approach)) {
             if (worker.cleanScaffolds(true)) {
+                current.lastFailure = null;
                 current.approach = null;
                 schedule();
             }
@@ -1601,6 +1604,7 @@ final class ConstructionService {
             }
             current.needsScaffoldDirt = false;
         }
+        preferReachablePlacement();
         WorkStep step = current.steps.get(current.cursor);
         if (!level.hasChunkAt(step.pos())) {
             throw Wire.conflict("site_not_loaded", "请走近下一段工地。");
@@ -1733,6 +1737,36 @@ final class ConstructionService {
         return step.target().replica() && actual.getBlock() instanceof DoorBlock
                 && current.snapshot.owns(step.target().upper() ? step.pos().below() : step.pos())
                 && ProjectBlocks.alignDoorOpen(actual, step.after()) == step.after();
+    }
+
+    private void preferReachablePlacement() {
+        var action = current.planning.action();
+        if (current.plan.terrain() == null || action == null || !action.kind().equals("execute_group")
+                || current.stepStarted >= 0 || current.deferred != 0 || current.approach != null) {
+            return;
+        }
+        WorkStep first = current.steps.get(current.cursor);
+        if (first.remove() || first.target().paired() || first.target().light() || worker.canPlaceHere(first)) {
+            return;
+        }
+        int end = Math.min(action.end(), current.cursor + 96);
+        for (int i = current.cursor + 1; i < end; i++) {
+            WorkStep step = current.steps.get(i);
+            if (step.remove() || step.pos().getY() != first.pos().getY() || step.target().light()) {
+                break;
+            }
+            if (step.after() != first.after() || step.target().paired() || current.scaffolds.containsKey(step.pos())
+                    || !site.canWorkAt(level, step.pos()) || !level.getBlockState(step.pos()).isAir()
+                    || !BlockPos.containing(worker.position()).closerThan(step.pos(), 5) || !worker.canPlaceHere(step)) {
+                continue;
+            }
+            // Preserve the model's group and layer. Finish visible placements from the current footing.
+            List<WorkStep> queue = new ArrayList<>(current.steps);
+            queue.add(current.cursor, queue.remove(i));
+            current.steps = List.copyOf(queue);
+            current.performance.event("reachable_placement_prioritized");
+            return;
+        }
     }
 
     static boolean matches(BlockState actual, BlockState wanted) {
@@ -2237,15 +2271,27 @@ final class ConstructionService {
     }
 
     private boolean scaffoldCleanupFailed() {
-        return SCAFFOLD_CLEANUP_UNREACHABLE.equals(current.reason) && !current.scaffolds.isEmpty();
+        return current.state == State.PAUSED && current.reason != null && !current.scaffolds.isEmpty()
+                && Set.of(SCAFFOLD_CLEANUP_UNREACHABLE, SCAFFOLD_CLEANUP_BLOCKED,
+                          "scaffold_cleanup_denied", "protected_facility").contains(current.reason);
     }
 
-    private JsonObject scaffoldFailure(BlockPos target) {
+    private JsonObject scaffoldFailure(ConstructionWorker.ScaffoldCleanup cleanup, String reason) {
         JsonObject failure = new JsonObject();
-        failure.add("local", Wire.position(current.plan.localPosition(target)));
         failure.addProperty("operation", "remove_scaffold");
-        failure.add("block", Wire.state(level.getBlockState(target)).get("id"));
-        failure.addProperty("reason", SCAFFOLD_CLEANUP_UNREACHABLE);
+        failure.addProperty("reason", reason);
+        if (cleanup != null) {
+            failure.add("local", Wire.position(current.plan.localPosition(cleanup.pos())));
+            failure.add("block", Wire.state(current.scaffolds.get(cleanup.pos())).get("id"));
+            var blocked = cleanup.blocked();
+            if (blocked != null) {
+                failure.addProperty("blocker_reason", blocked.code());
+                failure.add("blocker_local", Wire.position(current.plan.localPosition(blocked.position())));
+                if (level.hasChunkAt(blocked.position())) {
+                    failure.add("blocker", Wire.state(level.getBlockState(blocked.position())).get("id"));
+                }
+            }
+        }
         return failure;
     }
 
@@ -2321,11 +2367,8 @@ final class ConstructionService {
         if (current.cursor < current.steps.size()) {
             task.add("next_step", briefStep(current.steps.get(current.cursor)));
         }
-        if (scaffoldCleanupFailed() && (current.lastFailure == null
-                || !current.lastFailure.has("operation")
-                || !"remove_scaffold".equals(current.lastFailure.get("operation").getAsString()))) {
-            // Checkpoints made by older bridges recorded the next placement instead of the scaffold.
-            task.add("last_failure", scaffoldFailure(worker.scaffoldCleanupTarget()));
+        if (scaffoldCleanupFailed()) {
+            task.add("last_failure", scaffoldFailure(worker.scaffoldCleanup(), current.reason));
         } else if (current.lastFailure != null) {
             task.add("last_failure", current.lastFailure.deepCopy());
         }
@@ -2387,7 +2430,11 @@ final class ConstructionService {
         } else if (topic.equals("world") && (scaffoldCleanupFailed() || current.cursor < current.steps.size())) {
             WorkStep focus = group != null ? current.planning.group(group).get(0)
                     : current.cursor < current.steps.size() ? current.steps.get(current.cursor) : null;
-            BlockPos target = group == null && scaffoldCleanupFailed() ? worker.scaffoldCleanupTarget() : focus.pos();
+            var cleanup = group == null && scaffoldCleanupFailed() ? worker.scaffoldCleanup() : null;
+            BlockPos target = cleanup != null ? cleanup.pos() : focus == null ? null : focus.pos();
+            if (target == null) {
+                return response;
+            }
             response.add("focus_local", Wire.position(current.plan.localPosition(target)));
             JsonArray sample = new JsonArray();
             for (BlockPos pos : BlockPos.betweenClosed(target.offset(-1, -1, -1), target.offset(1, 1, 1))) {
@@ -2404,7 +2451,7 @@ final class ConstructionService {
                 }
             }
             response.add("cells", sample);
-            if (brain && focus != null && target.equals(focus.pos())) {
+            if (brain && cleanup == null && focus != null && target.equals(focus.pos())) {
                 JsonArray stances = new JsonArray();
                 for (var candidate : worker.workStances(focus)) {
                     current.planning.offerStance(candidate.feet());
@@ -2441,19 +2488,23 @@ final class ConstructionService {
                 }
             }
             Set<String> choices = new LinkedHashSet<>();
+            boolean cleanupOnly = scaffoldCleanupFailed();
             if (current.state == State.PAUSED) {
                 if (PLACEMENT_FAILURES.contains(current.reason)) {
                     choices.addAll(List.of("upper_stance", "scaffold", "open_access"));
                 }
-                if (scaffoldCleanupFailed()) {
-                    choices.add(SCAFFOLD_DESCENT);
+                if (cleanupOnly && !"scaffold_cleanup_denied".equals(current.reason)) {
+                    var cleanup = worker.scaffoldCleanup();
+                    if (cleanup == null || cleanup.blocked() == null) {
+                        choices.add(SCAFFOLD_DESCENT);
+                    }
                 }
                 if (current.supply != null && warehouses.containsKey(owner) && SUPPLY_FAILURES.contains(current.reason)) {
                     choices.addAll(List.of("collect", "craft"));
                 }
             }
             JsonObject offer = current.planning.claim(current, owner, level.getGameTime(), data.has("request_id"),
-                    choices, this::readyForPriority, brain);
+                    choices, this::readyForPriority, brain, cleanupOnly);
             if (offer.size() > 0) {
                 offer.addProperty("job_id", current.plan.id().toString());
                 offer.addProperty("building_version", current.plan.version());
@@ -2719,6 +2770,11 @@ final class ConstructionService {
                         current.approach = strategy;
                     }
                     resumeBrainWork();
+                } else {
+                    var cleanup = worker.scaffoldCleanup();
+                    if (cleanup != null) {
+                        details.add("scaffold_local", Wire.position(current.plan.localPosition(cleanup.pos())));
+                    }
                 }
             }
             default -> throw Wire.invalid("Unknown task action");
@@ -2784,6 +2840,7 @@ final class ConstructionService {
         }
         if (SCAFFOLD_DESCENT.equals(action.strategy())) {
             if (worker.cleanScaffolds(true)) {
+                current.lastFailure = null;
                 resumeBrainWork();
                 JsonObject evidence = new JsonObject();
                 evidence.addProperty("temporary_blocks", current.scaffolds.size());

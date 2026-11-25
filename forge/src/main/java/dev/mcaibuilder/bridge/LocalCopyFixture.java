@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.BlockHitResult;
@@ -120,6 +121,7 @@ final class LocalCopyFixture {
                 case "worksite_seed" -> result.add("placed", seedWorksite(player, input));
                 case "worksite_capacity" -> result.add("capacity", checkFullCargo(player, input));
                 case "snapshot" -> result.add("blocks", snapshot(player, BuildSite.Box.read(input.get("area"), "area")));
+                case "scaffold_guard" -> scaffoldGuard(player, profile, input, result);
                 default -> throw new IOException("Unknown copy fixture action");
             }
             result.addProperty("success", true);
@@ -313,5 +315,32 @@ final class LocalCopyFixture {
             }
         }
         return values;
+    }
+
+    private static void scaffoldGuard(ServerPlayer player, CopyProfile profile, JsonObject input, JsonObject result) throws IOException {
+        Path file = profile.world().resolve("data").resolve("mcaibuilder-site-authorization.json");
+        JsonObject saved = Wire.object(JsonParser.parseString(Files.readString(file)), "authorization");
+        JsonObject permit = Wire.object(saved.get("active"), "approved site");
+        ServerLevel level = player.serverLevel();
+        BlockPos pos = Wire.position(input.get("position"), "scaffold position");
+        BuildSite.Box area = BuildSite.Box.read(permit.get("area"), "approved area");
+        if (!profile.id().equals(BuildPlan.id(saved, "copy_id")) || !profile.owner().equals(BuildPlan.id(saved, "owner"))
+                || !level.dimension().location().toString().equals(permit.get("dimension").getAsString())
+                || !area.contains(player.blockPosition()) || !area.contains(pos) || !level.hasChunkAt(pos)) {
+            throw Wire.invalid("Scaffold guard probe needs the loaded and approved copy area");
+        }
+        BuildSite site = new BuildSite(profile.id().toString(), profile.port(), profile.token(), area,
+                Wire.position(permit.get("spawn"), "spawn"), profile.architect(), true, BuildPlan.id(permit, "authorization"),
+                Wire.position(permit.get("origin"), "origin"), Rotation.values()[permit.get("rotation").getAsInt() / 90],
+                WorksitePermit.read(permit.getAsJsonObject("worksite")));
+        Clearance guard = new Clearance(level, site);
+        var dirt = Blocks.DIRT.defaultBlockState();
+        result.add("actual", Wire.state(level.getBlockState(pos)));
+        result.addProperty("new_scaffold_risk", guard.mutationRisk(pos, dirt, true, Set.of()));
+        var recovery = guard.scaffoldRemovalRisk(pos, dirt);
+        if (recovery != null) {
+            result.addProperty("owned_scaffold_risk", recovery.code());
+            result.add("blocker", Wire.position(recovery.position()));
+        }
     }
 }

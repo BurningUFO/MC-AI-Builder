@@ -8,13 +8,20 @@ import sqlite3
 from src.architect.providers import ModelBudgetExhausted
 
 
-DEFAULT_MAX_TURNS = 100
-DEFAULT_MAX_TOKENS = 3_000_000
+DEFAULT_MAX_TURNS = 200
+DEFAULT_MAX_TOKENS = 5_000_000
 BUDGET_TASK_FILE = "codex-task.json"
 
 # Account for a full attempted turn until SDK usage arrives. Unreported turns
 # keep their reservation, including an interrupted runtime or connection.
 TOKEN_RESERVATION = 24_000
+
+
+def validate_limits(max_turns, max_tokens):
+    if type(max_turns) is not int or max_turns < 1:
+        raise ValueError("Codex turn budget must be a positive integer.")
+    if type(max_tokens) is not int or max_tokens < TOKEN_RESERVATION:
+        raise ValueError(f"Codex token budget must be an integer of at least {TOKEN_RESERVATION}.")
 
 
 def task_budget_log(directory):
@@ -30,8 +37,7 @@ def task_budget_log(directory):
 
 class CodexBudget:
     def __init__(self, path, max_turns, max_tokens):
-        if max_tokens < TOKEN_RESERVATION:
-            raise ValueError(f"Codex token budget must be at least {TOKEN_RESERVATION}.")
+        validate_limits(max_turns, max_tokens)
         self.path = path
         self.max_turns = max_turns
         self.max_tokens = max_tokens

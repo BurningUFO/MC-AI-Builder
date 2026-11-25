@@ -46,6 +46,8 @@ _CODES = {
     "warehouse_player_approval": Diagnostic("approval", "rejected", "需要由授权玩家在游戏里批准施工。"),
     "awaiting_materials": Diagnostic("warehouse", "condition", "请把缺的材料补到附近箱子里，再告诉我一声。"),
     "scaffold_material": Diagnostic("warehouse", "condition", "高处需要临时垫脚。可以在附近箱子里放一些泥土。"),
+    "scaffold_cleanup_blocked": Diagnostic("protection", "rejected", "请检查脚手架清理回执标出的依赖或受保护设施。"),
+    "scaffold_cleanup_denied": Diagnostic("protection", "rejected", "游戏拒绝了实际拆除。请检查该位置的交互权限。"),
     "protected_area": Diagnostic("protection", "rejected", "设计碰到了你标记的保护区域。请调整位置或布局。"),
     "change_conflicts": Diagnostic("protection", "rejected", "方案碰到了保护资产。请改图或换个位置。"),
     "out_of_material": Diagnostic("warehouse", "condition", "请核对并补足获准箱子的材料。"),

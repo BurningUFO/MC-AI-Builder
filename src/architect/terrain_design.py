@@ -13,15 +13,17 @@ from zipfile import BadZipFile
 from src.architect import survey
 from src.architect.design import DesignError, VoxelDesign
 from src.architect.grammar import GRAMMAR_PROMPT
-from src.architect.providers import InvalidOutput, _bad_constant, _unique_pairs
+from src.architect.providers import InvalidOutput, ModelError, _bad_constant, _unique_pairs
 from src.architect.telemetry import timed
 from src.construction.client import BridgeError
 from src.construction.plan import VANILLA_BLOCKS, make_plan
-from src.core.building import write_json
+from src.core.building import BlockState, write_json
 
 IMAGES = ("proposed.png", "proposed-rear.png", "proposed-interior.png")
 ARTIFACTS = ("revision-review.blend", "current.png", *IMAGES)
-PHASES = {"design": ("design", "observe", "unsuitable"), "edit": ("edit", "clarify"), "reflect": ("pass", "edit")}
+PHASES = {"design": ("design", "observe", "unsuitable"), "edit": ("edit", "clarify"),
+          "reflect": ("pass", "edit"), "correct": ("pass", "edit")}
+AIR = {"minecraft:air", "minecraft:cave_air", "minecraft:void_air"}
 
 GEOMETRY = """Design original Minecraft buildings using named sections of ordered voxel modules. Use only the
 provided palette. Sections have a short ASCII id and role structure or foundation. Use foundation for permanent
@@ -70,12 +72,22 @@ requirements, the blueprint and the validated site facts. Judge visual mass, eav
 proportions, permanent support, connection to the slope, visible circulation and interior. Name a concrete issue
 only if visible or explicitly supported by the facts. Distinguish a stylistic preference from a material defect.
 Return pass when coherent. If a localized change would matter, return edit with the minimal changed sections.
-This is the only autonomous edit opportunity. If autonomous_edit is false, report observations without editing.
-Never imply you saw an NPC camera frame in the Blender images. Keep a short reason with the evidence."""
+For edit, include one issue with a short finding about the current draft and one testable effect in building-local coordinates.
+For blocks, choose a small box where every cell should have the indicated block and state properties after the edit.
+Use minecraft:air to test removal, for example the occupied slice above a proposed lower roof ridge.
+For clearance, identify a real obstructing world block to clear at one local coordinate. For landing, identify the
+existing landing by its original local coordinate and choose planned footing or footing on the existing ground.
+Only claim an issue the candidate facts can demonstrate. If autonomous_edit is false, report observations and pass.
+Never imply you saw an NPC camera frame in the Blender images."""
+
+CORRECT = """Correct only the proposed patch for the already reviewed issue, using the exact verification failure.
+The issue and its effect condition stay fixed. Give the complete replacement patch relative to the original draft.
+Return pass if the same issue cannot be addressed under the given constraints. Do not introduce another issue."""
 
 
 def instructions(purpose):
-    task = {"design": PLAN, "edit": EDIT, "reflect": REFLECT + "\n" + EDIT}[purpose]
+    task = {"design": PLAN, "edit": EDIT, "reflect": REFLECT + "\n" + EDIT,
+            "correct": CORRECT + "\n" + EDIT}[purpose]
     return GEOMETRY + "\n" + GRAMMAR_PROMPT + "\n" + task + "\nUse null for fields that do not apply."
 
 
@@ -112,7 +124,7 @@ def schema(purpose, module_fields):
     observe = obj({"action": {"type": "string", "enum": ["observe_here", "look_at", "move_to_observation_point",
                                                         "inspect_build_site", "compare_viewpoints"]},
                    "offset": nullable(point)})
-    return obj({
+    fields = {
         "action": {"type": "string", "enum": list(PHASES[purpose])},
         "reason": {"type": "string"},
         "name": {"type": ["string", "null"]},
@@ -122,7 +134,17 @@ def schema(purpose, module_fields):
         "excavation": nullable(array(box)),
         "landings": nullable(array(point)),
         "observe": nullable(observe),
-    })
+    }
+    if purpose == "reflect":
+        state = obj({"name": {"type": "string"}, "value": {"type": "string"}})
+        effect = {"anyOf": [
+            obj({"kind": {"type": "string", "enum": ["blocks"]}, "box": box, "block": block["block"], "properties": array(state)}),
+            obj({"kind": {"type": "string", "enum": ["clearance"]}, "at": point}),
+            obj({"kind": {"type": "string", "enum": ["landing"]}, "at": point,
+                 "footing": {"type": "string", "enum": ["planned", "existing"]}}),
+        ]}
+        fields["issue"] = nullable(obj({"finding": {"type": "string"}, "effect": effect}))
+    return obj(fields)
 
 
 def decode(output, purpose):
@@ -135,6 +157,11 @@ def decode(output, purpose):
             raise ValueError
         fields = {"design": {"name", "placement", "sections", "excavation", "landings"}, "observe": {"observe"},
                   "edit": {"sections", "excavation", "landings"}}.get(action, set())
+        if purpose == "reflect" and action == "edit":
+            fields.add("issue")
+            finding = (data.get("issue") or {}).get("finding")
+            if type(finding) is not str or not 0 < len(finding.strip()) <= 200:
+                raise ValueError
         if any(value is not None and key not in fields for key, value in data.items() if key not in ("action", "reason")):
             raise ValueError
         for section in data.get("sections") or []:
@@ -304,6 +331,55 @@ def conflicts(report):
     return result
 
 
+def verify_effect(effect, before, after, old_report, report):
+    kind = effect["kind"]
+    if kind == "blocks":
+        low, high = bounds(effect["box"])
+        if (high[0] - low[0] + 1) * (high[1] - low[1] + 1) * (high[2] - low[2] + 1) > 256:
+            raise DesignError("问题范围需缩小到最多 256 格。")
+        cells = list(product(*(range(a, b + 1) for a, b in zip(low, high, strict=True))))
+        wanted = BlockState(effect["block"], tuple((p["name"], p["value"]) for p in effect["properties"]))
+
+        def matching(model):
+            found = 0
+            for pos in cells:
+                state = model.blocks[pos].state if pos in model.blocks else BlockState("minecraft:air")
+                if state.block_id == wanted.block_id and set(wanted.properties).issubset(state.properties):
+                    found += 1
+            return found
+
+        old, new = matching(before), matching(after)
+        if old == len(cells) or new != len(cells):
+            raise DesignError(f"指定范围需要 {len(cells)} 格符合 {wanted.key}，原方案符合 {old} 格，改图后符合 {new} 格。")
+        return {"kind": kind, "box": effect["box"], "expected": wanted.key, "before": old, "after": new}
+
+    at = cell(effect["at"])
+    if kind == "clearance":
+        def removal(facts):
+            return next((row for row in facts["changes"] if row["local"] == list(at)
+                         and row["category"] == "remove" and row["actual"]["id"] not in AIR
+                         and row["desired"]["id"] in AIR), None)
+
+        changed = removal(report)
+        if changed is None or removal(old_report) is not None or at in after.blocks:
+            raise DesignError(f"{at} 未产生新的有效清障。该格需要有实际障碍，并在通过 Forge 检查后规划为空。")
+        return {"kind": kind, "local": list(at), "before": changed["actual"], "after": changed["desired"]}
+
+    if kind == "landing":
+        old_landings = old_report["terrain"]["landings"]
+        new_landings = report["terrain"]["landings"]
+        index = next((i for i, row in enumerate(old_landings) if row["local"] == list(at)), None)
+        if index is None or index >= len(new_landings):
+            raise DesignError(f"找不到可按原顺序复核的落脚点 {at}。")
+        old, new = old_landings[index], new_landings[index]
+        field = {"existing": "initially_standable", "planned": "planned_standable"}[effect["footing"]]
+        if old.get(field) is not False or new.get(field) is not True or new.get("planned_standable") is not True:
+            raise DesignError(f"落脚条件 {field} 需要由不可站立变为可站立。原点 {at} 为 {old.get(field)}，"
+                              f"更新点 {new['local']} 为 {new.get(field)}。")
+        return {"kind": kind, "footing": effect["footing"], "before": old, "after": new}
+    raise DesignError("没有可核验的改图条件。")
+
+
 def design_context(data, model, report):
     low, high = model.bounds()
     return {"placement": {"origin": report["new_version"]["origin"], "rotation": report["new_version"]["rotation"]},
@@ -467,26 +543,55 @@ def handle(runtime, request, message, prepared=None):
     reflection_record = {"before_model_sha256": plan["model_sha256"], "decision": reflection,
                          "images": metrics.get("images"), "effective": metrics.get("effective"),
                          "outcome": "retained", "changed_cells": 0}
-    note = "Blender 已自检。"
+    note = "Blender 已审阅。"
     if reflection["action"] == "edit" and not prior:
-        try:
-            updated, edits = apply_patch(data, reflection, materials)
-            revised_model, revised_plan = build_candidate(updated, materials, **identity)
-            revised_report = runtime.client.stage(request["request_id"], "check", revised_plan)
-            if conflicts(revised_report):
-                raise DesignError("拟议改图与已勘察现场有冲突。")
-            if revised_report["terrain_sha256"] == report["terrain_sha256"] and revised_plan["model_sha256"] == plan["model_sha256"]:
-                raise DesignError("现场没有被拟议调整改变。")
-            revised_drawing = folder / "revision"
-            files = render(runtime, revised_drawing, field, mark, revised_plan, revised_report)
+        issue = reflection["issue"]
+        attempts = []
+        reflection_record["attempts"] = attempts
+        patch = reflection
+        for attempt in range(2):
+            result = {"proposed_patch": patch}
+            attempts.append(result)
+            try:
+                updated, edits = apply_patch(data, patch, materials)
+                revised_model, revised_plan = build_candidate(updated, materials, **identity)
+                revised_report = runtime.client.stage(request["request_id"], "check", revised_plan)
+                if problem := conflicts(revised_report):
+                    raise DesignError("Forge 场地检查冲突 " + json.dumps(problem["examples"][:6], ensure_ascii=False))
+                effect = verify_effect(issue["effect"], model, revised_model, report, revised_report)
+            except (DesignError, BridgeError, ValueError, KeyError, TypeError) as error:
+                if isinstance(error, BridgeError) and error.body.get("error") == "stale_request":
+                    raise
+                error_text = error.body.get("message", str(error)) if isinstance(error, BridgeError) else str(error)
+                result.update(outcome="rejected", reason=runtime.clean(error_text))
+                if attempt == 0:
+                    try:
+                        patch, correction_metrics = runtime.provider.terrain_with_metrics("correct", {
+                            **visual_context, "issue": issue, "rejected_patch": patch, "failed_condition": result["reason"],
+                        })
+                        reflection_record["correction"] = {"decision": patch, "effective": correction_metrics.get("effective")}
+                    except ModelError as model_error:
+                        reflection_record["correction"] = {"outcome": "unavailable", "reason": type(model_error).__name__}
+                        break
+                    if patch["action"] == "edit":
+                        continue
+                break
+            try:
+                revised_drawing = folder / "revision"
+                revised_files = render(runtime, revised_drawing, field, mark, revised_plan, revised_report)
+            except (DesignError, OSError, ValueError, BadZipFile, subprocess.SubprocessError) as error:
+                result.update(outcome="render_failed", reason=runtime.clean(str(error)))
+                break
             data, model, plan, report, drawing = updated, revised_model, revised_plan, revised_report, revised_drawing
-            reflection_record.update(outcome="revised", changed_cells=edits)
-            note = f"Blender 自检后调整了 {edits} 格建筑。" if edits else "Blender 自检后调整了场地准备或通行。"
-        except (DesignError, BridgeError, OSError, ValueError, BadZipFile, subprocess.SubprocessError) as error:
-            if isinstance(error, BridgeError) and error.body.get("error") == "stale_request":
-                raise
-            reflection_record.update(outcome="retained_after_invalid_edit", rejected_edit=runtime.clean(str(error)))
-            note = "已完成 Blender 自检，拟议改图未通过核对，保留有效版本。"
+            files = revised_files
+            result.update(outcome="verified", effect=effect)
+            reflection_record.update(outcome="revised", changed_cells=edits, verified_effect=effect)
+            note = (f"Blender 审阅后调整了 {edits} 格建筑，指定结果已核对。" if edits
+                    else "Blender 审阅后的场地或落脚条件已通过 Forge 核对。")
+            break
+        if reflection_record["outcome"] != "revised":
+            reflection_record.update(outcome="retained_after_invalid_edit", rejected_edit=attempts[-1]["reason"])
+            note = f"Blender 指出 {runtime.clean(issue['finding'])[:80]}。拟议修订未通过核对，问题仍待处理。"
     reflection_record["final_model_sha256"] = plan["model_sha256"]
     write_json(folder / "reflection.json", reflection_record)
     for name in (*files, "review.json"):
@@ -494,14 +599,11 @@ def handle(runtime, request, message, prepared=None):
     model.write(folder / "building.json")
     write_json(folder / "materials.json", {"model_sha256": plan["model_sha256"], "plan_id": plan_id,
                                            "requirements": report.get("supply", {}).get("requirements", {})})
-    descriptions = []
-    for result in (decision, reflection):
-        reason = runtime.clean(result["reason"])
-        if len(reason) > 95:
-            sentences = list(re.finditer(r"[。！？]", reason[:95]))
-            reason = reason[:sentences[-1].end()] if sentences else reason[:94] + "…"
-        descriptions.append(reason)
-    summary = f"{descriptions[0]} {note} {descriptions[1]}"
+    reason = runtime.clean(decision["reason"])
+    if len(reason) > 95:
+        sentences = list(re.finditer(r"[。！？]", reason[:95]))
+        reason = reason[:sentences[-1].end()] if sentences else reason[:94] + "…"
+    summary = f"{reason} {note}"
     if changed:
         summary = f"局部改图改动 {changed} 格。 {summary}"
     elif changed == 0:
