@@ -92,6 +92,8 @@ final class FakePlayersWorker implements ConstructionWorker {
     private BlockPos stockTarget;
     private BlockPos actionTarget;
     private ScaffoldRoute scaffoldRoute;
+    private BlockPos scaffoldCleanupAccess;
+    private BlockPos cleanupAccessBase;
     private BlockPos jumpBlock;
     private long jumpStarted;
     private boolean recoveringScaffold;
@@ -508,7 +510,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         BlockPos feet = npc.blockPosition();
         String unreachable = step.remove() ? "no_reachable_break_stance" : "no_reachable_placement_stance";
         if (scaffolds.containsKey(feet.below()) && npc.onGround()) {
-            ScaffoldRoute higher = scaffoldRouteAt(step, stack, feet, Math.min(step.pos().getY() + 1, site.area().max().getY() - 1));
+            ScaffoldRoute higher = scaffoldRouteAt(step, stack, feet,
+                    Math.min(step.pos().getY() + 1, site.area().max().getY() - 1), false);
             if (higher != null) {
                 scaffoldRoute = higher;
                 deadline = level.getGameTime() + MOVE_LIMIT_TICKS;
@@ -605,12 +608,17 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private boolean findScaffold(WorkStep step, ItemStack stack) {
+        return findScaffold(step, stack, false);
+    }
+
+    private boolean findScaffold(WorkStep step, ItemStack stack, boolean cleanup) {
         BlockPos target = step.pos();
         int feetY = npc.blockPosition().getY();
-        if (!surveyedTerrain && target.getY() < feetY + 2) {
+        if (!surveyedTerrain && !cleanup && target.getY() < feetY + 2) {
             return false;
         }
-        int highest = Math.min(target.getY() + 1, site.area().max().getY() - 1);
+        int accessHeight = cleanup ? Math.max(target.getY(), feetY) + 3 : target.getY() + 1;
+        int highest = Math.min(accessHeight, site.area().max().getY() - 1);
         int lowest = Math.max(Math.max(feetY - 6, site.area().min().getY()), target.getY() - 128);
         List<ScaffoldRoute> routes = new ArrayList<>();
         Set<BlockPos> blocked = blockedScaffoldBases.getOrDefault(target, Set.of());
@@ -624,7 +632,7 @@ final class FakePlayersWorker implements ConstructionWorker {
                 if (blocked.contains(base) || !site.area().contains(base) || !canStand(base)) {
                     continue;
                 }
-                ScaffoldRoute route = scaffoldRouteAt(step, stack, base, highest);
+                ScaffoldRoute route = scaffoldRouteAt(step, stack, base, highest, cleanup);
                 if (route != null) {
                     routes.add(route);
                 }
@@ -672,7 +680,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         return false;
     }
 
-    private ScaffoldRoute scaffoldRouteAt(WorkStep step, ItemStack stack, BlockPos base, int highest) {
+    private ScaffoldRoute scaffoldRouteAt(WorkStep step, ItemStack stack, BlockPos base, int highest, boolean cleanup) {
         if (blockedScaffoldBases.getOrDefault(step.pos(), Set.of()).contains(base)) {
             return null;
         }
@@ -681,11 +689,27 @@ final class FakePlayersWorker implements ConstructionWorker {
             if (!scaffoldCell(feet.below()) || !freeColumn(feet)) {
                 break;
             }
-            if (chooseAim(step, stack, Vec3.atBottomCenterOf(feet)) != null) {
+            if (chooseAim(step, stack, Vec3.atBottomCenterOf(feet)) != null || cleanup && scaffoldExit(step, feet)) {
                 return new ScaffoldRoute(base, workY);
             }
         }
         return null;
+    }
+
+    private boolean scaffoldExit(WorkStep step, BlockPos feet) {
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            BlockPos landing = feet;
+            for (int distance = 1; distance <= STANCE_RADIUS; distance++) {
+                landing = descentLanding(landing.relative(side), maxSafeDrop());
+                if (landing == null || !site.area().contains(landing.above())) {
+                    break;
+                }
+                if (chooseAim(step, ItemStack.EMPTY, BuildTerrain.standPoint(level, landing)) != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean freeColumn(BlockPos feet) {
@@ -836,7 +860,9 @@ final class FakePlayersWorker implements ConstructionWorker {
         BlockPos underfoot = npc == null ? null : npc.blockPosition().below();
         List<BlockPos> tips = scaffolds.keySet().stream().filter(this::stillScaffold)
                 .filter(pos -> !stillScaffold(pos.above()))
-                .sorted(Comparator.comparing((BlockPos pos) -> !pos.equals(underfoot))
+                .sorted(Comparator.comparing((BlockPos pos) -> !pos.equals(scaffoldCleanupAccess))
+                        .thenComparing(this::cleanupAccessColumn)
+                        .thenComparing(pos -> !pos.equals(underfoot))
                         .thenComparingInt(pos -> -pos.getY())).toList();
         Clearance guard = new Clearance(level, site);
         ScaffoldCleanup firstBlocked = null;
@@ -867,7 +893,14 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (scaffolds.isEmpty()) {
             return true;
         }
+        if (scaffoldCleanupAccess != null && jumpBlock != null) {
+            continueScaffoldCleanup(finishScaffoldJump());
+            return false;
+        }
         if (!npc.onGround()) {
+            return false;
+        }
+        if (descendFirst && scaffoldCleanupAccess == null && stepOffCleanupAccess()) {
             return false;
         }
         ScaffoldCleanup cleanup = scaffoldCleanup();
@@ -882,11 +915,32 @@ final class FakePlayersWorker implements ConstructionWorker {
         Vec3 current = trackPosition();
         Aim aim = chestAim(pos, current);
         if (aim == null) {
+            if (pos.equals(scaffoldCleanupAccess) && scaffoldRoute != null) {
+                BlockPos feet = npc.blockPosition();
+                BlockPos base = scaffoldRoute.base();
+                if (feet.getX() != base.getX() || feet.getZ() != base.getZ() || feet.getY() < scaffoldRoute.workY()) {
+                    continueScaffoldCleanup(climbScaffold());
+                    return false;
+                }
+                haltAction();
+            }
             if (descendFirst && startDescent(pos, true)) {
                 return false;
             }
-            if (navigate(pos, current, feet -> chestAim(pos, feet) != null, "scaffold_cleanup_unreachable") != null
+            if (navigate(pos, current, feet -> chestAim(pos, feet) != null, "scaffold_cleanup_unreachable", 3) != null
                     && !startDescent(pos)) {
+                if (descendFirst && scaffoldCleanupAccess == null) {
+                    var target = new BuildPlan.Target(pos, pos, state, Items.DIRT);
+                    var removal = new WorkStep(target, state, true);
+                    actionTarget = pos;
+                    if (findScaffold(removal, ItemStack.EMPTY, true)) {
+                        if (scaffoldRoute != null) {
+                            scaffoldCleanupAccess = pos;
+                            cleanupAccessBase = scaffoldRoute.base();
+                        }
+                        return false;
+                    }
+                }
                 throw Wire.conflict("scaffold_cleanup_unreachable", "我需要一条能到达脚手架顶端的通道来拆除临时方块。");
             }
             return false;
@@ -896,6 +950,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         Result result = mine(new WorkStep(target, state, true), -1, aim);
         if (result != null && level.getBlockState(pos).isAir()) {
             scaffolds.remove(pos);
+            scaffoldCleanupAccess = null;
             performance.event("scaffold_removed");
             if (descendFirst) {
                 ForgeBridge.LOGGER.info("scaffold_cleanup_verified {} {}", pos, result.evidence().get("method"));
@@ -904,6 +959,39 @@ final class FakePlayersWorker implements ConstructionWorker {
             throw Wire.conflict("scaffold_cleanup_denied", "这里的临时方块暂时无法拆除。");
         }
         return scaffolds.isEmpty();
+    }
+
+    private void continueScaffoldCleanup(Result result) {
+        if (result != null) {
+            throw Wire.conflict("scaffold_cleanup_unreachable", "临时拆除通道未能到达安全站位。");
+        }
+    }
+
+    private boolean stepOffCleanupAccess() {
+        BlockPos feet = npc.blockPosition();
+        if (!cleanupAccessColumn(feet.below()) || !stillScaffold(feet.below())) {
+            return false;
+        }
+        if (destination != null && !npc.getNavigation().isDone()) {
+            return true;
+        }
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            BlockPos landing = feet.relative(side);
+            if (!site.area().contains(landing.above()) || stillScaffold(landing.below()) || !canStand(landing)) {
+                continue;
+            }
+            Path path = npc.getNavigation().createPath(landing, 0);
+            if (path != null && path.canReach() && insideSite(path) && npc.getNavigation().moveTo(path, 0.9)) {
+                destination = landing;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean cleanupAccessColumn(BlockPos pos) {
+        return cleanupAccessBase != null && cleanupAccessBase.getX() == pos.getX()
+                && cleanupAccessBase.getZ() == pos.getZ() && pos.getY() >= cleanupAccessBase.getY();
     }
 
     @Override
@@ -1583,6 +1671,10 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private String navigate(BlockPos pos, Vec3 current, Predicate<Vec3> canAim, String unreachable) {
+        return navigate(pos, current, canAim, unreachable, 1);
+    }
+
+    private String navigate(BlockPos pos, Vec3 current, Predicate<Vec3> canAim, String unreachable, int above) {
         long now = level.getGameTime();
         if (deadline == 0) {
             deadline = now + MOVE_LIMIT_TICKS;
@@ -1601,7 +1693,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         int visible = 0;
         int reaches = 0;
         long searchStarted = BuildPerformance.clock();
-        List<BlockPos> options = stances(pos, current);
+        List<BlockPos> options = stances(pos, current, above);
         performance.span(BuildPerformance.Span.STANCE_SEARCH, searchStarted);
         for (BlockPos candidate : options) {
             long stanceStarted = BuildPerformance.clock();
@@ -1644,7 +1736,7 @@ final class FakePlayersWorker implements ConstructionWorker {
         if (!npc.onGround() || here.getY() < target.getY() + 2) {
             return false;
         }
-        int maxDrop = npc.getHealth() >= 8 ? 6 : 3;
+        int maxDrop = maxSafeDrop();
         List<Descent> options = new ArrayList<>();
         for (BlockPos edge : BlockPos.withinManhattan(here, 6, 1, 6)) {
             // An NPC already standing on a roof stair can step off it without a path to its center.
@@ -1654,21 +1746,13 @@ final class FakePlayersWorker implements ConstructionWorker {
             }
             for (Direction side : Direction.Plane.HORIZONTAL) {
                 BlockPos air = edge.relative(side);
-                if (triedDescents.contains(air) || !freeTravelColumn(air)) {
+                if (triedDescents.contains(air)) {
                     continue;
                 }
-                for (int drop = 1; drop <= maxDrop; drop++) {
-                    BlockPos landing = air.below(drop);
-                    if (!freeTravelColumn(landing)) {
-                        break;
-                    }
-                    if (canStand(landing)) {
-                        if (drop >= 2 && landing.getY() < here.getY()
-                                && (!scaffoldCleanup || chestAim(target, BuildTerrain.standPoint(level, landing)) != null)) {
-                            options.add(new Descent(edge.immutable(), landing, level.getGameTime() + 110));
-                        }
-                        break;
-                    }
+                BlockPos landing = descentLanding(air, maxDrop);
+                if (landing != null && edge.getY() - landing.getY() >= 2 && landing.getY() < here.getY()
+                        && (!scaffoldCleanup || chestAim(target, BuildTerrain.standPoint(level, landing)) != null)) {
+                    options.add(new Descent(edge.immutable(), landing, level.getGameTime() + 110));
                 }
             }
         }
@@ -1690,6 +1774,23 @@ final class FakePlayersWorker implements ConstructionWorker {
             }
         }
         return false;
+    }
+
+    private int maxSafeDrop() {
+        return npc.getHealth() >= 8 ? 6 : 3;
+    }
+
+    private BlockPos descentLanding(BlockPos top, int maxDrop) {
+        for (int drop = 0; drop <= maxDrop; drop++) {
+            BlockPos landing = top.below(drop);
+            if (!freeTravelColumn(landing)) {
+                return null;
+            }
+            if (canStand(landing)) {
+                return landing;
+            }
+        }
+        return null;
     }
 
     private boolean freeTravelColumn(BlockPos feet) {
@@ -1746,9 +1847,13 @@ final class FakePlayersWorker implements ConstructionWorker {
     }
 
     private List<BlockPos> stances(BlockPos target, Vec3 current) {
+        return stances(target, current, 1);
+    }
+
+    private List<BlockPos> stances(BlockPos target, Vec3 current, int above) {
         List<BlockPos> candidates = new ArrayList<>();
         int minY = Math.max(level.getMinBuildHeight(), target.getY() - 4);
-        int maxY = Math.min(level.getMaxBuildHeight() - 2, target.getY() + 1);
+        int maxY = Math.min(level.getMaxBuildHeight() - 2, target.getY() + above);
         BlockPos min = new BlockPos(target.getX() - STANCE_RADIUS, minY, target.getZ() - STANCE_RADIUS);
         BlockPos max = new BlockPos(target.getX() + STANCE_RADIUS, maxY, target.getZ() + STANCE_RADIUS);
         for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
@@ -2125,6 +2230,8 @@ final class FakePlayersWorker implements ConstructionWorker {
         stockTarget = null;
         skippedStock.clear();
         actionTarget = null;
+        scaffoldCleanupAccess = null;
+        cleanupAccessBase = null;
         recoveringScaffold = false;
         if (npc != null) {
             npc.setDisplayItem(ItemStack.EMPTY);

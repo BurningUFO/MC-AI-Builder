@@ -2462,9 +2462,12 @@ final class ConstructionService {
                 }
             }
             response.add("cells", sample);
-            if (brain && cleanup == null && focus != null && target.equals(focus.pos())) {
+            WorkStep observed = cleanup == null ? focus : cleanup.blocked() != null ? null
+                    : new WorkStep(new BuildPlan.Target(current.plan.localPosition(target), target,
+                            level.getBlockState(target), net.minecraft.world.item.Items.DIRT), level.getBlockState(target), true);
+            if (brain && observed != null) {
                 JsonArray stances = new JsonArray();
-                for (var candidate : worker.workStances(focus)) {
+                for (var candidate : worker.workStances(observed)) {
                     current.planning.offerStance(candidate.feet());
                     JsonObject stance = new JsonObject();
                     stance.add("local", Wire.position(current.plan.localPosition(candidate.feet())));
@@ -2768,6 +2771,9 @@ final class ConstructionService {
             }
             case "choose_work" -> {
                 signature = action + ":" + strategy;
+                if (SCAFFOLD_DESCENT.equals(strategy)) {
+                    signature += ":" + BlockPos.containing(worker.position()).asLong();
+                }
                 planning.requireAttempt(current, signature);
                 if (!SCAFFOLD_DESCENT.equals(strategy)) {
                     end = first + 1;

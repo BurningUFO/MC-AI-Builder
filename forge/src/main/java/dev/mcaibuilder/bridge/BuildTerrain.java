@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
@@ -57,8 +58,11 @@ final class BuildTerrain {
         BlockState lower = blocks.apply(feet);
         BlockState upper = blocks.apply(head);
         var floorShape = ground.getCollisionShape(level, floor);
+        // A centered actor overlaps the upper tread of a native stair, even without a full top face.
+        boolean tread = ground.getBlock() instanceof StairBlock && !floorShape.isEmpty()
+                && floorShape.max(Direction.Axis.Y) == 1.0;
         return ground.getFluidState().isEmpty() && !WorldObservation.hazard(ground)
-                && (ground.isFaceSturdy(level, floor, Direction.UP) || !floorShape.isEmpty()
+                && (ground.isFaceSturdy(level, floor, Direction.UP) || tread || !floorShape.isEmpty()
                 && floorShape.max(Direction.Axis.Y) == 0.5)
                 && lower.getFluidState().isEmpty() && lower.getCollisionShape(level, feet).isEmpty()
                 && upper.getFluidState().isEmpty() && upper.getCollisionShape(level, head).isEmpty();
