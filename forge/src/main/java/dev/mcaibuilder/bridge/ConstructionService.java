@@ -45,7 +45,7 @@ final class ConstructionService {
     private static final String SCAFFOLD_CLEANUP_BLOCKED = "scaffold_cleanup_blocked";
     private static final String SCAFFOLD_DESCENT = "scaffold_descent";
     private static final String PLANNING_BLOCKED = "planning_blocked";
-    private static final Set<String> REOPENED_CHECKPOINT = Set.of("restart_verification", "server_stopping");
+    private static final Set<String> REOPENED_CHECKPOINT = Set.of("restart_verification", "server_stopping", "worksite_permission_inactive");
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final Set<String> PLACEMENT_FAILURES = Set.of(
             "no_reachable_placement_stance", "no_reachable_break_stance", "navigation_timeout", "placement_stalled",
@@ -62,6 +62,7 @@ final class ConstructionService {
 
     private final ServerLevel level;
     private final BuildSite site;
+    private WorksitePermit worksite;
     private final Set<Block> palette;
     private final ConstructionWorker worker;
     private final JobJournal journal;
@@ -81,6 +82,7 @@ final class ConstructionService {
     ConstructionService(ServerLevel level, BuildSite site, Set<Block> palette, ConstructionWorker worker) throws IOException {
         this.level = level;
         this.site = site;
+        worksite = site.worksite();
         this.palette = palette;
         this.worker = worker;
         journal = new JobJournal(level, site);
@@ -151,14 +153,14 @@ final class ConstructionService {
     }
 
     boolean autonomousAvailable() {
-        return site.worldCopy() && !autonomyRevoked && site.worksite().active(System.currentTimeMillis());
+        return site.worldCopy() && !autonomyRevoked && worksite.active(System.currentTimeMillis());
     }
 
     JsonObject worksiteStatus() {
-        JsonObject value = site.worksite().json();
+        JsonObject value = worksite.json();
         value.addProperty("active", autonomousAvailable());
         value.addProperty("state", autonomyRevoked ? "revoked" : autonomousAvailable() ? "active"
-                : site.worksite().mode().equals("manual") ? "manual" : "expired");
+                : worksite.mode().equals("manual") ? "manual" : "expired");
         if (site.scope() != null) {
             value.addProperty("authorization", site.scope().toString());
         }
@@ -169,6 +171,15 @@ final class ConstructionService {
         if (!autonomousAvailable()) {
             throw Wire.conflict("worksite_permission_inactive", "自主建设权限已过期或撤销，请重新审阅工作区。");
         }
+    }
+
+    void renewAutonomy(WorksitePermit renewed) {
+        requireWritable();
+        if (autonomyRevoked) {
+            autonomyRevoked = false;
+            persist();
+        }
+        worksite = renewed;
     }
 
     void revokeAutonomy() {
@@ -1746,7 +1757,7 @@ final class ConstructionService {
             return;
         }
         WorkStep first = current.steps.get(current.cursor);
-        if (first.remove() || first.target().paired() || first.target().light() || worker.canPlaceHere(first)) {
+        if (first.remove() || first.target().paired() || first.target().upper() || first.target().light() || worker.canPlaceHere(first)) {
             return;
         }
         int end = Math.min(action.end(), current.cursor + 96);
@@ -1755,7 +1766,7 @@ final class ConstructionService {
             if (step.remove() || step.pos().getY() != first.pos().getY() || step.target().light()) {
                 break;
             }
-            if (step.after() != first.after() || step.target().paired() || current.scaffolds.containsKey(step.pos())
+            if (step.after() != first.after() || step.target().paired() || step.target().upper() || current.scaffolds.containsKey(step.pos())
                     || !site.canWorkAt(level, step.pos()) || !level.getBlockState(step.pos()).isAir()
                     || !BlockPos.containing(worker.position()).closerThan(step.pos(), 5) || !worker.canPlaceHere(step)) {
                 continue;

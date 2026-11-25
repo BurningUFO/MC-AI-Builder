@@ -639,8 +639,11 @@ final class FakePlayersWorker implements ConstructionWorker {
                 suppliedBases.add(route.base());
             }
         }
-        routes.sort(Comparator.comparing((ScaffoldRoute route) -> !suppliedBases.contains(route.base()))
-                .thenComparingDouble(route -> route.base().distSqr(npc.blockPosition())));
+        Comparator<ScaffoldRoute> order = Comparator.comparing(route -> !suppliedBases.contains(route.base()));
+        if (surveyedTerrain) {
+            order = order.thenComparingInt(route -> route.workY() - route.base().getY());
+        }
+        routes.sort(order.thenComparingDouble(route -> route.base().distSqr(npc.blockPosition())));
         for (ScaffoldRoute route : routes) {
             if (route.base().equals(npc.blockPosition())) {
                 stopNavigation();

@@ -65,6 +65,12 @@ final class CopySites {
 
     private record Permit(UUID id, ResourceKey<Level> dimension, BuildSite.Box area, BlockPos spawn,
                           BlockPos origin, Rotation rotation, WorksitePermit worksite) {
+        boolean sameScope(Permit other) {
+            return dimension.equals(other.dimension) && area.equals(other.area) && spawn.equals(other.spawn)
+                    && origin.equals(other.origin) && rotation == other.rotation && worksite.mode().equals(other.worksite.mode())
+                    && worksite.protectedAreas().equals(other.worksite.protectedAreas());
+        }
+
         JsonObject json() {
             JsonObject data = new JsonObject();
             data.addProperty("authorization", id.toString());
@@ -389,6 +395,17 @@ final class CopySites {
         }
         Permit permit = review.permit();
         validateLive(permit, player);
+        if (active != null && !permit.worksite().mode().equals("manual") && permit.sameScope(active.permit())) {
+            Permit renewed = new Permit(active.permit().id(), permit.dimension(), permit.area(), permit.spawn(),
+                    permit.origin(), permit.rotation(), permit.worksite());
+            persist(renewed);
+            active.construction().renewAutonomy(renewed.worksite());
+            active = new Active(renewed, active.construction(), active.architect());
+            review = null;
+            selection = null;
+            tell(player, "施工区已批准续期。当前工程与供料授权已保留。");
+            return;
+        }
         Active next;
         try {
             next = open(permit);
