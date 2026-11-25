@@ -1,0 +1,64 @@
+{
+  "inputs": {
+    "design.py": "638272b9f43acfdd1089986ea0693d1a9d07a2d49dd6fec2332cc3c4676c5c7f",
+    "views.json": "bcefe3f98a70340e86952eab88dbc1cf49408779e9de54765c40ccf5906b3f14",
+    "building.json": "f3afdb0891867ce2eabe4a60b251aef50a19a35b01dceae609bc43ff5ef7abf7",
+    "design-groups.json": "5c5f90cf54bba8374b790076d60cbee48bff4508ba08d22c081b5f4980c54282",
+    "material-index.json": "72747d8c69e360561e50cd4f260834886fc75ff0f3a891c89a6a583f4571e99d",
+    "materials.csv": "3546eb185c4bc7eb325523d80b804527c3a7212d228e986833e7b47bcbae86ec"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.86,
+  "blend": null,
+  "images": {
+    "hero": {
+      "file": "hero.png",
+      "scene": "Building",
+      "camera": "hero",
+      "sha256": "cd2d702af049b68d69eb24321f98f12dc24cbbda39d0ada57fbd5a1713fca0fe",
+      "seconds": 1.867
+    },
+    "front": {
+      "file": "front.png",
+      "scene": "Building",
+      "camera": "front",
+      "sha256": "9c4ccc9f270f6576aa8781a1961d49470883db10af45eb807f77ea294f5ca42d",
+      "seconds": 1.268
+    },
+    "crown": {
+      "file": "crown.png",
+      "scene": "Building",
+      "camera": "crown",
+      "sha256": "d5060c6c5c120d536149a5eaae38df2fe7c869e2d95ccc594775e8da30cf7876",
+      "seconds": 1.405
+    }
+  },
+  "cameras": {
+    "hero": {
+      "scene": "Building",
+      "name": "hero",
+      "frame": 1
+    },
+    "front": {
+      "scene": "Building",
+      "name": "front",
+      "frame": 21
+    },
+    "crown": {
+      "scene": "Building",
+      "name": "crown",
+      "frame": 41
+    }
+  },
+  "scene_block_counts": {
+    "Building": 13196
+  },
+  "full_scene": "Building"
+}

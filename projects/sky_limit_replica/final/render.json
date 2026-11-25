@@ -1,0 +1,137 @@
+{
+  "inputs": {
+    "design.py": "b41134dc07ecc41daf4ecc8e9333d62b93edc1560b7da9ee2dee7088761c7cf5",
+    "views.json": "54593e8ca26dcd579199205087bcdd48ef9a38e5be0b50313d0f548da53c130c",
+    "building.json": "a1270fb037761c318b75024306188f8a87d6613b75273d8e8e75068f9a760da0",
+    "design-groups.json": "65a02a5d8e9e47b201fa2dde1cf0b546e7b00edafccccc802233ac2deae922d9",
+    "material-index.json": "07a8fee1b4ec7faefc31f7bcf95e2cfcf063bd5ffaeae2712e401b9312d184b4",
+    "materials.csv": "7829eb6bd531e2a81cf91ad3c89d36e0bca86cc54e1922a2df7504ff9fc36d77"
+  },
+  "preset": "final",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1440,
+    1200
+  ],
+  "setup_seconds": 0.745,
+  "blend": "sky_limit_replica.blend",
+  "images": {
+    "hero": {
+      "file": "hero.png",
+      "scene": "Building",
+      "camera": "hero",
+      "sha256": "6bab6bdc2afa99bf4e349c6fe74d225731de0e89cdb20daa5731e993d5986087",
+      "seconds": 10.552
+    },
+    "front": {
+      "file": "front.png",
+      "scene": "Building",
+      "camera": "front",
+      "sha256": "2bb730703b007900b901459c7771f76db2ce79b528a6a5612207b614ba93d263",
+      "seconds": 8.877
+    },
+    "top": {
+      "file": "top.png",
+      "scene": "Building",
+      "camera": "top",
+      "sha256": "649a579fe26bccc6673c903d62ce745a729ad9eb2534d896528ec7d1a6a10567",
+      "seconds": 11.51
+    },
+    "crown": {
+      "file": "crown.png",
+      "scene": "Building",
+      "camera": "crown",
+      "sha256": "1ac38fd66a75b4d45801d8ff57e777e64d5d6d8dec5370378301c8b2976a8adc",
+      "seconds": 17.997
+    },
+    "promenade": {
+      "file": "promenade.png",
+      "scene": "Building",
+      "camera": "promenade",
+      "sha256": "2ab737f92308fb822b828dc5a00849bb76d3296359dc6f8aa9586e88556779f9",
+      "seconds": 19.703
+    },
+    "pendant": {
+      "file": "pendant.png",
+      "scene": "Building",
+      "camera": "pendant",
+      "sha256": "f110d1891248e6583626bd7c2866e029b72a20b651e11ae02b4cd0a10d6bb5cd",
+      "seconds": 13.011
+    },
+    "satellite": {
+      "file": "satellite.png",
+      "scene": "Building",
+      "camera": "satellite",
+      "sha256": "dad5ad47bde3fc57890084dff72e5149950887802183aab1642d19e1d0ba7e53",
+      "seconds": 12.125
+    },
+    "tower-room": {
+      "file": "tower-room.png",
+      "scene": "Building",
+      "camera": "tower-room",
+      "sha256": "ddcb9113766978941d8d74b723fa7e85d220777794944b485cb2627732072234",
+      "seconds": 52.531
+    },
+    "lower-plan": {
+      "file": "lower-plan.png",
+      "scene": "Lower promenade plan",
+      "camera": "lower-plan",
+      "sha256": "9ad7fc16f1ff0add252b24cb94b74fb9f3090f11c83fbdc21ac8f07810335cd7",
+      "seconds": 9.669
+    }
+  },
+  "cameras": {
+    "hero": {
+      "scene": "Building",
+      "name": "hero",
+      "frame": 1
+    },
+    "front": {
+      "scene": "Building",
+      "name": "front",
+      "frame": 21
+    },
+    "top": {
+      "scene": "Building",
+      "name": "top",
+      "frame": 41
+    },
+    "crown": {
+      "scene": "Building",
+      "name": "crown",
+      "frame": 61
+    },
+    "promenade": {
+      "scene": "Building",
+      "name": "promenade",
+      "frame": 81
+    },
+    "pendant": {
+      "scene": "Building",
+      "name": "pendant",
+      "frame": 101
+    },
+    "satellite": {
+      "scene": "Building",
+      "name": "satellite",
+      "frame": 121
+    },
+    "tower-room": {
+      "scene": "Building",
+      "name": "tower-room",
+      "frame": 141
+    },
+    "lower-plan": {
+      "scene": "Lower promenade plan",
+      "name": "lower-plan",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 11280,
+    "Lower promenade plan": 3986
+  },
+  "full_scene": "Building"
+}

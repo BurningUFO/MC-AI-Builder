@@ -1,0 +1,4 @@
+# Preserve the source bytes recorded by Blender verification.
+/design.py -text !eol
+/views.json -text !eol
+/materials.csv -text

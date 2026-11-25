@@ -1,0 +1,152 @@
+{
+  "before": "D:\\MC-AI-Builder\\projects\\sky_limit_replica\\versions\\baseline",
+  "after": "D:\\MC-AI-Builder\\projects\\sky_limit_replica",
+  "render_settings": {
+    "preset": "quick",
+    "presentation": "showcase",
+    "cpu": true,
+    "fixed_lighting": true,
+    "legacy_views": false,
+    "full_scene": "Building",
+    "stage": {
+      "ground": false,
+      "sun": [
+        -7,
+        12,
+        8
+      ],
+      "ground_y": -0.04
+    },
+    "sections": {
+      "Lower promenade plan": {
+        "min": [
+          null,
+          42,
+          null
+        ],
+        "max": [
+          null,
+          46,
+          null
+        ]
+      }
+    },
+    "render": [
+      "hero",
+      "promenade",
+      "satellite"
+    ],
+    "blend": null,
+    "cameras": {
+      "hero": {
+        "image": "hero.png",
+        "scene": "Building",
+        "camera": "hero",
+        "target": [
+          0,
+          53,
+          0
+        ],
+        "offset": [
+          112,
+          -176,
+          42
+        ],
+        "scale": 135,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "promenade": {
+        "image": "promenade.png",
+        "scene": "Building",
+        "camera": "promenade",
+        "target": [
+          0,
+          64,
+          0
+        ],
+        "offset": [
+          31,
+          -26,
+          -16
+        ],
+        "scale": 216.66419547308686,
+        "lens_mm": 20,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "satellite": {
+        "image": "satellite.png",
+        "scene": "Building",
+        "camera": "satellite",
+        "target": [
+          46,
+          48,
+          0
+        ],
+        "offset": [
+          19,
+          -25,
+          15
+        ],
+        "scale": 34,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      }
+    }
+  },
+  "device": "CPU",
+  "views": {
+    "hero": {
+      "before": "before/hero.png",
+      "after": "after/hero.png",
+      "pair": "hero.png"
+    },
+    "promenade": {
+      "before": "before/promenade.png",
+      "after": "after/promenade.png",
+      "pair": "promenade.png"
+    },
+    "satellite": {
+      "before": "before/satellite.png",
+      "after": "after/satellite.png",
+      "pair": "satellite.png"
+    }
+  },
+  "blueprint_diff": {
+    "before_sha256": "f3afdb0891867ce2eabe4a60b251aef50a19a35b01dceae609bc43ff5ef7abf7",
+    "after_sha256": "a1270fb037761c318b75024306188f8a87d6613b75273d8e8e75068f9a760da0",
+    "before_blocks": 13196,
+    "after_blocks": 11280,
+    "bounds": {
+      "min": [
+        -49,
+        43,
+        -49
+      ],
+      "max": [
+        49,
+        78,
+        49
+      ]
+    },
+    "expected_bounds": {
+      "min": [
+        null,
+        null,
+        null
+      ],
+      "max": [
+        null,
+        null,
+        null
+      ]
+    },
+    "outside": 0,
+    "added": 101,
+    "removed": 2017,
+    "replaced": 1368
+  }
+}
