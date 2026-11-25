@@ -17,6 +17,7 @@
 | 苔岬庄园 | [工程](../../projects/lakeside_manor) | [临湖外观](lakeside_manor/shore-approach.png) · [炉厅](lakeside_manor/great-hall.png) · [首版](../../projects/lakeside_manor/versions/v1) |
 | 澄漪阁 | [原版](../../projects/waterside_pavilion) · [Architecture V1](../../projects/waterside_pavilion_architecture_v1) | [原版外观](waterside_pavilion/lake.png) · [新版外观](waterside_pavilion_architecture_v1/lake.png) · [同机位对比](architecture_v1/waterside_pavilion/lake.png) |
 | 月隙观星台 | [原版](../../projects/astral_observatory) · [Architecture V1](../../projects/astral_observatory_architecture_v1) | [原版外观](astral_observatory/approach.png) · [新版外观](astral_observatory_architecture_v1/approach.png) · [同机位对比](architecture_v1/astral_observatory/approach.png) |
+| 鸢坡站 | [成品工程](../../projects/art_nouveau_hillside_station) · [V1 基线](../../projects/art_nouveau_hillside_station/versions/v1-baseline) | [整体](art_nouveau_hillside_station/hero.png) · [大厅对比](art_nouveau_hillside_station/comparison/hall.png) · [跨轨剖面对比](art_nouveau_hillside_station/comparison/cross-section.png) |
 
 Architecture V1 的 [体量草案、同机位渲染和路线证据](architecture_v1) 连同两份项目说明一起保存。早期渲染研究保存的是当时的蓝图、材料清单和外观图。带 `render.json` 的 Python 快照可以用 `restore` 还原。 [工作流与复现条件](../blender-workflow.md)
 

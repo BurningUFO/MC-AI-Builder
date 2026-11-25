@@ -1,0 +1,168 @@
+{
+  "blender_version": "5.2.4 LTS",
+  "building_sha256": "99d22ce11b848b2def8d36bf2d845c555b8d9aff9c186283091b0d57d4c064e9",
+  "geometry": {
+    "Building": {
+      "mesh_objects": 24,
+      "faces": 63311,
+      "source_blocks": 36796,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 600,
+        "01 Site/Railway retaining wall": 424,
+        "01 Site/Rock cutting": 26610,
+        "01 Site/Street terraces": 1017,
+        "02 Concourse/Copper-edged crown": 972,
+        "02 Concourse/Mosaic and steps": 1065,
+        "02 Concourse/Platform clock": 9,
+        "02 Concourse/Side walls and gallery": 321,
+        "02 Concourse/Splayed street canopy": 124,
+        "02 Concourse/Street fanlight and piers": 523,
+        "02 Concourse/Tickets and lighting": 30,
+        "02 Concourse/West ticket annex": 324,
+        "03 Upper waiting room/Bay windows": 467,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Hipped roof": 263,
+        "03 Upper waiting room/Oak seats and lamps": 16,
+        "04 Railway shed/Springing columns": 66,
+        "04 Railway shed/Track bed and boarding edge": 1371,
+        "04 Railway shed/Uphill screen": 342,
+        "04 Railway shed/Vault glazing": 1652,
+        "04 Railway shed/Vault ribs": 108,
+        "04 Railway shed/Waiting benches": 27,
+        "04 Railway shed/West footbridge": 103
+      }
+    },
+    "Travel section": {
+      "mesh_objects": 22,
+      "faces": 36251,
+      "source_blocks": 20496,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 360,
+        "01 Site/Railway retaining wall": 227,
+        "01 Site/Rock cutting": 14524,
+        "01 Site/Street terraces": 560,
+        "02 Concourse/Copper-edged crown": 532,
+        "02 Concourse/Mosaic and steps": 629,
+        "02 Concourse/Platform clock": 9,
+        "02 Concourse/Side walls and gallery": 195,
+        "02 Concourse/Splayed street canopy": 71,
+        "02 Concourse/Street fanlight and piers": 288,
+        "02 Concourse/Tickets and lighting": 6,
+        "03 Upper waiting room/Bay windows": 467,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Hipped roof": 263,
+        "03 Upper waiting room/Oak seats and lamps": 16,
+        "04 Railway shed/Springing columns": 34,
+        "04 Railway shed/Track bed and boarding edge": 760,
+        "04 Railway shed/Uphill screen": 192,
+        "04 Railway shed/Vault glazing": 924,
+        "04 Railway shed/Vault ribs": 60,
+        "04 Railway shed/Waiting benches": 17
+      }
+    },
+    "Boarding plan": {
+      "mesh_objects": 19,
+      "faces": 42765,
+      "source_blocks": 31482,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 201,
+        "01 Site/Railway retaining wall": 424,
+        "01 Site/Rock cutting": 25857,
+        "01 Site/Street terraces": 1017,
+        "02 Concourse/Mosaic and steps": 1063,
+        "02 Concourse/Side walls and gallery": 248,
+        "02 Concourse/Splayed street canopy": 124,
+        "02 Concourse/Street fanlight and piers": 216,
+        "02 Concourse/Tickets and lighting": 30,
+        "02 Concourse/West ticket annex": 171,
+        "03 Upper waiting room/Bay windows": 272,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Oak seats and lamps": 12,
+        "04 Railway shed/Springing columns": 6,
+        "04 Railway shed/Track bed and boarding edge": 1371,
+        "04 Railway shed/Uphill screen": 57,
+        "04 Railway shed/Waiting benches": 18,
+        "04 Railway shed/West footbridge": 33
+      }
+    },
+    "West crossing section": {
+      "mesh_objects": 10,
+      "faces": 2685,
+      "source_blocks": 1086,
+      "parts": {
+        "01 Site/Railway retaining wall": 35,
+        "01 Site/Rock cutting": 576,
+        "02 Concourse/West ticket annex": 6,
+        "04 Railway shed/Springing columns": 10,
+        "04 Railway shed/Track bed and boarding edge": 134,
+        "04 Railway shed/Uphill screen": 42,
+        "04 Railway shed/Vault glazing": 196,
+        "04 Railway shed/Vault ribs": 12,
+        "04 Railway shed/Waiting benches": 7,
+        "04 Railway shed/West footbridge": 68
+      }
+    }
+  },
+  "packed_minecraft_textures": 42,
+  "images": {
+    "hero.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2247652,
+      "sha256": "2ffa7f4838eaaeefb19f71795230b7ca1224c16cc18780504fbd8d1eaa628bac",
+      "sampled_tonal_range": 0.8392,
+      "pixel_sha256": "4fbc72f1d224563326b1c17193176c6c40f47b39dac78725f5277088bbf4c0a3"
+    },
+    "hall.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2484064,
+      "sha256": "ce5822a68f6c8d5761f6e81285ce631dafb6ac8bc496d05acd6206a77c446dfa",
+      "sampled_tonal_range": 0.902,
+      "pixel_sha256": "aadb1e35e193e0c3b762474b31aefa111364d1493a2c217e5c8b69cd3a904453"
+    },
+    "platform.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2220348,
+      "sha256": "fa47fc56abdc99d162662d54a1f956518792eb9d3072035980cb893a71161bab",
+      "sampled_tonal_range": 0.8863,
+      "pixel_sha256": "b18055918610ab9aaa133ee7270b697cec94ba1fc3079717bd6cc6473ce2672a"
+    },
+    "waiting.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2074758,
+      "sha256": "51df02918e5d2d73ebdde47066ed1bf20d57a5de41fdb85dbf5077945c499b20",
+      "sampled_tonal_range": 0.9059,
+      "pixel_sha256": "804e9e5d758bbf5a57d3cd3035693bc6c361604af2d3246f9ae7ab139eb060c4"
+    },
+    "section.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2202880,
+      "sha256": "57ce81dca00f6f9aaf056eb1036f4725f0addc589c82d0a1d98a96788d5dfc50",
+      "sampled_tonal_range": 0.8392,
+      "pixel_sha256": "ba4edb86991ed0ad40390680c3856b96d54fdf327e336a2b92d077eb42e36314"
+    }
+  },
+  "render_fallbacks": {},
+  "render_approximations": {
+    "minecraft:grass_block[snowy=false]": [
+      "Uses the first weighted model.",
+      "Biome or runtime tint is approximated where available."
+    ],
+    "minecraft:lantern[hanging=false,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:oak_leaves[distance=7,persistent=true,waterlogged=false]": [
+      "Biome or runtime tint is approximated where available."
+    ],
+    "minecraft:lantern[hanging=true,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ]
+  }
+}

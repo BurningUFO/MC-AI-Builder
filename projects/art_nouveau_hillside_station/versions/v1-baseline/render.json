@@ -1,0 +1,141 @@
+{
+  "inputs": {
+    "design.py": "bb7cfa1ce0445629e2a313a77b2fa6c4cb7a50de128cbee7c461577f00aa4459",
+    "views.json": "26f674aea27dc792f51a07dad48c6a9f724a55535939d096fde6853b8f05c970",
+    "building.json": "c3bbda4cd93c56e4098cba243d1ea63c373ccb9b9586a9d8a371f84086349a6e",
+    "design-groups.json": "108897a70b97974522b82bc395adea0140dfcf186f9370e30221103362b615de",
+    "material-index.json": "f9618e67f793b4e01330efe738deb2063a8dcf15d92424cf646487b67b5fba79",
+    "materials.csv": "5111f47077f7b58ecded3458cde19f1d7d171e6efa2cc44eb67750459e34ec28"
+  },
+  "preset": "review",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1080,
+    900
+  ],
+  "setup_seconds": 2.003,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "bd0973d2377561dd4347c2e8bef69d33ab06fd2150eb2ac6747d26fe18ab6ac9",
+      "seconds": 5.843
+    },
+    "garden": {
+      "file": "garden.png",
+      "scene": "Building",
+      "camera": "garden",
+      "sha256": "31c2047a102174c096078624e5632e7088e38e248f338b9aacb501b9b1dac661",
+      "seconds": 5.887
+    },
+    "canopy": {
+      "file": "canopy.png",
+      "scene": "Building",
+      "camera": "canopy",
+      "sha256": "a85c0b376103d53fc5922262a1b90999aef4af31c165a24d79f8d4a785b550e1",
+      "seconds": 8.347
+    },
+    "hall": {
+      "file": "hall.png",
+      "scene": "Building",
+      "camera": "hall",
+      "sha256": "d48de60f038bb34b6db6db91b0fd4fb9b203087e01126febf104abfedefe5bba",
+      "seconds": 11.37
+    },
+    "arrival": {
+      "file": "arrival.png",
+      "scene": "Building",
+      "camera": "arrival",
+      "sha256": "124ec2b065773f2642b4c4d468d9e164071475821603551d8558a23791772cc2",
+      "seconds": 12.499
+    },
+    "platform": {
+      "file": "platform.png",
+      "scene": "Building",
+      "camera": "platform",
+      "sha256": "4c87868863de9864453ff1865b78029d08d403798d5b81c42e36f3f0e250560b",
+      "seconds": 11.959
+    },
+    "waiting": {
+      "file": "waiting.png",
+      "scene": "Building",
+      "camera": "waiting",
+      "sha256": "be4711b4346f097e73c9e1e28b68f669ff6b948fcecd12d556cd046b20fa9743",
+      "seconds": 10.715
+    },
+    "section": {
+      "file": "section.png",
+      "scene": "Travel section",
+      "camera": "section",
+      "sha256": "d29a1a975b8a80e02ec2d2f97e911da52b60a1e9786402f24307653cb89b2493",
+      "seconds": 6.525
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "facade": {
+      "scene": "Building",
+      "name": "facade",
+      "frame": 21
+    },
+    "garden": {
+      "scene": "Building",
+      "name": "garden",
+      "frame": 41
+    },
+    "shed-end": {
+      "scene": "Building",
+      "name": "shed-end",
+      "frame": 61
+    },
+    "hall": {
+      "scene": "Building",
+      "name": "hall",
+      "frame": 81
+    },
+    "arrival": {
+      "scene": "Building",
+      "name": "arrival",
+      "frame": 101
+    },
+    "platform": {
+      "scene": "Building",
+      "name": "platform",
+      "frame": 121
+    },
+    "waiting": {
+      "scene": "Building",
+      "name": "waiting",
+      "frame": 141
+    },
+    "canopy": {
+      "scene": "Building",
+      "name": "canopy",
+      "frame": 161
+    },
+    "section": {
+      "scene": "Travel section",
+      "name": "section",
+      "frame": 1
+    },
+    "plan": {
+      "scene": "Boarding plan",
+      "name": "plan",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 36832,
+    "Travel section": 20565,
+    "Boarding plan": 31525
+  },
+  "full_scene": "Building"
+}

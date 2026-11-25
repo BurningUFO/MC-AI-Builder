@@ -1,0 +1,31 @@
+{
+  "stage": {
+    "ground_y": -4.04,
+    "ground_color": [0.17, 0.225, 0.205],
+    "sun": [-6, 13, 10],
+    "interior_lights": [{"name": "Light through the street fanlight", "position": [-3, 11, 6.3], "target": [-2, 2, -3], "power": 1850, "size": 7}, {"name": "Vault bounce", "position": [0, 14.5, -17], "target": [-3, 6, -12], "power": 2300, "size": 11}, {"name": "East bay daylight bounce", "position": [21, 11, 3], "target": [18, 7, -2], "power": 480, "size": 4}]
+  },
+  "views": {
+    "approach": {"position": [-43, 28, 71], "target": [-0.5, 7, -6], "scale": 91},
+    "facade": {"position": [0, 11, 60], "target": [0, 8.5, 4], "scale": 76},
+    "garden": {"position": [52, 29, 58], "target": [0, 6, -5], "scale": 91},
+    "shed-end": {"position": [49, 23, -39], "target": [4, 8, -12], "scale": 77},
+    "hall": {"position": [-10.2, 4.25, 7.8], "target": [-0.05, 7.3, -7], "lens": 18},
+    "arrival": {"position": [3.5, 9.1, -5.2], "target": [-5.5, 6.9, 10], "lens": 16},
+    "platform": {"position": [23.5, 8.65, -13], "target": [-13, 12.6, -17], "lens": 18},
+    "waiting": {"position": [16.65, 8.65, -3.5], "target": [22, 9.2, 6], "lens": 20},
+    "canopy": {"position": [-21, 14, 31], "target": [-2, 9, 9], "scale": 38},
+    "section": {"position": [-61, 24, 29], "target": [1, 6, -5], "scale": 65, "section": "Travel section"},
+    "plan": {"position": [0, 75, -6], "target": [0, 0, -6], "scale": 80, "section": "Boarding plan"},
+    "entrance-eye": {"position": [-2, 2.65, 5.5], "target": [-2, 7.5, -8], "lens": 20},
+    "crossing": {"position": [-18.5, 11.8, -10.2], "target": [-25, 8.3, -19], "lens": 19},
+    "cross-section": {"position": [-53, 16, -10], "target": [-24, 8.5, -17], "scale": 35, "section": "West crossing section"},
+    "hero": {"position": [-43, 39, 65], "target": [-0.5, 7, -6], "scale": 87},
+    "canopy-under": {"position": [-10, 3.75, 18.8], "target": [-2, 6.6, 10], "lens": 20}
+  },
+  "sections": {
+    "Travel section": {"min": [-3, null, null]},
+    "Boarding plan": {"max": [null, 7, null]},
+    "West crossing section": {"min": [-26, 2, -28], "max": [-20, null, -6], "exclude": ["01 Site/Planting"]}
+  }
+}

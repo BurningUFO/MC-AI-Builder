@@ -1,4 +1,4 @@
-# Architecture Intelligence V1
+# Architecture Intelligence
 
 复杂建筑先用参考图确定比例、轮廓或空间关系，再比较低成本体量。把选定的几何、材质和细节写入 Python，最后用固定机位、关键路线和蓝图差异决定保留哪一版。[操作命令](blender-workflow.md#设计比较和动线)
 
@@ -21,3 +21,16 @@
 - **半格曲面和接缝。** [`roof_courses`](../src/core/roof.py) 接收任意 Python 高度图 `{(x, z): 离 Y=0 的半格数}`，给出整块、台阶、直楼梯的朝向及需要补实的接缝格。适合连续屋坡、有意起翘的檐口或薄斜面，材质要有配套整块、台阶和楼梯。先令邻列高差足够平缓，再选择脊、檐、屋面三种着色范围。大落差应明确归入山花或背衬，檩木写入空位以免覆盖屋面。澄漪阁屋面、月隙观星台档案厅和浑仪斜环复用了它。屋脊和斜环近景能看出半格和接缝的作用。 [楼阁檐口](previews/architecture_v1/waterside_pavilion/eaves.png) · [浑仪近景](previews/astral_observatory_architecture_v1/meridian.png)
 
 两栋项目的 [澄漪阁](../projects/waterside_pavilion_architecture_v1/README.md) 和 [月隙观星台](../projects/astral_observatory_architecture_v1/README.md) 记录了体量草案、实拍对比和走查结果。
+
+
+## 按设计问题找案例
+
+| 设计问题 | 实图观察与方块做法 |
+| --- | --- |
+| 新艺术运动的入口、檐下和花窗 | Guimard 的 Porte Dauphine 近照中，深绿肋条穿过弧梁再向扇缘分开，玻璃之间有大段留白。先画柱、分叉和每根肋的末端，再填玻璃。鸢坡站把深色限在主枝与托臂，铜用于薄肋，白玻璃和少量琥珀玻璃留在扇窗。先从檐下确认肋条、柱头与玻璃的交接，再看远景主次。 [RATP](https://www.ratp.fr/en/discover/heritage/hector-guimard) · [实拍](https://commons.wikimedia.org/wiki/File:Metro_station_entrance_(%C3%A9dicule_Guimard)_Porte_Dauphine_Paris_16e_001.jpg) · [鸢坡站檐下](previews/art_nouveau_hillside_station/comparison/canopy-under.png) |
+| 不对称街角与局部装饰 | Ålesund 的 Apotekergata 10 把尖冠和高窗集中到转角凸面，侧墙靠重复开间维持连贯。鸢坡站用低票房衬托东侧高候车亭，保留主大厅的视觉重心。暖浅色壁面配深色檐顶，先以中性体量确认轮廓再试真实贴图。 [街角实拍](https://commons.wikimedia.org/wiki/File:%C3%85lesund_hus.jpg) · [鸢坡站体量比较](previews/art_nouveau_hillside_station/massing.png) |
+| 眼平高度的上行动线 | Horta 故居照片中，栏杆、平台和屋顶光带把几个高差读成一条路线。鸢坡站用窄化上跑、区分平台和踏步的材质、打开站棚过渡拱口来重现这层关系。用眼高图查出口与光线，再用剖面及 `walk` 查楼梯和各层标高。 [Horta Museum](https://hortamuseum.be/maison-musee) · [楼梯实拍](https://www.admirable-artnouveau.be/nl/facades/horta-huis-en-atelier-horta-museum/) · [入口眼高对照](previews/art_nouveau_hillside_station/comparison/entrance-eye.png) |
+| 宽跨玻璃屋顶的主次 | 安特卫普中央站棚内，重复的承重拱横跨轨道，细分格跟随大面。先以一种低反差的玻璃连接各跨，将对比留给起脚至脊顶的肋。鸢坡站把两条高反差白玻璃带改为与瓦间相同的浅灰玻璃，再从站台验证拱肋序列、透光和端部纵深。 [Visit Antwerpen](https://visit.antwerpen.be/en/info/centraal-station-en) · [站棚实拍](https://www.locationscout.net/belgium/52417-antwerp-central-station) · [站台对照](previews/art_nouveau_hillside_station/comparison/platform.png) |
+| 体素曲线接缝 | 用 [`cubic_cells`](../src/core/curves.py) 将任意二维三次 Bézier 路径转成逐格共享边的线，映射到墙面、平面或屋顶高度图。用于接合分叉、栏带、地面镶线。几根线在短跨内并行时会合成暗块，先保留主枝和分叉间的空白，再定装饰层。斜面厚度与半格构件仍由 `roof_courses` 和具体材质决定。 [鸢坡站花窗源码](../projects/art_nouveau_hillside_station/design.py) · [入口对照](previews/art_nouveau_hillside_station/comparison/canopy.png) |
+
+需要选择陌生风格的做法时，先写下参考图中一条要保留的关系，例如“从立柱能看见肋条伸向扇缘”，再决定方块状态和同机位的检验方式。遇到空间疑点先补相机或查询坐标，再修改几何。需要独立判断时，沿用 [建筑工作流的审阅步骤](blender-workflow.md#设计比较和动线)。主动请求机位和切片参考 mcbuild，按原问题结合图像与几何复验参考 BlendHarness。 [mcbuild 提示词](https://github.com/harrynull/mcbuild/blob/main/src/mcbuild/agent/prompts.py#L524-L551) · [BlendHarness 复验源码](https://raw.githubusercontent.com/cccky0813/BlendHarness/main/blendharness/agents/verifier.py)

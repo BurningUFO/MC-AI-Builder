@@ -1,0 +1,173 @@
+{
+  "blender_version": "5.2.4 LTS",
+  "building_sha256": "c3bbda4cd93c56e4098cba243d1ea63c373ccb9b9586a9d8a371f84086349a6e",
+  "geometry": {
+    "Building": {
+      "mesh_objects": 23,
+      "faces": 63253,
+      "source_blocks": 36832,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 600,
+        "01 Site/Railway retaining wall": 424,
+        "01 Site/Rock cutting": 26610,
+        "01 Site/Street terraces": 1017,
+        "02 Concourse/Copper-edged crown": 975,
+        "02 Concourse/Mosaic and steps": 1131,
+        "02 Concourse/Platform clock": 21,
+        "02 Concourse/Side walls and gallery": 381,
+        "02 Concourse/Splayed street canopy": 123,
+        "02 Concourse/Street fanlight and piers": 523,
+        "02 Concourse/Tickets and lighting": 30,
+        "02 Concourse/West ticket annex": 324,
+        "03 Upper waiting room/Bay windows": 467,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Hipped roof": 263,
+        "03 Upper waiting room/Oak seats and lamps": 16,
+        "04 Railway shed/Springing columns": 66,
+        "04 Railway shed/Track bed and boarding edge": 1380,
+        "04 Railway shed/Uphill screen": 342,
+        "04 Railway shed/Vault glazing": 1642,
+        "04 Railway shed/Vault ribs": 108,
+        "04 Railway shed/Waiting benches": 27
+      }
+    },
+    "Travel section": {
+      "mesh_objects": 22,
+      "faces": 36548,
+      "source_blocks": 20565,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 360,
+        "01 Site/Railway retaining wall": 227,
+        "01 Site/Rock cutting": 14524,
+        "01 Site/Street terraces": 560,
+        "02 Concourse/Copper-edged crown": 535,
+        "02 Concourse/Mosaic and steps": 660,
+        "02 Concourse/Platform clock": 18,
+        "02 Concourse/Side walls and gallery": 231,
+        "02 Concourse/Splayed street canopy": 69,
+        "02 Concourse/Street fanlight and piers": 288,
+        "02 Concourse/Tickets and lighting": 6,
+        "03 Upper waiting room/Bay windows": 467,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Hipped roof": 263,
+        "03 Upper waiting room/Oak seats and lamps": 16,
+        "04 Railway shed/Springing columns": 34,
+        "04 Railway shed/Track bed and boarding edge": 760,
+        "04 Railway shed/Uphill screen": 192,
+        "04 Railway shed/Vault glazing": 916,
+        "04 Railway shed/Vault ribs": 60,
+        "04 Railway shed/Waiting benches": 17
+      }
+    },
+    "Boarding plan": {
+      "mesh_objects": 18,
+      "faces": 42597,
+      "source_blocks": 31525,
+      "parts": {
+        "01 Site/East platform approach": 241,
+        "01 Site/Planting": 201,
+        "01 Site/Railway retaining wall": 424,
+        "01 Site/Rock cutting": 25857,
+        "01 Site/Street terraces": 1017,
+        "02 Concourse/Mosaic and steps": 1131,
+        "02 Concourse/Side walls and gallery": 248,
+        "02 Concourse/Splayed street canopy": 123,
+        "02 Concourse/Street fanlight and piers": 216,
+        "02 Concourse/Tickets and lighting": 30,
+        "02 Concourse/West ticket annex": 171,
+        "03 Upper waiting room/Bay windows": 272,
+        "03 Upper waiting room/Floor": 121,
+        "03 Upper waiting room/Oak seats and lamps": 12,
+        "04 Railway shed/Springing columns": 6,
+        "04 Railway shed/Track bed and boarding edge": 1380,
+        "04 Railway shed/Uphill screen": 57,
+        "04 Railway shed/Waiting benches": 18
+      }
+    }
+  },
+  "packed_minecraft_textures": 42,
+  "images": {
+    "approach.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1158749,
+      "sha256": "bd0973d2377561dd4347c2e8bef69d33ab06fd2150eb2ac6747d26fe18ab6ac9",
+      "sampled_tonal_range": 0.9451,
+      "pixel_sha256": "702cb9d2574515f1cc3f56ae7eb8635d678d374642a79f53973283255dd8f3c1"
+    },
+    "garden.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1171101,
+      "sha256": "31c2047a102174c096078624e5632e7088e38e248f338b9aacb501b9b1dac661",
+      "sampled_tonal_range": 0.9373,
+      "pixel_sha256": "bf12c98ce82776b4e08849403fd9ae2de01fc3eda188e36276c74c77151fa2fc"
+    },
+    "canopy.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1640711,
+      "sha256": "a85c0b376103d53fc5922262a1b90999aef4af31c165a24d79f8d4a785b550e1",
+      "sampled_tonal_range": 0.9608,
+      "pixel_sha256": "627845e49a95ac75859874711aa7530918c6da6523ada0bbca61adc596901846"
+    },
+    "hall.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1481533,
+      "sha256": "d48de60f038bb34b6db6db91b0fd4fb9b203087e01126febf104abfedefe5bba",
+      "sampled_tonal_range": 0.8627,
+      "pixel_sha256": "0d64b08cab1dbbc18c3f699c27a0b98d91b1308b7daddeade0ae22ef76452d2a"
+    },
+    "arrival.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1439929,
+      "sha256": "124ec2b065773f2642b4c4d468d9e164071475821603551d8558a23791772cc2",
+      "sampled_tonal_range": 0.8588,
+      "pixel_sha256": "0e5c13ad974d1cc453a1e49fb7924e490917732e807fcb286153da13866b0039"
+    },
+    "platform.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1322548,
+      "sha256": "4c87868863de9864453ff1865b78029d08d403798d5b81c42e36f3f0e250560b",
+      "sampled_tonal_range": 0.8784,
+      "pixel_sha256": "2f02b52e8d5607ea7410b47db44784961b47af982b99d87dd03a1538e90b1675"
+    },
+    "waiting.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1259720,
+      "sha256": "be4711b4346f097e73c9e1e28b68f669ff6b948fcecd12d556cd046b20fa9743",
+      "sampled_tonal_range": 0.8941,
+      "pixel_sha256": "f52ea8e6881156601f3f582489c3436f6335b5ed65fe61ce3e894f23ddca61d0"
+    },
+    "section.png": {
+      "width": 1080,
+      "height": 900,
+      "bytes": 1264416,
+      "sha256": "d29a1a975b8a80e02ec2d2f97e911da52b60a1e9786402f24307653cb89b2493",
+      "sampled_tonal_range": 0.7922,
+      "pixel_sha256": "e12bdb0070555521bd623a96a16c3567592af172cb2e801e13ef7e5b469c06e9"
+    }
+  },
+  "render_fallbacks": {},
+  "render_approximations": {
+    "minecraft:grass_block[snowy=false]": [
+      "Uses the first weighted model.",
+      "Biome or runtime tint is approximated where available."
+    ],
+    "minecraft:lantern[hanging=false,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:oak_leaves[distance=7,persistent=true,waterlogged=false]": [
+      "Biome or runtime tint is approximated where available."
+    ],
+    "minecraft:lantern[hanging=true,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ]
+  }
+}

@@ -1,9 +1,11 @@
+from itertools import pairwise
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
 from src.core.building import Building, resource_id
+from src.core.curves import cubic_cells
 from src.generators.medieval import STAIR_OPEN_Z, STAIR_X, UPPER_FLOOR, generate_house
 
 
@@ -70,6 +72,21 @@ class BuildingTests(unittest.TestCase):
             self.assertEqual(roof.block_id, "minecraft:brick_stairs")
             self.assertEqual(dict(roof.properties)["facing"], expected)
         self.assertEqual(house.bounds(), ((-1, 0, -2), (16, 17, 12)))
+
+
+class CurveTests(unittest.TestCase):
+    def test_stroke_includes_ends_and_has_no_corner_only_joins(self):
+        for points in (
+            ((-2, 8), (-7, 8), (-9, 11), (-9, 14)),
+            ((1, 1), (4, 4), (5, 5), (8, 8)),
+            ((0, 0), (2, 10), (-7, 3), (0, 0)),
+            ((0, 0),) * 4,
+        ):
+            with self.subTest(points=points):
+                cells = list(cubic_cells(*points))
+                self.assertEqual((cells[0], cells[-1]), (points[0], points[-1]))
+                for (x, y), (u, v) in pairwise(cells):
+                    self.assertEqual(abs(x - u) + abs(y - v), 1)
 
 
 if __name__ == "__main__":

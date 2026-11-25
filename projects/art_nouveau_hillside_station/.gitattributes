@@ -1,0 +1,4 @@
+# Preserve the exact bytes used to verify the station's Blender scene.
+/design.py -text !eol
+/views.json -text !eol
+/materials.csv -text

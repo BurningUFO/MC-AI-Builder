@@ -1,0 +1,393 @@
+{
+  "v1": "projects/art_nouveau_hillside_station/versions/v1-baseline",
+  "final": "projects/art_nouveau_hillside_station",
+  "device": "CPU",
+  "resolution_per_camera": [
+    720,
+    600
+  ],
+  "render_settings": {
+    "preset": "quick",
+    "presentation": "showcase",
+    "cpu": true,
+    "fixed_lighting": true,
+    "legacy_views": false,
+    "full_scene": "Building",
+    "stage": {
+      "ground_y": -4.04,
+      "ground_color": [
+        0.17,
+        0.225,
+        0.205
+      ],
+      "sun": [
+        -6,
+        13,
+        10
+      ],
+      "interior_lights": [
+        {
+          "name": "Light through the street fanlight",
+          "position": [
+            -3,
+            11,
+            6.3
+          ],
+          "target": [
+            -2,
+            2,
+            -3
+          ],
+          "power": 1850,
+          "size": 7
+        },
+        {
+          "name": "Vault bounce",
+          "position": [
+            0,
+            14.5,
+            -17
+          ],
+          "target": [
+            -3,
+            6,
+            -12
+          ],
+          "power": 2300,
+          "size": 11
+        },
+        {
+          "name": "East bay daylight bounce",
+          "position": [
+            21,
+            11,
+            3
+          ],
+          "target": [
+            18,
+            7,
+            -2
+          ],
+          "power": 480,
+          "size": 4
+        }
+      ]
+    },
+    "sections": {
+      "Travel section": {
+        "min": [
+          -3,
+          null,
+          null
+        ]
+      },
+      "Boarding plan": {
+        "max": [
+          null,
+          7,
+          null
+        ]
+      },
+      "West crossing section": {
+        "min": [
+          -26,
+          2,
+          -28
+        ],
+        "max": [
+          -20,
+          null,
+          -6
+        ],
+        "exclude": [
+          "01 Site/Planting"
+        ]
+      }
+    },
+    "render": [
+      "hero",
+      "canopy",
+      "canopy-under",
+      "hall",
+      "entrance-eye",
+      "platform",
+      "crossing",
+      "cross-section"
+    ],
+    "blend": null,
+    "cameras": {
+      "hero": {
+        "image": "hero.png",
+        "scene": "Building",
+        "camera": "hero",
+        "target": [
+          -0.5,
+          7,
+          -6
+        ],
+        "offset": [
+          -42.5,
+          -71,
+          32
+        ],
+        "scale": 87,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "canopy": {
+        "image": "canopy.png",
+        "scene": "Building",
+        "camera": "canopy",
+        "target": [
+          -2,
+          9,
+          9
+        ],
+        "offset": [
+          -19,
+          -22,
+          5
+        ],
+        "scale": 38,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "canopy-under": {
+        "image": "canopy-under.png",
+        "scene": "Building",
+        "camera": "canopy-under",
+        "target": [
+          -2,
+          6.6,
+          10
+        ],
+        "offset": [
+          -8,
+          -8.8,
+          -2.8499999999999996
+        ],
+        "scale": 112.44725163382161,
+        "lens_mm": 20,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "hall": {
+        "image": "hall.png",
+        "scene": "Building",
+        "camera": "hall",
+        "target": [
+          -0.05,
+          7.3,
+          -7
+        ],
+        "offset": [
+          -10.149999999999999,
+          -14.8,
+          -3.05
+        ],
+        "scale": 112.44725163382161,
+        "lens_mm": 18,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "entrance-eye": {
+        "image": "entrance-eye.png",
+        "scene": "Building",
+        "camera": "entrance-eye",
+        "target": [
+          -2,
+          7.5,
+          -8
+        ],
+        "offset": [
+          0,
+          -13.5,
+          -4.85
+        ],
+        "scale": 112.44725163382161,
+        "lens_mm": 20,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "platform": {
+        "image": "platform.png",
+        "scene": "Building",
+        "camera": "platform",
+        "target": [
+          -13,
+          12.6,
+          -17
+        ],
+        "offset": [
+          36.5,
+          -4,
+          -3.9499999999999993
+        ],
+        "scale": 112.44725163382161,
+        "lens_mm": 18,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "crossing": {
+        "image": "crossing.png",
+        "scene": "Building",
+        "camera": "crossing",
+        "target": [
+          -25,
+          8.3,
+          -19
+        ],
+        "offset": [
+          6.5,
+          -8.8,
+          3.5
+        ],
+        "scale": 112.44725163382161,
+        "lens_mm": 19,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "cross-section": {
+        "image": "cross-section.png",
+        "scene": "West crossing section",
+        "camera": "cross-section",
+        "target": [
+          -24,
+          8.5,
+          -17
+        ],
+        "offset": [
+          -29,
+          -7,
+          7.5
+        ],
+        "scale": 35,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      }
+    }
+  },
+  "blueprint_diff": {
+    "before_sha256": "c3bbda4cd93c56e4098cba243d1ea63c373ccb9b9586a9d8a371f84086349a6e",
+    "after_sha256": "99d22ce11b848b2def8d36bf2d845c555b8d9aff9c186283091b0d57d4c064e9",
+    "before_blocks": 36832,
+    "after_blocks": 36796,
+    "bounds": {
+      "min": [
+        -29,
+        1,
+        -23
+      ],
+      "max": [
+        29,
+        18,
+        14
+      ]
+    },
+    "expected_bounds": {
+      "min": [
+        null,
+        null,
+        null
+      ],
+      "max": [
+        null,
+        null,
+        null
+      ]
+    },
+    "outside": 0,
+    "added": 171,
+    "removed": 207,
+    "replaced": 480
+  },
+  "fanlight_mullion_face_connected_components": {
+    "bounds": [
+      [
+        -12,
+        5,
+        8
+      ],
+      [
+        8,
+        16,
+        8
+      ]
+    ],
+    "material": "minecraft:dark_prismarine",
+    "sizes": {
+      "v1": [
+        11,
+        2,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "final": [
+        36
+      ]
+    }
+  },
+  "rail_cells_with_same_state_and_position": 69,
+  "views": {
+    "hero": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/hero.png",
+      "pair_sha256": "513181f378aad4736e77341d7080fe5072b729823ab4954417e25b9456d5595a",
+      "v1_image_sha256": "01089fa194e1abfcf51932c3d57463461454a6b7ce42b19ce9b634d0350c19e9",
+      "final_image_sha256": "15d2c3ac0d4968c810cf9839722b6cfddd2169d726f4897688ff3256bef42bc2"
+    },
+    "canopy": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/canopy.png",
+      "pair_sha256": "385b688803bb08ed2d9f7412c93ebf8972fdd9e72371cd0362c5fdde63fa43e5",
+      "v1_image_sha256": "93956a2745723e5a15859361aba53c1814d28072981d04225b1f8cb66d1aeb2f",
+      "final_image_sha256": "9188799bf071ac513ca6ccc221c7d0b4478169104b8fec78a089aa0d0b5795de"
+    },
+    "canopy-under": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/canopy-under.png",
+      "pair_sha256": "3c7249ac5e7cd24e97a319eb35353b357d122326cc59f4e6f83dd1604e268547",
+      "v1_image_sha256": "b0e098cfb533cb2bfca6221a8298e6d277b5963106f2683e82c7aabeecc7d493",
+      "final_image_sha256": "4aa99df9fe8d9ea7846fad208a676ced8e0bee68f640f178105253b560bc07a9"
+    },
+    "hall": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/hall.png",
+      "pair_sha256": "5e36c0e23d09dbe7db5b510b6c019f803ca0ca19d5c7b392af5e20139f0aa104",
+      "v1_image_sha256": "bf96b848e6c2be27329a702d71f92ef69786943ee3092d51cf76f426a3527cff",
+      "final_image_sha256": "510d375f45347c483cc8c466f37af369237cb93acfa7a76e822482cb6b2c5451"
+    },
+    "entrance-eye": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/entrance-eye.png",
+      "pair_sha256": "63ee12b974e90a924fa8ed31a10d79b7a0968f1c3923fe3f7967c3e1432be979",
+      "v1_image_sha256": "296e3901d207e974f31b67a6e610a2cb510492dacbc13e47eb902e76491909dc",
+      "final_image_sha256": "002d8ca83bdfaf7ce42233dbc453c3a4cef863fff57ebfd954029d27a5fa03da"
+    },
+    "platform": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/platform.png",
+      "pair_sha256": "485c2f69d3ca8067b073faf1b525b9d30c5d3d823858d0291707aac623d6e8f2",
+      "v1_image_sha256": "e9ba317ec5cf6244a3a025e1a90265dae329196f1e733657f32cb746e903ac52",
+      "final_image_sha256": "87a43acd4ad38088d2471332f669e4963096f939fa3c6bba5bddb66ac56555f7"
+    },
+    "crossing": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/crossing.png",
+      "pair_sha256": "e770a85116f2aea83af8b956d7a62b2df4e3016047fa74c2542bf71a03caa27b",
+      "v1_image_sha256": "b500b7207b62986478e9b7d6061122b7b12646008af79dc37865a30ef5aa74de",
+      "final_image_sha256": "42283f9820d3207fa6c8c02768a3ae1e2dc2f0c4098d95f19e207142930159a4"
+    },
+    "cross-section": {
+      "pair": "docs/previews/art_nouveau_hillside_station/comparison/cross-section.png",
+      "pair_sha256": "907be024be14522cebaa7528bde0de8e9300935a35d0cbd92b7d072af39e307f",
+      "v1_image_sha256": "38f35dd4f711aef0e0ca95de7e5fbef0bb82486d0bf21a4a7e4179758ea2f38b",
+      "final_image_sha256": "922b063b946abdd16b564d344db974b0e7d43c171cacdc75288196cc15e5deed"
+    }
+  }
+}
