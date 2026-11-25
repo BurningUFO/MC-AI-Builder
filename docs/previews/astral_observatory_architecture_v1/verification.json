@@ -1,0 +1,146 @@
+{
+  "blender_version": "5.2.4 LTS",
+  "building_sha256": "608b8517af0c97d7888c0a6deb07a0809aaffd3ee326585c305d7bbb968f620f",
+  "geometry": {
+    "Building": {
+      "mesh_objects": 41,
+      "faces": 12702,
+      "source_blocks": 3847,
+      "parts": {
+        "01 Plinth/Entry lamps": 6,
+        "01 Plinth/Entry steps": 33,
+        "01 Plinth/Slate terraces": 1176,
+        "02 Archive/Atlas shelves": 39,
+        "02 Archive/Charting desks": 5,
+        "02 Archive/Compass pavement": 326,
+        "02 Archive/Curved masonry": 125,
+        "02 Archive/Entry canopy": 31,
+        "02 Archive/Lamp stands": 6,
+        "02 Archive/Leaded windows": 39,
+        "02 Archive/Reference lectern": 1,
+        "03 Archive roof/Clerestory": 14,
+        "03 Archive roof/Cornice and vault closure": 62,
+        "03 Archive roof/Slate vault": 194,
+        "03 Archive roof/Vault ribs": 26,
+        "04 Stair tower/External buttresses": 108,
+        "04 Stair tower/Intermediate landings": 8,
+        "04 Stair tower/Lamp corbels": 6,
+        "04 Stair tower/Piers and spandrels": 362,
+        "04 Stair tower/Stair glazing": 137,
+        "04 Stair tower/Survey balcony": 20,
+        "04 Stair tower/Three flights": 66,
+        "05 Arrival terrace/Deck": 122,
+        "05 Arrival terrace/Parapet": 38,
+        "05 Arrival terrace/Stair guard": 3,
+        "06 Sky court/Bridge corbels": 28,
+        "06 Sky court/Bridge girders": 16,
+        "06 Sky court/Bridge rail": 20,
+        "06 Sky court/Corbel ribs": 108,
+        "06 Sky court/Footed pier": 225,
+        "06 Sky court/Observer benches": 3,
+        "06 Sky court/Open observation deck": 122,
+        "06 Sky court/Parapet": 47,
+        "06 Sky court/Recessed sighting dial": 27,
+        "06 Sky court/Sight vanes": 12,
+        "06 Sky court/Suspended passage": 25,
+        "07 Armillary/Cantilevered stone bearings": 21,
+        "07 Armillary/Graduations": 8,
+        "07 Armillary/Meridian ring": 158,
+        "07 Armillary/Oblique equatorial scale": 72,
+        "07 Armillary/Pole lamps": 2
+      }
+    },
+    "Archive and stair section": {
+      "mesh_objects": 35,
+      "faces": 8815,
+      "source_blocks": 2640,
+      "parts": {
+        "01 Plinth/Slate terraces": 719,
+        "02 Archive/Atlas shelves": 27,
+        "02 Archive/Compass pavement": 170,
+        "02 Archive/Curved masonry": 48,
+        "02 Archive/Lamp stands": 2,
+        "02 Archive/Leaded windows": 12,
+        "03 Archive roof/Cornice and vault closure": 23,
+        "03 Archive roof/Slate vault": 58,
+        "03 Archive roof/Vault ribs": 11,
+        "04 Stair tower/External buttresses": 90,
+        "04 Stair tower/Intermediate landings": 8,
+        "04 Stair tower/Lamp corbels": 6,
+        "04 Stair tower/Piers and spandrels": 265,
+        "04 Stair tower/Stair glazing": 109,
+        "04 Stair tower/Survey balcony": 20,
+        "04 Stair tower/Three flights": 66,
+        "05 Arrival terrace/Deck": 104,
+        "05 Arrival terrace/Parapet": 26,
+        "05 Arrival terrace/Stair guard": 3,
+        "06 Sky court/Bridge corbels": 28,
+        "06 Sky court/Bridge girders": 16,
+        "06 Sky court/Bridge rail": 20,
+        "06 Sky court/Corbel ribs": 108,
+        "06 Sky court/Footed pier": 225,
+        "06 Sky court/Observer benches": 3,
+        "06 Sky court/Open observation deck": 122,
+        "06 Sky court/Parapet": 47,
+        "06 Sky court/Recessed sighting dial": 27,
+        "06 Sky court/Sight vanes": 12,
+        "06 Sky court/Suspended passage": 25,
+        "07 Armillary/Cantilevered stone bearings": 21,
+        "07 Armillary/Graduations": 8,
+        "07 Armillary/Meridian ring": 158,
+        "07 Armillary/Oblique equatorial scale": 51,
+        "07 Armillary/Pole lamps": 2
+      }
+    },
+    "Observation level": {
+      "mesh_objects": 17,
+      "faces": 2664,
+      "source_blocks": 487,
+      "parts": {
+        "04 Stair tower/External buttresses": 6,
+        "04 Stair tower/Lamp corbels": 1,
+        "04 Stair tower/Piers and spandrels": 33,
+        "04 Stair tower/Three flights": 6,
+        "05 Arrival terrace/Deck": 122,
+        "05 Arrival terrace/Parapet": 38,
+        "05 Arrival terrace/Stair guard": 3,
+        "06 Sky court/Bridge girders": 16,
+        "06 Sky court/Bridge rail": 16,
+        "06 Sky court/Corbel ribs": 12,
+        "06 Sky court/Observer benches": 3,
+        "06 Sky court/Open observation deck": 122,
+        "06 Sky court/Parapet": 47,
+        "06 Sky court/Recessed sighting dial": 27,
+        "06 Sky court/Sight vanes": 6,
+        "06 Sky court/Suspended passage": 25,
+        "07 Armillary/Cantilevered stone bearings": 4
+      }
+    }
+  },
+  "packed_minecraft_textures": 32,
+  "images": {
+    "approach.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 2210641,
+      "sha256": "d5ff11e37b2b8a48a0d517ef6ded294eed2bdc16cdbac2972d987c914dac44c0",
+      "sampled_tonal_range": 0.902,
+      "pixel_sha256": "1451f8f6df2bd6abb8aff6a3ec2065e82d3254b8317cfee49726b11df077d737"
+    }
+  },
+  "render_fallbacks": {},
+  "render_approximations": {
+    "minecraft:sea_lantern": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:lantern[hanging=false,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:lantern[hanging=true,waterlogged=false]": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:lectern[facing=east]": [
+      "Static model; block-entity contents, moving parts or particles are omitted."
+    ]
+  }
+}

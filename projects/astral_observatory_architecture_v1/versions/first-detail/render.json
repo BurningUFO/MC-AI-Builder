@@ -1,0 +1,82 @@
+{
+  "inputs": {
+    "design.py": "b36406c29e78522c935dabb2d9f86eada2ffd942275b9121eea87f91ed2a5e0f",
+    "views.json": "6b6b0233ca92682bfe4bf753486fbd8006d24eb60c7630da71c298f1c0951bd6",
+    "building.json": "b3256782b7e143095ab21be9ff05b4ef55db831c72f902ef41e2fdde83a73523",
+    "design-groups.json": "e93dc77c79d075c4b05d4b83edecaee7b0c78640b970748db99a7fd6cd0f0d7c",
+    "material-index.json": "81c279bea8988c024e110674a5b5aec6fab75050f2e07df144fc3beced017a59",
+    "materials.csv": "f13f90ba3a7dfbbb36009939a4cf59383df16257015c738fe1f454192d186cbf"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.327,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "d2bcf4bc96f5c51cd7610327acc215ce479b46b4993dcdaaf5ab91a55ef5468c",
+      "seconds": 1.597
+    },
+    "meridian": {
+      "file": "meridian.png",
+      "scene": "Building",
+      "camera": "meridian",
+      "sha256": "9428eeb6a002b2f7a7e5ece8af4e964bddc763776ee479241c74ae3329be0aa0",
+      "seconds": 1.293
+    },
+    "sighting": {
+      "file": "sighting.png",
+      "scene": "Building",
+      "camera": "sighting",
+      "sha256": "5da1715bef012456648c3d57639427f83e34913d90ccb7b83447774de15b9d59",
+      "seconds": 1.504
+    },
+    "archive": {
+      "file": "archive.png",
+      "scene": "Building",
+      "camera": "archive",
+      "sha256": "60457cd744259c714bf4d0cc755d65402b1ca21aac5508cb241fd004aba8cab6",
+      "seconds": 1.8
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "archive": {
+      "scene": "Building",
+      "name": "archive",
+      "frame": 21
+    },
+    "meridian": {
+      "scene": "Building",
+      "name": "meridian",
+      "frame": 41
+    },
+    "sighting": {
+      "scene": "Building",
+      "name": "sighting",
+      "frame": 61
+    },
+    "deck-plan": {
+      "scene": "Observation level",
+      "name": "deck-plan",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3837,
+    "Observation level": 489
+  },
+  "full_scene": "Building"
+}

@@ -1,0 +1,24 @@
+{
+  "stage": {
+    "ground_y": -2.035,
+    "ground_color": [0.145, 0.17, 0.21],
+    "sun": [-7, 13, 10],
+    "interior_lights": [
+      {"name": "Archive skylight bounce", "position": [-8.5, 5.65, 3.8], "target": [-8, 1.75, 2.0], "power": 950, "size": 6},
+      {"name": "South window bounce", "position": [-9, 3.8, 8.2], "target": [-8, 2.0, 1.0], "power": 180, "size": 4}
+    ]
+  },
+  "views": {
+    "approach": {"position": [43, 31, 62], "target": [5, 15.1, -0.2], "scale": 57},
+    "archive": {"position": [-5.6, 3.1, 10.9], "target": [-8.1, 1.8, 1.4], "lens": 19},
+    "meridian": {"position": [17.6, 19.65, 1.2], "target": [19.3, 23.0, -5.4], "lens": 14.5},
+    "arch-detail": {"position": [23, 31, 43], "target": [16.5, 25.2, -3.4], "scale": 26},
+    "reverse": {"position": [-37, 33, -52], "target": [3.6, 14, -1.0], "scale": 57},
+    "section": {"position": [4.7, 15, 51], "target": [4.7, 15, -3], "scale": 54, "section": "Archive and stair section"},
+    "deck-plan": {"position": [11.7, 63, -3.6], "target": [11.7, 17.5, -3.6], "scale": 34, "section": "Observation level"}
+  },
+  "sections": {
+    "Archive and stair section": {"max": [null, null, 2]},
+    "Observation level": {"min": [null, 17, null], "max": [null, 18, null]}
+  }
+}

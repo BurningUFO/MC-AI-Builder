@@ -1,0 +1,240 @@
+{
+  "before_sha256": "e963ae808871588c06fb0cf7f1e0d536150e8fb76f45e5259ab563e428d58678",
+  "after_sha256": "63a0a5521f47fd104e81d8d6801e9111046c7e612380ebb913093ce6c92a9ab4",
+  "before_blocks": 3546,
+  "after_blocks": 3546,
+  "bounds": {
+    "min": [
+      16,
+      2,
+      5
+    ],
+    "max": [
+      19,
+      4,
+      5
+    ]
+  },
+  "expected_bounds": {
+    "min": [
+      16,
+      2,
+      5
+    ],
+    "max": [
+      19,
+      4,
+      5
+    ]
+  },
+  "outside": 0,
+  "added": 0,
+  "removed": 0,
+  "replaced": 12,
+  "changes": [
+    {
+      "position": [
+        16,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "minecraft:glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+handcrafted:spruce_chair,6,Spruce Chair,handcrafted-forge-1.20.1-3.0.6.jar,2,static_assets_verified
+minecraft:fern,15,Fern,BMC4.jar,1,static_approximation
+minecraft:glass,277,Glass,BMC4.jar,1,static_assets_verified
+minecraft:lantern,19,Lantern,BMC4.jar,2,static_approximation
+minecraft:moss_block,17,Moss Block,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite,250,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite_stairs,8,Polished Andesite Stairs,BMC4.jar,1,static_assets_verified
+minecraft:potted_azalea_bush,9,Potted Azalea,BMC4.jar,1,static_assets_verified
+minecraft:smooth_sandstone,420,Smooth Sandstone,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,41,Spruce Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,12,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_stairs,10,Stone Brick Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stripped_spruce_log,107,Stripped Spruce Log,BMC4.jar,3,static_assets_verified
+minecraft:waxed_exposed_cut_copper,41,Waxed Exposed Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_oxidized_cut_copper,179,Waxed Oxidized Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper,415,Waxed Weathered Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper_slab,55,Waxed Weathered Cut Copper Slab,BMC4.jar,2,static_assets_verified
+quark:calcite_bricks,113,Calcite Bricks,Quark-4.0-462.jar,1,static_assets_verified
+quark:calcite_pillar,165,Calcite Pillar,Quark-4.0-462.jar,1,static_assets_verified
+quark:dark_oak_bookshelf,24,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:vertical_birch_planks,406,Vertical Birch Planks,Quark-4.0-462.jar,1,static_assets_verified
+twigs:polished_calcite_bricks,813,Polished Calcite Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:spruce_table,8,Spruce Table,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified

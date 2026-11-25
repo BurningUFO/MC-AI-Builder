@@ -1,0 +1,34 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+handcrafted:spruce_bench,10,Spruce Bench,handcrafted-forge-1.20.1-3.0.6.jar,2,static_assets_verified
+minecraft:bamboo_trapdoor,16,Bamboo Trapdoor,BMC4.jar,4,static_assets_verified
+minecraft:barrel,3,Barrel,BMC4.jar,1,static_assets_verified
+minecraft:chiseled_stone_bricks,26,Chiseled Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_fence,124,Dark Oak Fence,BMC4.jar,7,static_assets_verified
+minecraft:dark_oak_planks,267,Dark Oak Planks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_slab,109,Dark Oak Slab,BMC4.jar,1,static_assets_verified
+minecraft:dark_prismarine,39,Dark Prismarine,BMC4.jar,1,static_assets_verified
+minecraft:dark_prismarine_slab,34,Dark Prismarine Slab,BMC4.jar,2,static_assets_verified
+minecraft:dark_prismarine_stairs,8,Dark Prismarine Stairs,BMC4.jar,2,static_assets_verified
+minecraft:lantern,36,Lantern,BMC4.jar,2,static_approximation
+minecraft:mangrove_planks,24,Mangrove Planks,BMC4.jar,1,static_assets_verified
+minecraft:mangrove_stairs,30,Mangrove Stairs,BMC4.jar,4,static_assets_verified
+minecraft:mangrove_trapdoor,62,Mangrove Trapdoor,BMC4.jar,4,static_assets_verified
+minecraft:polished_andesite,106,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite_stairs,21,Polished Andesite Stairs,BMC4.jar,1,static_assets_verified
+minecraft:polished_deepslate,20,Polished Deepslate,BMC4.jar,1,static_assets_verified
+minecraft:polished_deepslate_slab,152,Polished Deepslate Slab,BMC4.jar,1,static_assets_verified
+minecraft:polished_deepslate_stairs,4,Polished Deepslate Stairs,BMC4.jar,2,static_assets_verified
+minecraft:potted_bamboo,7,Potted Bamboo,BMC4.jar,1,static_assets_verified
+minecraft:smooth_sandstone,6,Smooth Sandstone,BMC4.jar,1,static_assets_verified
+minecraft:spruce_planks,436,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,6,Spruce Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,14,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stripped_dark_oak_log,250,Stripped Dark Oak Log,BMC4.jar,3,static_assets_verified
+minecraft:stripped_mangrove_log,146,Stripped Mangrove Log,BMC4.jar,3,static_assets_verified
+quark:cyan_shingles,192,Cyan Terracotta Shingles,Quark-4.0-462.jar,1,static_assets_verified
+quark:cyan_shingles_slab,298,Cyan Terracotta Shingle Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:cyan_shingles_stairs,136,Cyan Terracotta Shingle Stairs,Quark-4.0-462.jar,4,static_assets_verified
+quark:dark_oak_bookshelf,10,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:vertical_spruce_planks,113,Vertical Spruce Planks,Quark-4.0-462.jar,1,static_assets_verified
+twigs:polished_tuff_bricks,88,Polished Tuff Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:spruce_table,9,Spruce Table,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified

@@ -1,0 +1,21 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+minecraft:amethyst_block,1,Block of Amethyst,BMC4.jar,1,static_assets_verified
+minecraft:barrel,6,Barrel,BMC4.jar,1,static_assets_verified
+minecraft:birch_door,2,Birch Door,BMC4.jar,2,static_assets_verified
+minecraft:birch_fence,10,Birch Fence,BMC4.jar,3,static_assets_verified
+minecraft:birch_planks,160,Birch Planks,BMC4.jar,1,static_assets_verified
+minecraft:birch_stairs,24,Birch Stairs,BMC4.jar,1,static_assets_verified
+minecraft:calcite,14,Calcite,BMC4.jar,1,static_assets_verified
+minecraft:dirt,162,Dirt,BMC4.jar,1,static_assets_verified
+minecraft:glass,177,Glass,BMC4.jar,1,static_assets_verified
+minecraft:light_blue_stained_glass,255,Light Blue Stained Glass,BMC4.jar,1,static_assets_verified
+minecraft:pink_stained_glass,99,Pink Stained Glass,BMC4.jar,1,static_assets_verified
+minecraft:polished_diorite,81,Polished Diorite,BMC4.jar,1,static_assets_verified
+minecraft:purpur_block,127,Purpur Block,BMC4.jar,1,static_assets_verified
+minecraft:purpur_slab,55,Purpur Slab,BMC4.jar,2,static_assets_verified
+minecraft:quartz_bricks,87,Quartz Bricks,BMC4.jar,1,static_assets_verified
+minecraft:quartz_pillar,225,Quartz Pillar,BMC4.jar,2,static_assets_verified
+minecraft:sea_lantern,18,Sea Lantern,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz,220,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_slab,180,Smooth Quartz Slab,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_stairs,10,Smooth Quartz Stairs,BMC4.jar,1,static_assets_verified

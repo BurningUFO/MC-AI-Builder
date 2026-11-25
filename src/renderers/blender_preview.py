@@ -12,10 +12,12 @@ from mathutils import Vector
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from src.assets.appearance import first_frame
 from src.assets.models import AXES
 from src.core.building import Building
-from src.generators.medieval import DEPTH, EAVES, STAIR_X, UPPER_FLOOR, WIDTH
-from src.renderers.views import preview_for
+from src.generators.grain_tower import GLAZING, TOWER_SAMPLES
+from src.generators.medieval import UPPER_FLOOR
+from src.renderers.views import legacy_section, preview_for
 
 
 def blender_space(position):
@@ -23,19 +25,20 @@ def blender_space(position):
     return x, -z, y
 
 
-def pixel_material(reference, info, root):
+def pixel_material(reference, info, root, *, presentation="legacy", tint=None):
     source = root / info["file"]
     if sha256(source.read_bytes()).hexdigest() != info["sha256"]:
         raise ValueError(f"Texture cache has changed: {source}")
     image = bpy.data.images.load(str(source), check_existing=True)
     image.name = "Minecraft | " + reference
-    image.pack()
+    if not image.packed_file:
+        image.pack()
     image.use_fake_user = True
     pixels = image.pixels[:]
     translucent = any(alpha < 0.999 for alpha in pixels[3::4])
     visible = [i for i in range(0, len(pixels), 4) if pixels[i + 3] >= 0.6]
 
-    material = bpy.data.materials.new(reference)
+    material = bpy.data.materials.new(reference if tint is None else f"{reference} | tint {tint}")
     if visible:
         material.diffuse_color = (*(sum(pixels[i + c] for i in visible) / len(visible) for c in range(3)), 1)
     tree = material.node_tree
@@ -47,26 +50,61 @@ def pixel_material(reference, info, root):
     tex.location = (-340, 220)
     tex.image = image
     tex.interpolation = "Closest"
-    tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    if reference == "minecraft:block/sea_lantern":
+    color = tex.outputs["Color"]
+    if tint:
+        multiply = tree.nodes.new("ShaderNodeMixRGB")
+        multiply.blend_type = "MULTIPLY"
+        multiply.inputs[0].default_value = 1
+        multiply.inputs[2].default_value = tuple(
+            ((channel / 255 + 0.055) / 1.055) ** 2.4 for channel in tint) + (1,)
+        tree.links.new(color, multiply.inputs[1])
+        color = multiply.outputs[0]
+    tree.links.new(color, bsdf.inputs["Base Color"])
+    if presentation != "legacy":
+        bsdf.inputs["Roughness"].default_value = 0.91
+        bsdf.inputs["Specular IOR Level"].default_value = 0.16
+        emits = any(name in reference for name in ("lantern", "glowstone", "shroomlight", "froglight", "light_on"))
+        if emits or presentation == "game":
+            tree.links.new(color, bsdf.inputs["Emission Color"])
+            bsdf.inputs["Emission Strength"].default_value = 0.65 if emits else 0.11
+        width, height = image.size
+        if reference == "minecraft:block/sea_lantern" and "animation" not in info:
+            info = {**info, "animation": {}}
+        left, top, right, bottom = first_frame(info, width, height)
+        if (left, top, right, bottom) != (0, 0, width, height):
+            map_texture(tree, tex, ((right - left) / width, (bottom - top) / height, 1),
+                        (left / width, 1 - bottom / height, 0))
+    elif reference == "minecraft:block/sea_lantern":
         # Sample the first square frame of the vertically stacked animation.
         frame_scale = image.size[0] / image.size[1]
-        uv = tree.nodes.new("ShaderNodeTexCoord")
-        frame = tree.nodes.new("ShaderNodeMapping")
-        frame.label = "Sea lantern · first frame"
-        frame.inputs["Scale"].default_value = (1, frame_scale, 1)
-        frame.inputs["Location"].default_value = (0, 1 - frame_scale, 0)
-        tex.extension = "EXTEND"
-        tree.links.new(uv.outputs["UV"], frame.inputs["Vector"])
-        tree.links.new(frame.outputs["Vector"], tex.inputs["Vector"])
+        map_texture(tree, tex, (1, frame_scale, 1), (0, 1 - frame_scale, 0))
         tree.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
         bsdf.inputs["Emission Strength"].default_value = 0.55
     if translucent:
-        tree.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+        alpha = tex.outputs["Alpha"]
+        if presentation != "legacy" and "glass" not in reference and "ice" not in reference:
+            cutout = tree.nodes.new("ShaderNodeMath")
+            cutout.operation = "GREATER_THAN"
+            cutout.inputs[1].default_value = 0.5
+            tree.links.new(alpha, cutout.inputs[0])
+            alpha = cutout.outputs[0]
+        tree.links.new(alpha, bsdf.inputs["Alpha"])
     return material, translucent
 
 
-def add_block_mesh(collection, name, blocks, selected, baked, materials, opaque_cubes):
+def map_texture(tree, tex, scale, location):
+    uv = tree.nodes.new("ShaderNodeTexCoord")
+    frame = tree.nodes.new("ShaderNodeMapping")
+    frame.label = "First displayed texture frame"
+    frame.inputs["Scale"].default_value = scale
+    frame.inputs["Location"].default_value = location
+    tex.extension = "EXTEND"
+    tree.links.new(uv.outputs["UV"], frame.inputs["Vector"])
+    tree.links.new(frame.outputs["Vector"], tex.inputs["Vector"])
+
+
+def add_block_mesh(collection, name, blocks, selected, baked, materials, opaque_cubes, *,
+                   joined_states=(), material_key=None):
     vertices, polygons, uvs, textures = [], [], [], []
     indices = {}
     for (x, y, z), block in blocks.items():
@@ -74,7 +112,8 @@ def add_block_mesh(collection, name, blocks, selected, baked, materials, opaque_
             if face["cull"]:
                 dx, dy, dz = AXES[face["cull"]]
                 neighbor = selected.get((x + dx, y + dy, z + dz))
-                if neighbor and neighbor.state.key in opaque_cubes:
+                if neighbor and (neighbor.state.key in opaque_cubes or
+                                 block.state == neighbor.state and block.state.key in joined_states):
                     continue
             polygon = []
             for vx, vy, vz in face["vertices"]:
@@ -85,7 +124,7 @@ def add_block_mesh(collection, name, blocks, selected, baked, materials, opaque_
                 polygon.append(indices[point])
             polygons.append(polygon)
             uvs.append(face["uv"])
-            textures.append(face["texture"])
+            textures.append(material_key(block.state.block_id, face) if material_key else face["texture"])
 
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(vertices, [], polygons)
@@ -102,28 +141,13 @@ def add_block_mesh(collection, name, blocks, selected, baked, materials, opaque_
     obj = bpy.data.objects.new(name, mesh)
     obj["minecraft_blocks"] = len(blocks)
     collection.objects.link(obj)
+    return obj
 
 
 def review_blocks(building, scene_name, full_scene):
     if scene_name == full_scene:
         return building.blocks
-    selected = {}
-    for (x, y, z), block in building.blocks.items():
-        if not (0 <= x < WIDTH - 1 and 0 < z < DEPTH) and y != 0:
-            continue
-        if scene_name == "Ground floor cutaway":
-            in_stair = x in STAIR_X and z == 6
-            on_landing = x in (*STAIR_X, 14) and z == 7
-            visible = y < UPPER_FLOOR or y == UPPER_FLOOR and (in_stair or on_landing)
-        else:
-            visible = UPPER_FLOOR <= y < EAVES
-        if visible:
-            selected[(x, y, z)] = block
-    # Suspended fixtures leave the cutaway with their ceiling blocks.
-    return {
-        (x, y, z): block for (x, y, z), block in selected.items()
-        if dict(block.state.properties).get("hanging") != "true" or (x, y + 1, z) in selected
-    }
+    return legacy_section(building, scene_name)
 
 
 def mesh_sections(blocks, sections):
@@ -234,6 +258,7 @@ def stage_scene(scene, blocks, target, stage_height, fixtures, water_level):
         p = blender_space((x + 0.5, y + (0.15 if hanging else 0.75), z + 0.5))
         lamp = light(stage, f"Lantern light {x}, {y}, {z}", "POINT", p, power, color)
         lamp.shadow_soft_size = 0.18
+    return ground
 
 
 def add_camera(collection, view):
@@ -245,11 +270,15 @@ def add_camera(collection, view):
     else:
         data.type = "PERSP"
         data.lens = view.lens_mm
-    data.clip_end = 500
+    data.clip_start = view.clip_start
+    data.clip_end = max(500, 3 * Vector(view.offset).length + view.scale)
     camera = bpy.data.objects.new(view.camera, data)
     collection.objects.link(camera)
     camera.location = target + Vector(view.offset)
-    camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
+    if view.offset[0] == view.offset[1] == 0 and view.offset[2] > 0:
+        camera.rotation_euler = (0, 0, 0)
+    else:
+        camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
     return camera
 
 
@@ -351,6 +380,11 @@ def main():
               and all(not materials[face["texture"]][1] for face in item["faces"])}
 
     device = choose_cycles_device()
+    growing_tower = sample in TOWER_SAMPLES
+    joined_states = GLAZING if growing_tower else ()
+    if growing_tower:
+        from src.renderers.grain_tower import planted_blocks, stage_grain_tower
+
     scenes, camera_groups, cameras = {}, {}, {}
     for view in preview.views:
         scene = scenes.get(view.scene)
@@ -363,15 +397,23 @@ def main():
             scene["minecraft_axes"] = "Blender (X, Y, Z) = Minecraft (x, -z, y)"
             scenes[view.scene] = scene
             configure_scene(scene, quality, device)
-            selected = review_blocks(building, view.scene, preview.full_scene)
+            selected = (planted_blocks(building, view.scene) if growing_tower
+                        else review_blocks(building, view.scene, preview.full_scene))
             geometry = collection_for(scene, "Building · " + view.scene)
             for name, blocks in mesh_sections(selected, preview.sections).items():
-                add_block_mesh(geometry, name, blocks, selected, baked, materials, opaque)
+                add_block_mesh(geometry, name, blocks, selected, baked, materials, opaque, joined_states=joined_states)
             ground_z = UPPER_FLOOR - 0.22 if view.scene == "Upper floor cutaway" else min(0, building.bounds()[0][1]) - 0.025
             fixtures = preview.interior_lights if view.scene == preview.full_scene else ()
             if preview.water_level is not None:
                 ground_z = min(preview.water_level - 3.25, building.bounds()[0][1] - 0.025)
-            stage_scene(scene, selected, view.target, ground_z, fixtures, preview.water_level)
+            ground = stage_scene(scene, selected, view.target, ground_z, fixtures, preview.water_level)
+            if sample == "ember_gate":
+                from src.renderers.ember_gate import stage_ember_gate
+
+                stage_ember_gate(scene, materials)
+            elif growing_tower:
+                stage_grain_tower(scene, ground, selected, baked, materials, opaque,
+                                  crystal=sample == "crystal_tower")
             camera_groups[view.scene] = collection_for(scene, "View cameras")
         camera = add_camera(camera_groups[view.scene], view)
         cameras[view.image] = camera

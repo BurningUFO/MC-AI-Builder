@@ -1,0 +1,26 @@
+{
+  "stage": {
+    "ground_y": -2.78,
+    "ground_color": [0.13, 0.22, 0.25],
+    "sun": [-6, 9, -11],
+    "interior_lights": [
+      {"name": "Lake bounce in tea hall", "position": [0, 4.25, -7.8], "target": [-4, 1.4, -1], "power": 330, "size": 5},
+      {"name": "Shore bounce in tea hall", "position": [-2, 4.2, 6.8], "target": [-4.7, 1.2, 0.5], "power": 260, "size": 5},
+      {"name": "Upper gallery daylight bounce", "position": [1, 11.7, -5.1], "target": [-2.8, 8.25, 0.1], "power": 290, "size": 5}
+    ]
+  },
+  "views": {
+    "lake": {"position": [-33, 21.5, -44], "target": [-0.6, 7.9, -1.6], "scale": 47},
+    "shore": {"position": [27, 18, 35], "target": [0, 7.5, -1.5], "scale": 44},
+    "lower-hall": {"position": [-2.2, 2.63, 4.85], "target": [-4.6, 2.55, -4.2], "lens": 20},
+    "upper-gallery": {"position": [2.45, 9.65, 3.26], "target": [-2.3, 9.85, -5.4], "lens": 21},
+    "eaves": {"position": [29, 16.2, -26], "target": [4.9, 12.5, -1.2], "scale": 28},
+    "jetty": {"position": [-11.2, 2.65, -16.4], "target": [1.7, 7.5, -2], "lens": 19},
+    "stair-section": {"position": [-28, 14, 16], "target": [6.4, 7.1, -0.5], "scale": 37, "section": "East stair section"},
+    "lower-plan": {"position": [0, 51, -1.0], "target": [0, 0, -1.0], "scale": 39, "section": "Tea hall plan"}
+  },
+  "sections": {
+    "East stair section": {"min": [4, null, null]},
+    "Tea hall plan": {"max": [null, 4, null]}
+  }
+}

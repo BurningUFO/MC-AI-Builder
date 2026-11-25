@@ -60,18 +60,24 @@ def condition_keys(condition: dict) -> set[str]:
 def model_groups(spec: dict, state: BlockState) -> list[list[dict]]:
     check_loader(spec, state.block_id)
     properties = dict(state.properties)
+    ignored = NON_VISUAL_PROPERTIES
+    if state.block_id.endswith("_leaves"):
+        if (properties.get("persistent", "false") not in {"true", "false"}
+                or properties.get("distance", "7") not in set("1234567")):
+            raise AssetError(f"{state.key}: invalid leaf persistence or distance")
+        ignored = ignored | {"persistent", "distance"}
     if "variants" in spec:
         options = []
         for text, apply in spec["variants"].items():
             condition = dict(part.split("=", 1) for part in text.split(",") if part)
-            if properties.keys() - condition.keys() <= NON_VISUAL_PROPERTIES and condition_matches(condition, properties):
+            if properties.keys() - condition.keys() <= ignored and condition_matches(condition, properties):
                 options.append(apply)
         if len(options) != 1:
             raise AssetError(f"{state.key}: expected one matching variant, found {len(options)}")
     elif "multipart" in spec:
         parts = spec["multipart"]
         keys = set().union(*(condition_keys(part.get("when", {})) for part in parts))
-        if keys - properties.keys() or properties.keys() - keys - NON_VISUAL_PROPERTIES:
+        if keys - properties.keys() or properties.keys() - keys - ignored:
             raise AssetError(f"{state.key}: incomplete or unexpected multipart properties, expected {sorted(keys)}")
         options = [part["apply"] for part in parts if condition_matches(part.get("when", {}), properties)]
     else:

@@ -2,3 +2,10 @@
 /forge/gradlew text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Keep blueprint and archived snapshot hashes stable across checkouts.
+/projects/*/building.json text eol=lf
+/projects/*/design-groups.json text eol=lf
+/projects/*/design.py text eol=lf
+/projects/*/views.json text eol=lf
+/projects/*/versions/** -text

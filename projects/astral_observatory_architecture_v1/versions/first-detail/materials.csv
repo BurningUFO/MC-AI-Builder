@@ -1,0 +1,34 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+handcrafted:dark_oak_chair,2,Dark Oak Chair,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+handcrafted:dark_oak_desk,3,Dark Oak Desk,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+minecraft:chiseled_quartz_block,69,Chiseled Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_planks,107,Dark Oak Planks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_slab,13,Dark Oak Slab,BMC4.jar,1,static_assets_verified
+minecraft:deepslate_bricks,366,Deepslate Bricks,BMC4.jar,1,static_assets_verified
+minecraft:glass,113,Glass,BMC4.jar,1,static_assets_verified
+minecraft:iron_bars,62,Iron Bars,BMC4.jar,13,static_assets_verified
+minecraft:lantern,15,Lantern,BMC4.jar,2,static_approximation
+minecraft:lectern,2,Lectern,BMC4.jar,1,static_approximation
+minecraft:polished_blackstone_bricks,593,Polished Blackstone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:quartz_pillar,2,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:sea_lantern,4,Sea Lantern,BMC4.jar,1,static_approximation
+minecraft:smooth_quartz,54,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_slab,3,Smooth Quartz Slab,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_stairs,2,Smooth Quartz Stairs,BMC4.jar,2,static_assets_verified
+minecraft:waxed_cut_copper,86,Waxed Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_exposed_cut_copper,180,Waxed Exposed Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_exposed_cut_copper_slab,86,Waxed Exposed Cut Copper Slab,BMC4.jar,2,static_assets_verified
+minecraft:waxed_exposed_cut_copper_stairs,7,Waxed Exposed Cut Copper Stairs,BMC4.jar,3,static_assets_verified
+minecraft:waxed_oxidized_cut_copper,134,Waxed Oxidized Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_oxidized_cut_copper_slab,55,Waxed Oxidized Cut Copper Slab,BMC4.jar,1,static_assets_verified
+minecraft:waxed_oxidized_cut_copper_stairs,5,Waxed Oxidized Cut Copper Stairs,BMC4.jar,2,static_assets_verified
+quark:cyan_framed_glass,67,Cyan Framed Glass,Quark-4.0-462.jar,1,static_assets_verified
+quark:dark_oak_bookshelf,26,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block,120,Duskbound Block,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block_slab,3,Duskbound Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block_stairs,66,Duskbound Stairs,Quark-4.0-462.jar,6,static_assets_verified
+quark:polished_shale,342,Polished Shale,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_shale_stairs,17,Polished Shale Stairs,Quark-4.0-462.jar,5,static_assets_verified
+quark:purple_framed_glass,10,Purple Framed Glass,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks,1183,Shale Bricks,Quark-4.0-462.jar,1,static_assets_verified
+twigs:calcite_wall,40,Calcite Wall,Twigs-1.20.1-3.1.0.jar,8,static_assets_verified

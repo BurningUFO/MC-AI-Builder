@@ -1,0 +1,25 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:amethyst_block_mini_tiles,22,Amethyst Block Mini Tiles,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+handcrafted:dark_oak_chair,2,Dark Oak Chair,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+handcrafted:dark_oak_desk,3,Dark Oak Desk,handcrafted-forge-1.20.1-3.0.6.jar,1,static_assets_verified
+minecraft:chiseled_quartz_block,53,Chiseled Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_planks,107,Dark Oak Planks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_slab,13,Dark Oak Slab,BMC4.jar,1,static_assets_verified
+minecraft:deepslate_bricks,139,Deepslate Bricks,BMC4.jar,1,static_assets_verified
+minecraft:glass,201,Glass,BMC4.jar,1,static_assets_verified
+minecraft:lantern,15,Lantern,BMC4.jar,2,static_approximation
+minecraft:lectern,2,Lectern,BMC4.jar,1,static_approximation
+minecraft:polished_blackstone_bricks,593,Polished Blackstone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:quartz_pillar,180,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:sea_lantern,7,Sea Lantern,BMC4.jar,1,static_approximation
+minecraft:smooth_quartz,340,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:smooth_quartz_slab,87,Smooth Quartz Slab,BMC4.jar,2,static_assets_verified
+minecraft:waxed_cut_copper,21,Waxed Cut Copper,BMC4.jar,1,static_assets_verified
+quark:dark_oak_bookshelf,26,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block,499,Duskbound Block,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block_slab,18,Duskbound Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:duskbound_block_stairs,66,Duskbound Stairs,Quark-4.0-462.jar,6,static_assets_verified
+quark:polished_shale,216,Polished Shale,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_shale_stairs,9,Polished Shale Stairs,Quark-4.0-462.jar,1,static_assets_verified
+quark:purple_framed_glass,64,Purple Framed Glass,Quark-4.0-462.jar,1,static_assets_verified
+quark:shale_bricks,999,Shale Bricks,Quark-4.0-462.jar,1,static_assets_verified

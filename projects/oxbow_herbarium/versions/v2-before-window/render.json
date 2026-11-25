@@ -1,0 +1,118 @@
+{
+  "inputs": {
+    "design.py": "f90e7f622e9d9ac8f67f6b8c0fa9dc422e2005e3c3e971f6b7a27d49dab943c3",
+    "views.json": "9df7517c67815c349108eeee1c4efdc0b3b4ca242e8e18e58bbe51b8961578c7",
+    "building.json": "e963ae808871588c06fb0cf7f1e0d536150e8fb76f45e5259ab563e428d58678",
+    "design-groups.json": "b9145e06c0e3b26c4d4e2b54e8d9bee6dd6c8ce4cf5c6d219006e412aee2ad56",
+    "material-index.json": "3c21b7edaa258f6d8abc4f668af71cfabcdaca1a019aaef31f5a0c85da6d3762",
+    "materials.csv": "e6875d62141af4c03e22fa2eb4d4c91bc889426d63586e70d23fbce0d25e434d"
+  },
+  "preset": "review",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1080,
+    900
+  ],
+  "setup_seconds": 0.446,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "7e0ccad53c57fa3f44b71e9dd13ed50ff1fff075178fe57806d170bca7fec2fb",
+      "seconds": 5.081
+    },
+    "reading": {
+      "file": "reading.png",
+      "scene": "Building",
+      "camera": "reading",
+      "sha256": "aa37b09705eec56cb7b8ca01b78f3fb12e7b6c80ac24ea4431365ced7340c4f9",
+      "seconds": 10.324
+    },
+    "south-window": {
+      "file": "south-window.png",
+      "scene": "Building",
+      "camera": "south-window",
+      "sha256": "6989a7d710940667f8c996555b7a7c6ea4a242cfa98af749ac9807ae2ccf3168",
+      "seconds": 12.74
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "rear": {
+      "scene": "Building",
+      "name": "rear",
+      "frame": 21
+    },
+    "atrium": {
+      "scene": "Building",
+      "name": "atrium",
+      "frame": 41
+    },
+    "reading": {
+      "scene": "Building",
+      "name": "reading",
+      "frame": 61
+    },
+    "south-window": {
+      "scene": "Building",
+      "name": "south-window",
+      "frame": 81
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 101
+    },
+    "archive": {
+      "scene": "Building",
+      "name": "archive",
+      "frame": 121
+    },
+    "top": {
+      "scene": "Building",
+      "name": "top",
+      "frame": 141
+    },
+    "stair": {
+      "scene": "Building",
+      "name": "stair",
+      "frame": 161
+    },
+    "ground-plan": {
+      "scene": "Ground plan",
+      "name": "ground-plan",
+      "frame": 1
+    },
+    "upper-plan": {
+      "scene": "Upper gallery",
+      "name": "upper-plan",
+      "frame": 1
+    },
+    "long-section": {
+      "scene": "Longitudinal section",
+      "name": "long-section",
+      "frame": 1
+    },
+    "cross-section": {
+      "scene": "Transverse section",
+      "name": "cross-section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3546,
+    "Ground plan": 1792,
+    "Upper gallery": 686,
+    "Longitudinal section": 1268,
+    "Transverse section": 610
+  },
+  "full_scene": "Building"
+}

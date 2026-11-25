@@ -1,0 +1,63 @@
+{
+  "inputs": {
+    "design.py": "1579fdc12ea248fd5efb8ae8af124c005f17c32832ca99ab5f7923096a766517",
+    "views.json": "9fa0f94c9e55575a220658503b2fe197dff84a07098752b5c1c995f90f0683e9",
+    "building.json": "2447052f5eaed133c41d4dd72f1a28cf32f9f32ee6e1af56c13b5af1718235a6",
+    "design-groups.json": "3545f4a85f27b4e67e8545206f4243ff85d44499093f063dfc6dcc2e787ffee8",
+    "material-index.json": "72d55b6f36814d894d2670e6639b4985ff11b5f96a7ec9c0793c3c1c1ff61e93",
+    "materials.csv": "630cb355de9f17def9e040c75d1f7fd61603741205e7a1e95ad5fc1efd5292ba"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.687,
+  "blend": null,
+  "images": {
+    "shore-approach": {
+      "file": "shore-approach.png",
+      "scene": "Building",
+      "camera": "shore-approach",
+      "sha256": "ff1b08a8cf9955e3d420901aca2bb97630ec69cedb94e5ebbbbbf5e7ee1a84d4",
+      "seconds": 1.77
+    },
+    "great-hall": {
+      "file": "great-hall.png",
+      "scene": "Building",
+      "camera": "great-hall",
+      "sha256": "311fe0903c94731ebaa0dc820e02a7a999a93d35098e5d1434e1c0c6ec87dc35",
+      "seconds": 1.998
+    }
+  },
+  "cameras": {
+    "shore-approach": {
+      "scene": "Building",
+      "name": "shore-approach",
+      "frame": 1
+    },
+    "great-hall": {
+      "scene": "Building",
+      "name": "great-hall",
+      "frame": 21
+    },
+    "lakeside-suite": {
+      "scene": "Building",
+      "name": "lakeside-suite",
+      "frame": 41
+    },
+    "manor-section": {
+      "scene": "Manor longitudinal cut",
+      "name": "manor-section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 6673,
+    "Manor longitudinal cut": 3160
+  },
+  "full_scene": "Building"
+}

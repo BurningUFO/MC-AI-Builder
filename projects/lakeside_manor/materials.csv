@@ -1,0 +1,49 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+handcrafted:dark_oak_fancy_bed,6,Dark Oak Fancy Bed,handcrafted-forge-1.20.1-3.0.6.jar,6,static_assets_verified
+handcrafted:spruce_bench,3,Spruce Bench,handcrafted-forge-1.20.1-3.0.6.jar,3,static_assets_verified
+handcrafted:spruce_chair,10,Spruce Chair,handcrafted-forge-1.20.1-3.0.6.jar,3,static_assets_verified
+minecraft:barrel,27,Barrel,BMC4.jar,2,static_assets_verified
+minecraft:bricks,9,Bricks,BMC4.jar,1,static_assets_verified
+minecraft:brown_carpet,24,Brown Carpet,BMC4.jar,1,static_assets_verified
+minecraft:campfire,3,Campfire,BMC4.jar,1,static_approximation
+minecraft:cauldron,1,Cauldron,BMC4.jar,1,static_assets_verified
+minecraft:coarse_dirt,48,Coarse Dirt,BMC4.jar,1,static_assets_verified
+minecraft:crafting_table,2,Crafting Table,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_fence,55,Dark Oak Fence,BMC4.jar,9,static_assets_verified
+minecraft:dark_oak_planks,166,Dark Oak Planks,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_slab,97,Dark Oak Slab,BMC4.jar,1,static_assets_verified
+minecraft:fern,6,Fern,BMC4.jar,1,static_approximation
+minecraft:flowering_azalea,7,Flowering Azalea,BMC4.jar,1,static_assets_verified
+minecraft:furnace,2,Furnace,BMC4.jar,1,static_assets_verified
+minecraft:glass_pane,178,Glass Pane,BMC4.jar,2,static_assets_verified
+minecraft:grass_block,35,Grass Block,BMC4.jar,1,static_approximation
+minecraft:gravel,6,Gravel,BMC4.jar,1,static_assets_verified
+minecraft:lantern,26,Lantern,BMC4.jar,2,static_approximation
+minecraft:moss_block,6,Moss Block,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite,235,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:potted_cornflower,1,Potted Cornflower,BMC4.jar,1,static_assets_verified
+minecraft:potted_fern,4,Potted Fern,BMC4.jar,1,static_approximation
+minecraft:red_carpet,10,Red Carpet,BMC4.jar,1,static_assets_verified
+minecraft:smoker,2,Smoker,BMC4.jar,1,static_assets_verified
+minecraft:smooth_sandstone,58,Smooth Sandstone,BMC4.jar,1,static_assets_verified
+minecraft:smooth_stone_slab,8,Smooth Stone Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_door,14,Spruce Door,BMC4.jar,12,static_assets_verified
+minecraft:spruce_fence,10,Spruce Fence,BMC4.jar,1,static_assets_verified
+minecraft:spruce_planks,803,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,78,Spruce Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,12,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:spruce_trapdoor,16,Spruce Trapdoor,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_slab,16,Stone Brick Slab,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_stairs,21,Stone Brick Stairs,BMC4.jar,5,static_assets_verified
+minecraft:stone_bricks,177,Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:stonecutter,1,Stonecutter,BMC4.jar,1,static_approximation
+minecraft:stripped_dark_oak_log,710,Stripped Dark Oak Log,BMC4.jar,3,static_assets_verified
+minecraft:white_terracotta,206,White Terracotta,BMC4.jar,1,static_assets_verified
+quark:cyan_shingles,624,Cyan Terracotta Shingles,Quark-4.0-462.jar,1,static_assets_verified
+quark:cyan_shingles_slab,86,Cyan Terracotta Shingle Slab,Quark-4.0-462.jar,1,static_assets_verified
+quark:cyan_shingles_stairs,706,Cyan Terracotta Shingle Stairs,Quark-4.0-462.jar,4,static_assets_verified
+quark:dark_oak_bookshelf,17,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:vertical_spruce_planks,183,Vertical Spruce Planks,Quark-4.0-462.jar,1,static_assets_verified
+twigs:mossy_cobblestone_bricks,278,Mossy Cobblestone Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:polished_tuff_bricks,1706,Polished Tuff Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:spruce_table,17,Spruce Table,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified

@@ -38,6 +38,10 @@ class Source:
     def english(self) -> dict:
         return self.read_optional_json(f"assets/{self.namespace}/lang/en_us.json") or {}
 
+    @cached_property
+    def chinese(self) -> dict:
+        return self.read_optional_json(f"assets/{self.namespace}/lang/zh_cn.json") or {}
+
     def read_optional_json(self, path: str) -> dict | None:
         return json.loads(self.archive.read(path)) if path in self.files else None
 
@@ -153,11 +157,41 @@ class Archives(ExitStack):
         candidates = [jar for jar, files in self._mod_entries.items() if path in files]
         if len(candidates) != 1:
             return None
-        jar = candidates[0]
+        return self.embedded_source(candidates[0], namespace)
+
+    def embedded_source(self, jar, namespace):
         key = (jar, namespace)
         if key not in self._embedded_sources:
             self._embedded_sources[key] = Source(namespace, jar, self.enter_context(ZipFile(jar)), "embedded")
         return self._embedded_sources[key]
+
+    def blockstate_sources(self):
+        """Yield unambiguous installed blockstates, using the same precedence as read()."""
+        paths = {}
+        if not self.vanilla_only:
+            for jar, files in self._mod_entries.items():
+                for path in files:
+                    if "/blockstates/" in path and path.endswith(".json"):
+                        paths[path] = jar if path not in paths else None
+        for source in self.sources.values():
+            prefix = f"assets/{source.namespace}/blockstates/"
+            for path in source.files:
+                if path.startswith(prefix) and path.endswith(".json"):
+                    paths[path] = source.path
+        for path, jar in sorted(paths.items()):
+            if jar is None:
+                continue
+            _, namespace, folder, name = path.split("/", 3)
+            if folder != "blockstates":
+                continue
+            block_id = f"{namespace}:{name.removesuffix('.json')}"
+            try:
+                resource_id(block_id)
+            except ValueError:
+                continue
+            primary = self.sources.get(namespace)
+            source = primary if primary and primary.path == jar else self.embedded_source(jar, namespace)
+            yield block_id, source
 
     def read(self, reference: str, folder: str, suffix: str) -> bytes:
         namespace, name = location(reference)

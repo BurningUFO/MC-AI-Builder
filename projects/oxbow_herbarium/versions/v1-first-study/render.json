@@ -1,0 +1,103 @@
+{
+  "inputs": {
+    "design.py": "e4dbd89e3f0e07abe575118041decc42a4ce9e1789119bf744265a041bf7de48",
+    "views.json": "b17277b656dd0ceb6f91e6ee5bcae32a7ce6f9518b0f8f966f0814776a09c79b",
+    "building.json": "400884749e3128b58fb57f3afdd525b965d26abd056159e3f550a5ad8018ce25",
+    "design-groups.json": "d99da2fa1181610af9bffdaad2ddb1a81b4dc394c01add2bfda66ca199adb4db",
+    "material-index.json": "80d14958d6c4c59223f219f60d862db8c0676a8ffb997ba0c5e1c222610606bd",
+    "materials.csv": "fad2e973f0e3e62d71eb36e0d0c5288cb15a9177c846aa0a05a35eebaf4f82a3"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.34,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "2ac85797568472ad413cc3336b741da1b338597ea7e3cade1af022a851fe3f0b",
+      "seconds": 1.561
+    },
+    "atrium": {
+      "file": "atrium.png",
+      "scene": "Building",
+      "camera": "atrium",
+      "sha256": "09bede24aa15029cbdf28879b2b87d80b9875c6d48a3356ec33067d1bdf52449",
+      "seconds": 2.007
+    },
+    "reading": {
+      "file": "reading.png",
+      "scene": "Building",
+      "camera": "reading",
+      "sha256": "0226a678d469b6cf7e555b2ab59daff06c8f088645db40f218b12fba98d58955",
+      "seconds": 1.928
+    },
+    "roof": {
+      "file": "roof.png",
+      "scene": "Building",
+      "camera": "roof",
+      "sha256": "b1932a36870e1cb068db17681966c0a32ef2706a5ab4a9cd21de6ad9f8d2a8e3",
+      "seconds": 1.353
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "atrium": {
+      "scene": "Building",
+      "name": "atrium",
+      "frame": 21
+    },
+    "reading": {
+      "scene": "Building",
+      "name": "reading",
+      "frame": 41
+    },
+    "south-window": {
+      "scene": "Building",
+      "name": "south-window",
+      "frame": 61
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 81
+    },
+    "archive": {
+      "scene": "Building",
+      "name": "archive",
+      "frame": 101
+    },
+    "stair": {
+      "scene": "Building",
+      "name": "stair",
+      "frame": 121
+    },
+    "ground-plan": {
+      "scene": "Ground plan",
+      "name": "ground-plan",
+      "frame": 1
+    },
+    "long-section": {
+      "scene": "Longitudinal section",
+      "name": "long-section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3410,
+    "Ground plan": 1754,
+    "Longitudinal section": 1225
+  },
+  "full_scene": "Building"
+}

@@ -1,0 +1,13 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:runic_carved_blackstone,20,Runic Carved Blackstone,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+minecraft:deepslate_tiles,103,Deepslate Tiles,BMC4.jar,1,static_assets_verified
+minecraft:lantern,4,Lantern,BMC4.jar,1,static_assets_verified
+minecraft:obsidian,30,Obsidian,BMC4.jar,1,static_assets_verified
+minecraft:polished_basalt,20,Polished Basalt,BMC4.jar,1,static_assets_verified
+minecraft:polished_blackstone,86,Polished Blackstone,BMC4.jar,1,static_assets_verified
+minecraft:polished_blackstone_brick_slab,36,Polished Blackstone Brick Slab,BMC4.jar,2,static_assets_verified
+minecraft:polished_blackstone_brick_stairs,92,Polished Blackstone Brick Stairs,BMC4.jar,6,static_assets_verified
+minecraft:polished_blackstone_bricks,425,Polished Blackstone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:shroomlight,4,Shroomlight,BMC4.jar,1,static_assets_verified
+minecraft:waxed_cut_copper,8,Waxed Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_cut_copper_slab,15,Waxed Cut Copper Slab,BMC4.jar,2,static_assets_verified

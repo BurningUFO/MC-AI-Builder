@@ -1,0 +1,30 @@
+{
+  "stage": {
+    "ground_y": -2.06,
+    "ground_color": [0.155, 0.194, 0.208],
+    "sun": [4, 12, 9],
+    "interior_lights": [
+      {"name": "Great hall gallery bounce", "position": [0.2, 7.6, 1.4], "target": [-3, 1.1, 2.0], "power": 1360, "size": 7},
+      {"name": "Great hall timber soffit bounce", "position": [0.6, 4.1, 2.2], "target": [-0.5, 10.6, -4.7], "power": 1020, "size": 5},
+      {"name": "Hearth reading fill", "position": [-4.0, 5.0, 4.0], "target": [0.4, 2.2, -6.6], "power": 720, "size": 5},
+      {"name": "Hearth tone bounce", "position": [1.2, 2.5, -4.6], "target": [3.6, 1.8, -1.8], "power": 195, "size": 2.4},
+      {"name": "Kitchen inspection", "position": [-15.4, 4.35, 0.7], "target": [-16.0, 1.0, 1.5], "power": 530, "size": 5},
+      {"name": "Bedroom inspection", "position": [15.7, 9.6, 9.7], "target": [17.8, 7.2, 7.3], "power": 350, "size": 4}
+    ]
+  },
+  "sections": {
+    "Manor longitudinal cut": {"max": [null, null, 1]},
+    "Ground floor plan": {"min": [null, 0, null], "max": [null, 4, null]},
+    "Gallery and bedrooms": {"min": [null, 6, null], "max": [null, 8, null]}
+  },
+  "views": {
+    "shore-approach": {"position": [48, 29, 51], "target": [1, 7, 3], "scale": 55},
+    "landside": {"position": [-44, 27, -48], "target": [-0.7, 6.7, 3], "scale": 55},
+    "great-hall": {"position": [0.45, 2.68, 7.95], "target": [-0.45, 4.15, -4.7], "lens": 19},
+    "lakeside-suite": {"position": [16.1, 8.72, 4.6], "target": [17.05, 8.0, 10.1], "lens": 17.5},
+    "kitchen": {"position": [-11.65, 2.65, -0.5], "target": [-17.9, 2.3, 1.9], "lens": 21},
+    "manor-section": {"position": [0.4, 8.8, 61], "target": [0.4, 8.8, -1.2], "scale": 49, "section": "Manor longitudinal cut"},
+    "ground-plan": {"position": [-0.9, 53, 4.5], "target": [-0.9, 1.0, 4.5], "scale": 53, "section": "Ground floor plan"},
+    "suites-plan": {"position": [5.25, 49, 3.0], "target": [5.25, 7.0, 3.0], "scale": 39, "section": "Gallery and bedrooms"}
+  }
+}

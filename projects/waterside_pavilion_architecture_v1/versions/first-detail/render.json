@@ -1,0 +1,76 @@
+{
+  "inputs": {
+    "design.py": "723941fefaf9cae5146460a8d39130be6a5dbf67656b5123a505ff9afff739f7",
+    "views.json": "7ed45d0baa1b5ff38022eb358e1151836f5f7764eb3740446befb22a2d21d67a",
+    "building.json": "a92d7bb462d9e06898c084e4c2d16f5ee4e4e1076d61f3ec197f4b5bdea1c04b",
+    "design-groups.json": "6e7cd22a864f291a35d7028562b25915e5e7287e601868224c023ed6ffe072a7",
+    "material-index.json": "dadbba61f0e0ce59d24d1f9eb7e275965a46207c0da38289d8cc189551f2cc41",
+    "materials.csv": "2eb771b19a0fabf671d9f85863b8c7d22d497384ef2f8574a40122efde58e0ce"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.321,
+  "blend": null,
+  "images": {
+    "lake": {
+      "file": "lake.png",
+      "scene": "Building",
+      "camera": "lake",
+      "sha256": "c39da697d100b8fec6749f9ed3dd7c37f35c866fc4f9860501a8a7808cedeccc",
+      "seconds": 1.583
+    },
+    "eaves": {
+      "file": "eaves.png",
+      "scene": "Building",
+      "camera": "eaves",
+      "sha256": "3381ab2fbff5cda56b8e66c5aa7990cecdc28e173b579c9097112be2ce14e87f",
+      "seconds": 1.446
+    },
+    "upper-gallery": {
+      "file": "upper-gallery.png",
+      "scene": "Building",
+      "camera": "upper-gallery",
+      "sha256": "269c9415b022c4e4b9aa3ef9e78c81aac734fd9e10bd7f00c20cd084429b5b81",
+      "seconds": 1.757
+    },
+    "lower-hall": {
+      "file": "lower-hall.png",
+      "scene": "Building",
+      "camera": "lower-hall",
+      "sha256": "3a6f44387ec2735d6c69efae13a344d9efc340ecc17c143b20fc5d2e8ca77aeb",
+      "seconds": 1.835
+    }
+  },
+  "cameras": {
+    "lake": {
+      "scene": "Building",
+      "name": "lake",
+      "frame": 1
+    },
+    "lower-hall": {
+      "scene": "Building",
+      "name": "lower-hall",
+      "frame": 21
+    },
+    "upper-gallery": {
+      "scene": "Building",
+      "name": "upper-gallery",
+      "frame": 41
+    },
+    "eaves": {
+      "scene": "Building",
+      "name": "eaves",
+      "frame": 61
+    }
+  },
+  "scene_block_counts": {
+    "Building": 2794
+  },
+  "full_scene": "Building"
+}

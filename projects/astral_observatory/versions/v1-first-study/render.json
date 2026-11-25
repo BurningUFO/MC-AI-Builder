@@ -1,0 +1,63 @@
+{
+  "inputs": {
+    "design.py": "a352a311b4f1fecc1931bf72de5d1ae10b9170e1638cb438eadd0cd7dc6f7e48",
+    "views.json": "fd488fc0733b6989139882fdf8f49e240a2424cf3f6df55a8f7623eea7b2fafa",
+    "building.json": "a3001002a1e52a366206bc0981a3639a4a7f639e829f68daa97b2bb6d75188bc",
+    "design-groups.json": "bda7c946d1e9c4111092c807b22c519c1deb703a486c4096d0e399035dd6dbc5",
+    "material-index.json": "84be5b5bd6ea7c9eef21489f4c42e1993a12c0ef7e5492ad4d77fcadd4655f87",
+    "materials.csv": "25ca4252f2661e1ca6ad066c8d90de3ff01bd012a7d0cc3313c0b34c77b2d1a3"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.338,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "f3bc63c9a487de7444aa1549611691f4c1773fe738753066ba31332e259117b8",
+      "seconds": 1.479
+    },
+    "meridian": {
+      "file": "meridian.png",
+      "scene": "Building",
+      "camera": "meridian",
+      "sha256": "0032c5a230e76359564a8db4e0e47557456ee14601246deeab03fd0c5fbd489a",
+      "seconds": 1.358
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "archive": {
+      "scene": "Building",
+      "name": "archive",
+      "frame": 21
+    },
+    "meridian": {
+      "scene": "Building",
+      "name": "meridian",
+      "frame": 41
+    },
+    "section": {
+      "scene": "Archive and stair section",
+      "name": "section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3682,
+    "Archive and stair section": 2465
+  },
+  "full_scene": "Building"
+}

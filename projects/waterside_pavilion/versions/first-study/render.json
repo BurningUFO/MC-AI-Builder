@@ -1,0 +1,63 @@
+{
+  "inputs": {
+    "design.py": "04edb706776429d28ce2851173ef3048364e35c35e3d368fe6d2be39189e2cfe",
+    "views.json": "11e470b4a033a7a62370eecf65a2454c708770fed70915d7af04f45f7eb63fb6",
+    "building.json": "b37c441c6a139260697fe3d739c45a8385b2ae36d0b0c19f326d536be8e56253",
+    "design-groups.json": "6cb6c8ebf9162ea8c7c1e27d765fb13d72c439c173b786603b5a4a8aaafac64c",
+    "material-index.json": "4732f005b31c42cf46f4f559e2ef8c529ff164a10f54d7a3a3d5cf9915d656ae",
+    "materials.csv": "40eed319dc16f7dace5b020cc80e34dfbcb7fdd2033ce21ccbdce8c49eac5e0f"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.405,
+  "blend": null,
+  "images": {
+    "lake": {
+      "file": "lake.png",
+      "scene": "Building",
+      "camera": "lake",
+      "sha256": "5ad83d5ceb236530eaee04703f77b3618134f080ea4b95881aa9c34320b0052e",
+      "seconds": 1.57
+    },
+    "upper-gallery": {
+      "file": "upper-gallery.png",
+      "scene": "Building",
+      "camera": "upper-gallery",
+      "sha256": "9e2a1bd1f467f099bb8b0eb0dd08c560e132fc03a4bf9a655c8a197122824b42",
+      "seconds": 1.881
+    }
+  },
+  "cameras": {
+    "lake": {
+      "scene": "Building",
+      "name": "lake",
+      "frame": 1
+    },
+    "lower-hall": {
+      "scene": "Building",
+      "name": "lower-hall",
+      "frame": 21
+    },
+    "upper-gallery": {
+      "scene": "Building",
+      "name": "upper-gallery",
+      "frame": 41
+    },
+    "stair-section": {
+      "scene": "East stair section",
+      "name": "stair-section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3099,
+    "East stair section": 1119
+  },
+  "full_scene": "Building"
+}

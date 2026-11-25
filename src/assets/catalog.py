@@ -6,8 +6,9 @@ from hashlib import sha256
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from src.assets.appearance import appearance_notes, texture_metadata
 from src.assets.archives import Archives, AssetError, location
-from src.assets.models import ModelLibrary
+from src.assets.models import ModelLibrary, NON_VISUAL_PROPERTIES, check_loader, model_groups
 from src.core.building import BlockState, Building, write_json
 from src.generators.medieval import VANILLA, slab, stairs
 
@@ -65,7 +66,7 @@ def choose_palette(library: ModelLibrary, *, defaults=VANILLA, candidates=STARTE
     return palette, decisions
 
 
-def cache_texture(project_root: Path, library: ModelLibrary, reference: str, *, cache=False) -> dict:
+def cache_texture(project_root: Path, library: ModelLibrary, reference: str, *, cache=False, appearance=False) -> dict:
     namespace, name = location(reference)
     raw = library.texture(reference)
     digest = sha256(raw).hexdigest()
@@ -86,9 +87,12 @@ def cache_texture(project_root: Path, library: ModelLibrary, reference: str, *, 
                 scratch.unlink(missing_ok=True)
     source_texture = f"assets/{namespace}/textures/{name}.png"
     source = library.archives.source_for(namespace, source_texture)
-    return {"file": relative.as_posix(), "sha256": digest,
+    info = {"file": relative.as_posix(), "sha256": digest,
             "source_jar": source.path.name,
             "source_texture": source_texture}
+    if appearance:
+        info.update(texture_metadata(library.archives, reference))
+    return info
 
 
 def excluded_examples(library: ModelLibrary) -> dict:
@@ -142,7 +146,7 @@ def vanilla_fallback(state, library):
 
 
 def build_index(root: Path, building: Building, library: ModelLibrary, choices: dict, *,
-                outline_observations=False, fallback_mods=False) -> dict:
+                outline_observations=False, fallback_mods=False, standalone=False) -> dict:
     stats = building.state_counts()
     blocks = {}
     baked = {}
@@ -151,6 +155,11 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
     fallbacks = {}
     for state, count in sorted(stats.items(), key=lambda entry: entry[0].key):
         info = blocks.get(state.block_id)
+        if standalone:
+            info = info or library.archives.block_info(state.block_id) | {"count": 0, "states": []}
+            if any(value not in {"true", "false"} for key, value in state.properties
+                   if key in NON_VISUAL_PROPERTIES):
+                raise AssetError(f"{state.key}: expected true or false for the nonvisual state properties")
         try:
             if info is None:
                 info = library.archives.block_info(state.block_id) | {"count": 0, "states": []}
@@ -160,7 +169,16 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
                 for ref in sorted(textures - references):
                     library.texture(ref)
         except (AssetError, ValueError, KeyError, TypeError) as error:
-            if fallback_mods and not state.block_id.startswith("minecraft:"):
+            if fallback_mods and (standalone or not state.block_id.startswith("minecraft:")):
+                if standalone:
+                    spec = library.blockstate(state.block_id)
+                    try:
+                        check_loader(spec, state.block_id)
+                    except AssetError:
+                        pass  # Dynamic loaders expose their own state interpretation.
+                    else:
+                        if "variants" in spec or "multipart" in spec:
+                            model_groups(spec, state)
                 substitute, asset = vanilla_fallback(state, library)
                 if info is None:
                     info = {"source_jar": None, "display_name": state.block_id, "count": 0, "states": []}
@@ -178,6 +196,19 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
         references.update(textures)
         baked[state.key] = {"block_id": state.block_id, "properties": dict(state.properties),
                             "count": count, **asset}
+    textures = {ref: cache_texture(root, library, ref, cache=fallback_mods or standalone, appearance=standalone)
+                for ref in sorted(references)}
+    approximations = {}
+    if standalone:
+        entity_states = {block.state.key for block in building.blocks.values() if block.block_entity is not None}
+        for state in stats:
+            asset = baked[state.key]
+            notes = appearance_notes(state, asset, [textures[face["texture"]] for face in asset["faces"]])
+            if state.key in entity_states:
+                notes.append("The blueprint contains block-entity data; the preview shows static faces.")
+            if notes:
+                approximations[state.key] = notes
+                blocks[state.block_id].setdefault("preview_status", "static_approximation")
     result = {
         "schema_version": 1,
         "verification_scope": "Installed JAR resources only. No live Forge registry, resource pack overrides, or runtime rendering.",
@@ -186,13 +217,15 @@ def build_index(root: Path, building: Building, library: ModelLibrary, choices: 
         "starter_palette": choices,
         "excluded_examples": excluded_examples(library),
         "blocks": blocks,
-        "textures": {ref: cache_texture(root, library, ref, cache=fallback_mods) for ref in sorted(references)},
+        "textures": textures,
         "states": baked,
     }
     if unrendered:
         result["unrendered_observations"] = unrendered
     if fallbacks:
         result["render_fallbacks"] = fallbacks
+    if approximations:
+        result["render_approximations"] = approximations
     return result
 
 

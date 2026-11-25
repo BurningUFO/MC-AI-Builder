@@ -1,0 +1,19 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:stacked_spruce_planks,220,Stacked Spruce Planks,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+minecraft:barrel,6,Barrel,BMC4.jar,1,static_assets_verified
+minecraft:dirt,162,Dirt,BMC4.jar,1,static_assets_verified
+minecraft:glass,531,Glass,BMC4.jar,1,static_assets_verified
+minecraft:lantern,18,Lantern,BMC4.jar,1,static_assets_verified
+minecraft:mossy_stone_bricks,14,Mossy Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite,87,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:spruce_door,2,Spruce Door,BMC4.jar,2,static_assets_verified
+minecraft:spruce_fence,10,Spruce Fence,BMC4.jar,3,static_assets_verified
+minecraft:spruce_planks,160,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,96,Spruce Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,24,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_stairs,10,Stone Brick Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_bricks,85,Stone Bricks,BMC4.jar,1,static_assets_verified
+minecraft:stripped_spruce_log,213,Stripped Spruce Log,BMC4.jar,2,static_assets_verified
+minecraft:waxed_cut_copper_slab,1,Waxed Cut Copper Slab,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper,127,Waxed Weathered Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper_slab,50,Waxed Weathered Cut Copper Slab,BMC4.jar,2,static_assets_verified

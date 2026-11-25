@@ -11,7 +11,7 @@
 /forge/build/
 /forge/run/
 /forge/run-data/
-/projects/*/material-index.json
+/projects/**/material-index.json
 /previews/
 __pycache__/
 *.py[cod]

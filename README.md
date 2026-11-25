@@ -1,6 +1,12 @@
-# Minecraft AI Builder
+# MC-AI-Builder
+
+Minecraft 社区项目。此项目非 Minecraft 官方产品，与 Mojang 或 Microsoft 无关联，亦未获其批准。
 
 MC Builder 是 Minecraft Java 1.20.1 Forge 的建筑伙伴。它能根据附近地形提出体素方案，跟玩家商量改图和材料，并由 Fake Players NPC 在游戏里施工。游戏内可以直接查看全息虚影。Blender 也可在后台生成工程和多角度预览。
+
+## 独立 Blender 建筑设计
+
+在工程目录编写自由 Python 设计，然后用同一套命令检索 BMC4 材料、生成蓝图、选择机位、审阅剖面和交付 Blender 工程。 [操作指南](docs/blender-workflow.md) · [建筑与版本归档](docs/previews/README.md) · [Architecture Intelligence](docs/architecture-intelligence.md)
 
 ## 在游戏里使用
 

@@ -1,0 +1,283 @@
+{
+  "before": "projects/waterside_pavilion",
+  "after": "projects/waterside_pavilion_architecture_v1",
+  "render_settings": {
+    "preset": "quick",
+    "presentation": "showcase",
+    "cpu": true,
+    "fixed_lighting": true,
+    "legacy_views": false,
+    "full_scene": "Building",
+    "stage": {
+      "ground_y": -3.045,
+      "ground_color": [
+        0.13,
+        0.22,
+        0.25
+      ],
+      "sun": [
+        -6,
+        11,
+        -10
+      ],
+      "interior_lights": [
+        {
+          "name": "Lake bounce in tea hall",
+          "position": [
+            -4.4,
+            4.45,
+            -4.15
+          ],
+          "target": [
+            -4.4,
+            1.15,
+            0.8
+          ],
+          "power": 415,
+          "size": 4.2
+        },
+        {
+          "name": "Shore bounce in tea hall",
+          "position": [
+            2.6,
+            3.5,
+            4.3
+          ],
+          "target": [
+            -4.3,
+            1.75,
+            -1.3
+          ],
+          "power": 160,
+          "size": 4
+        },
+        {
+          "name": "Upper gallery daylight bounce",
+          "position": [
+            1.8,
+            11.6,
+            -2.0
+          ],
+          "target": [
+            -2.8,
+            8.3,
+            0.6
+          ],
+          "power": 400,
+          "size": 4.4
+        },
+        {
+          "name": "Upper gallery cross light",
+          "position": [
+            -4.5,
+            11.35,
+            2.45
+          ],
+          "target": [
+            -2.2,
+            8.85,
+            -2.6
+          ],
+          "power": 145,
+          "size": 3.5
+        }
+      ]
+    },
+    "sections": {
+      "East stair section": {
+        "min": [
+          4,
+          null,
+          null
+        ]
+      },
+      "Tea hall plan": {
+        "max": [
+          null,
+          4,
+          null
+        ]
+      }
+    },
+    "render": [
+      "lake",
+      "shore",
+      "eaves",
+      "upper-gallery",
+      "lower-hall",
+      "stair-section"
+    ],
+    "blend": null,
+    "cameras": {
+      "lake": {
+        "image": "lake.png",
+        "scene": "Building",
+        "camera": "lake",
+        "target": [
+          -0.6,
+          8.25,
+          -1.6
+        ],
+        "offset": [
+          -32.4,
+          42.4,
+          13.25
+        ],
+        "scale": 46,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "shore": {
+        "image": "shore.png",
+        "scene": "Building",
+        "camera": "shore",
+        "target": [
+          0,
+          7.5,
+          -1.5
+        ],
+        "offset": [
+          27,
+          -36.5,
+          10.5
+        ],
+        "scale": 44,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "eaves": {
+        "image": "eaves.png",
+        "scene": "Building",
+        "camera": "eaves",
+        "target": [
+          4.9,
+          12.5,
+          -1.2
+        ],
+        "offset": [
+          24.1,
+          24.8,
+          3.6999999999999993
+        ],
+        "scale": 28,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "upper-gallery": {
+        "image": "upper-gallery.png",
+        "scene": "Building",
+        "camera": "upper-gallery",
+        "target": [
+          -2.3,
+          9.85,
+          -5.4
+        ],
+        "offset": [
+          4.75,
+          -8.66,
+          -0.1999999999999993
+        ],
+        "scale": 59.64546923279252,
+        "lens_mm": 21,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "lower-hall": {
+        "image": "lower-hall.png",
+        "scene": "Building",
+        "camera": "lower-hall",
+        "target": [
+          -4.6,
+          2.55,
+          -4.2
+        ],
+        "offset": [
+          2.3999999999999995,
+          -9.05,
+          0.08000000000000007
+        ],
+        "scale": 59.64546923279252,
+        "lens_mm": 20,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "stair-section": {
+        "image": "stair-section.png",
+        "scene": "East stair section",
+        "camera": "stair-section",
+        "target": [
+          6.4,
+          7.3,
+          -0.5
+        ],
+        "offset": [
+          -34.4,
+          -20.5,
+          9.7
+        ],
+        "scale": 37,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05
+      }
+    }
+  },
+  "device": "CPU",
+  "views": {
+    "lake": {
+      "pair": "lake.png"
+    },
+    "shore": {
+      "pair": "shore.png"
+    },
+    "eaves": {
+      "pair": "eaves.png"
+    },
+    "upper-gallery": {
+      "pair": "upper-gallery.png"
+    },
+    "lower-hall": {
+      "pair": "lower-hall.png"
+    },
+    "stair-section": {
+      "pair": "stair-section.png"
+    }
+  },
+  "blueprint_diff": {
+    "before_sha256": "d37b412541e6cbd9b0147f3f359035c80101d17cae8b7acf0afdfe1f3d30d049",
+    "after_sha256": "f8657f2405a851a1dcc1ced296b9e4494737e524daa3df3af1418b77174c1b64",
+    "before_blocks": 3123,
+    "after_blocks": 2802,
+    "bounds": {
+      "min": [
+        -15,
+        -1,
+        -17
+      ],
+      "max": [
+        15,
+        21,
+        11
+      ]
+    },
+    "expected_bounds": {
+      "min": [
+        null,
+        null,
+        null
+      ],
+      "max": [
+        null,
+        null,
+        null
+      ]
+    },
+    "outside": 0,
+    "added": 709,
+    "removed": 1030,
+    "replaced": 589
+  }
+}
