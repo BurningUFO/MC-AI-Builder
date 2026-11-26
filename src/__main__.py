@@ -2,6 +2,7 @@
 
 import argparse
 from hashlib import sha256
+from io import BytesIO
 import os
 from pathlib import Path
 import subprocess
@@ -364,7 +365,7 @@ def compare(args):
 
 def compare_views(args):
     try:
-        from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw, ImageOps
     except ImportError as error:
         raise ValueError("compare-views needs Pillow, also used by the materials command.") from error
 
@@ -377,6 +378,15 @@ def compare_views(args):
     settings = view_settings(args.views_file.resolve(strict=True) if args.views_file else before / VIEWS)
     views, sections = view_catalog(settings, left)
     selected = image_selection(views, args.view)
+    references = {}
+    for key, filename in args.reference or ():
+        if key not in selected or key in references:
+            raise ValueError(f"Reference camera {key!r} must be selected and appear only once.")
+        data = Path(filename).read_bytes()
+        with Image.open(BytesIO(data)) as original:
+            frame = ImageOps.exif_transpose(original).convert("RGBA")
+            references[key] = (frame, {"file": filename, "sha256": sha256(data).hexdigest(),
+                                       "size": list(original.size)})
     stage = dict(stage_settings(settings.get("stage", {})))
     stage.setdefault("ground_y", min(left.bounds()[0][1], right.bounds()[0][1]) - 0.04)
     shared = {
@@ -402,14 +412,22 @@ def compare_views(args):
         pairs = {}
         for key in selected:
             paths = {side: f"{side}/{run['images'][key]['file']}" for side, run in reports.items()}
+            reference = references.get(key)
             with Image.open(staged / paths["before"]) as a, Image.open(staged / paths["after"]) as b:
                 width, height = a.size
-                strip = Image.new("RGB", (width * 2 + 4, height + 28), "#24272b")
-                strip.paste(a, (0, 28))
-                strip.paste(b, (width + 4, 28))
+                offset = width + 4 if reference else 0
+                strip = Image.new("RGB", (offset + width * 2 + 4, height + 28), "#24272b")
+                strip.paste(a, (offset, 28))
+                strip.paste(b, (offset + width + 4, 28))
                 labels = ImageDraw.Draw(strip)
-                labels.text((12, 8), f"BEFORE  /  {key}", fill="white")
-                labels.text((width + 16, 8), f"AFTER  /  {key}", fill="white")
+                labels.text((offset + 12, 8), f"BEFORE  /  {key}", fill="white")
+                labels.text((offset + width + 16, 8), f"AFTER  /  {key}", fill="white")
+                if reference:
+                    frame, record = reference
+                    fitted = ImageOps.contain(frame, (width, height), Image.Resampling.LANCZOS)
+                    strip.paste(fitted, ((width - fitted.width) // 2, 28 + (height - fitted.height) // 2), fitted)
+                    labels.text((12, 8), f"REFERENCE  /  {key}", fill="white")
+                    paths["reference"] = record
                 strip.save(staged / f"{key}.png")
             pairs[key] = {**paths, "pair": f"{key}.png"}
         write_json(staged / "comparison.json", {
@@ -512,6 +530,8 @@ def parser() -> argparse.ArgumentParser:
     pairs.add_argument("after", type=Path, help="generated project or snapshot directory")
     pairs.add_argument("--out", type=Path, required=True, help="new folder for the renders and comparison")
     pairs.add_argument("--view", action="append", required=True, help="shared camera ID, repeat to render several")
+    pairs.add_argument("--reference", nargs=2, action="append", metavar=("VIEW", "IMAGE"),
+                       help="add a local reference image to a selected view (repeat for other views)")
     pairs.add_argument("--views-file", type=Path, help="shared views.json, defaulting to the first project")
     pairs.add_argument("--preset", choices=("quick", "review"), default="quick")
     pairs.add_argument("--look", choices=("game", "showcase"), default="showcase")

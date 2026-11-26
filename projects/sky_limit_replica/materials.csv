@@ -1,9 +1,13 @@
 ﻿block_id,count,display_name,source_jar,state_count,preview
-minecraft:end_rod,219,End Rod,BMC4.jar,1,static_assets_verified
-minecraft:packed_ice,704,Packed Ice,BMC4.jar,1,static_assets_verified
-minecraft:prismarine,782,Prismarine,BMC4.jar,1,static_approximation
-minecraft:quartz_pillar,408,Quartz Pillar,BMC4.jar,1,static_assets_verified
-minecraft:quartz_slab,3124,Quartz Slab,BMC4.jar,2,static_assets_verified
-minecraft:quartz_stairs,64,Quartz Stairs,BMC4.jar,8,static_assets_verified
-minecraft:sea_lantern,122,Sea Lantern,BMC4.jar,1,static_approximation
-minecraft:smooth_quartz,5857,Smooth Quartz Block,BMC4.jar,1,static_assets_verified
+minecraft:dark_prismarine,31,Dark Prismarine,BMC4.jar,1,static_assets_verified
+minecraft:end_rod,117,End Rod,BMC4.jar,1,static_assets_verified
+minecraft:glowstone,96,Glowstone,BMC4.jar,1,static_assets_verified
+minecraft:packed_ice,1066,Packed Ice,BMC4.jar,1,static_assets_verified
+minecraft:prismarine,72,Prismarine,BMC4.jar,1,static_approximation
+minecraft:prismarine_slab,548,Prismarine Slab,BMC4.jar,2,static_approximation
+minecraft:prismarine_wall,16,Prismarine Wall,BMC4.jar,1,static_approximation
+minecraft:quartz_pillar,405,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:quartz_slab,2820,Quartz Slab,BMC4.jar,2,static_assets_verified
+minecraft:quartz_stairs,12,Quartz Stairs,BMC4.jar,4,static_assets_verified
+minecraft:sea_lantern,179,Sea Lantern,BMC4.jar,1,static_approximation
+minecraft:smooth_quartz,3628,Smooth Quartz Block,BMC4.jar,1,static_assets_verified

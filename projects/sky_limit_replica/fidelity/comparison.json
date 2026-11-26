@@ -1,0 +1,176 @@
+{
+  "before": "D:\\MC-AI-Builder\\projects\\sky_limit_replica\\versions\\final",
+  "after": "D:\\MC-AI-Builder\\projects\\sky_limit_replica",
+  "render_settings": {
+    "preset": "review",
+    "presentation": "game",
+    "cpu": true,
+    "fixed_lighting": true,
+    "legacy_views": false,
+    "full_scene": "Building",
+    "stage": {
+      "ground": false,
+      "sun": [
+        -7,
+        12,
+        8
+      ],
+      "ground_y": -6.04
+    },
+    "sections": {
+      "Lower promenade plan": {
+        "min": [
+          null,
+          42,
+          null
+        ],
+        "max": [
+          null,
+          46,
+          null
+        ]
+      }
+    },
+    "render": [
+      "reference-cover",
+      "reference-plan",
+      "reference-satellite"
+    ],
+    "blend": null,
+    "cameras": {
+      "reference-cover": {
+        "image": "reference-cover.png",
+        "scene": "Building",
+        "camera": "reference-cover",
+        "target": [
+          0.5,
+          50.75,
+          0.5
+        ],
+        "offset": [
+          54.5,
+          -54.5,
+          0.0
+        ],
+        "scale": 216.66419547308686,
+        "lens_mm": 21.6,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "reference-plan": {
+        "image": "reference-plan.png",
+        "scene": "Building",
+        "camera": "reference-plan",
+        "target": [
+          0.5,
+          45,
+          0.5
+        ],
+        "offset": [
+          0.0,
+          -0.0,
+          83
+        ],
+        "scale": 216.66419547308686,
+        "lens_mm": 24.2,
+        "hide_water": false,
+        "clip_start": 0.05
+      },
+      "reference-satellite": {
+        "image": "reference-satellite.png",
+        "scene": "Building",
+        "camera": "reference-satellite",
+        "target": [
+          40.5,
+          51,
+          0.5
+        ],
+        "offset": [
+          -7.0,
+          14.0,
+          12.5
+        ],
+        "scale": 216.66419547308686,
+        "lens_mm": 28,
+        "hide_water": false,
+        "clip_start": 0.05
+      }
+    }
+  },
+  "device": "CPU",
+  "views": {
+    "reference-cover": {
+      "before": "before/reference-cover.png",
+      "after": "after/reference-cover.png",
+      "reference": {
+        "file": "projects/sky_limit_replica/references/cover-framing.jpg",
+        "sha256": "ec01f07c8f37429f68171d24c57eedd7e076ceb4c20b685900347373bb940af0",
+        "size": [
+          1146,
+          955
+        ]
+      },
+      "pair": "reference-cover.png"
+    },
+    "reference-plan": {
+      "before": "before/reference-plan.png",
+      "after": "after/reference-plan.png",
+      "reference": {
+        "file": "projects/sky_limit_replica/references/plan-frame.png",
+        "sha256": "cf8b5449fcfff88d2db3ec673f762ca2dad14ce1f5d50924a845a55458bb3dd4",
+        "size": [
+          324,
+          270
+        ]
+      },
+      "pair": "reference-plan.png"
+    },
+    "reference-satellite": {
+      "before": "before/reference-satellite.png",
+      "after": "after/reference-satellite.png",
+      "reference": {
+        "file": "projects/sky_limit_replica/references/pavilion-frame.png",
+        "sha256": "1aa7765137febece0ca2cbf48bc7036171d127d52347f388f359d3eaff542730",
+        "size": [
+          324,
+          270
+        ]
+      },
+      "pair": "reference-satellite.png"
+    }
+  },
+  "blueprint_diff": {
+    "before_sha256": "a1270fb037761c318b75024306188f8a87d6613b75273d8e8e75068f9a760da0",
+    "after_sha256": "a8b89aecb02c172c11e349ac7198609e9a0ea80664ade5aa96d107470854d07e",
+    "before_blocks": 11280,
+    "after_blocks": 8990,
+    "bounds": {
+      "min": [
+        -52,
+        -6,
+        -52
+      ],
+      "max": [
+        52,
+        107,
+        52
+      ]
+    },
+    "expected_bounds": {
+      "min": [
+        null,
+        null,
+        null
+      ],
+      "max": [
+        null,
+        null,
+        null
+      ]
+    },
+    "outside": 0,
+    "added": 6042,
+    "removed": 8332,
+    "replaced": 1768
+  }
+}

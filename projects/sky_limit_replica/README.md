@@ -1,42 +1,29 @@
 # 天空即为极限 · Minecraft 视频视觉复刻
 
-参考：[夜言-碎雨《天空即为极限！》](https://www.bilibili.com/video/BV11U4y127EJ/)。本作是依据封面与教程施工缩略帧重新编写的方块设计，不是作者原存档，也不保证逐块一致。原视频标注 Java 1.17.1、原版材质、BSL；此交付使用本机 BMC4 的 Minecraft 1.20.1 方块资源和 Blender Cycles。
+根据夜言-碎雨的建筑视频重建。原视频使用 Java 1.17.1、原版材质与 BSL。本项目用 BMC4 的 Minecraft 1.20.1 方块资源和 Blender Cycles 重建可观察的建筑结构。[原作视频](https://www.bilibili.com/video/BV11U4y127EJ/)
 
-![最终全景](final/hero.png)
+![增强版全景](fidelity/hero.png)
 
-## 成品
+## 当前版本
 
-- 尺寸 **105 × 108 × 105 格**（X × Y × Z），共 **11,280 格、8 种方块 ID**。
-- 下层双圆环、四向斜桥、四座悬挂灯亭；上层小圆环与白色灯塔；冰蓝穹顶；下方四面镂空菱形垂饰。
-- 下层环廊标高 Y=45，上环 Y=66，主塔露台 Y=69，尖顶最高 Y=107。
-- 坐标原点是最下端中央针饰，X 东、Z 南。建筑在空中展示，未附加地基或无关景观。
+- 尺寸为 **95 × 103 × 95 格**（X × Y × Z），共 **8,990 格、12 种方块**。下层两环中心线半径 35、46 格，嵌带设在 Y=45。上环中心线半径 21 格，嵌带设在 Y=60。塔尖高至 Y=96，菱饰下端到 Y=−6。
+- 下层保留三处相互分离的体量。双环之间是四座悬挂花亭，内环围着中央塔身。四条上行斜承托从中央接到上环。主塔上方是分瓣冰蓝穹顶，下方是带尖角灯的镂空菱饰。
+- [设计源码](design.py) · [蓝图](building.json) · [机位与剖面](views.json) · [材料表](materials.csv) · [Blender 重开验证](fidelity/verification.json)
+- [封面同机位](fidelity/reference-cover.png) · [环廊俯视](fidelity/reference-plan.png) · [花亭近景](fidelity/reference-satellite.png) · [参考约束与独立复验](fidelity/review.md)
 
-## 文件与使用
-
-- `design.py`：可重生成的 Python 自由建模源码，使用现有 `src.core.building.Building`。
-- `building.json`：逐格方块和状态蓝图，可供当前 MC AI Builder 读取；它不是 `.schem` 或世界存档。
-- `views.json`：9 个机位和下层平面剖切；`design-groups.json`：按建筑部件组织。
-- `materials.csv`、`material-index.json`：实际 BMC4 安装资源校验和材料数量。
-- 最终图与嵌贴图 Blender 工程位于仓库 `previews/sky_limit_replica/final/`；交付副本放在同名 `final/` 目录。
-- Git 归档在本项目 `final/` 中保留全部 9 张成图和复验记录，`comparison/` 保留同机位前后对照；嵌贴图 `.blend` 保留在本机交付包，可用下方命令重生成。
-- Blender 工程可直接打开查看；时间轴标记绑定机位，选标记所在帧后按小键盘 0。Scenes 可切换下层平面剖切，Outliner 可按部件查看。
-
-在 `D:/MC-AI-Builder` 重生成：
+在仓库根目录重生成蓝图、真实材料索引、代表成图和嵌贴图 Blender 工程。
 
 ```powershell
-& C:/ProgramData/anaconda3/python.exe -B -m src build --sample sky_limit_replica --instance C:/Users/YOUNG/Desktop/PCL2-214-Test/.minecraft/versions/BMC4 --preset final --cpu
+$py = 'C:/ProgramData/anaconda3/python.exe'
+$env:MCBUILDER_INSTANCE = 'C:/Users/YOUNG/Desktop/PCL2-214-Test/.minecraft/versions/BMC4'
+& $py -B -m src build --sample sky_limit_replica --preset final --view hero --cpu
+& $py -B -m src open --sample sky_limit_replica --preset final
 ```
 
-## 实际审阅与选择
+工程与成图在 `previews/sky_limit_replica/final/`。时间轴标记绑定机位，Scenes 菜单可切到下层剖面。对照图和对应的渲染记录位于 `fidelity/`。本项目的环和花亭之间有意留空，空间按创意飞行观赏。
 
-参考实图留在 `references/`。从施工俯视图确定同心圆环和四条斜向连接，从全景确定上环、细塔与下挂菱形的关系。选材拼图使用本机贴图，保留原作的石英白、浮冰蓝、海晶石绿与灯点，没有为使用模组而改变原作配色。
+## 上一版归档
 
-首稿冻结于 `versions/baseline/`。未参与设计的独立 Critic 先对照参考与真实渲染形成初判，之后用固定机位前后图复验。中心粗绿柱束改为细末地烛，圆环改为白色细檐与间隔蓝色嵌块，补充檐下托斗和分离垂瓣。修订从 13,196 格降至 11,280 格。原始初判与复验见 `critic-baseline.md` 和 `critic-verification.md`；同机位差异在仓库 `previews/sky_limit_replica/comparison/`。
+[增强前版本](versions/final/) 保存了源码、蓝图、材料、机位和关键图。当时的 105 × 108 × 105 格版本共 11,280 格，完整图集和复验在 [final](final/) 中。[首次草案](versions/baseline/) 及 [上一轮评审](critic-verification.md) 也保留。原有 `walk-*.json` 使用上一版蓝图哈希，记录的是当时带水平斜桥的步行路线。[上一轮对照](comparison/)
 
-已验证四条中心→斜桥→外环路线，每条 65 步；另验证中心到东、西、南、北灯亭旁环廊，每条 101 步。`walk-*.json` 保存蓝图哈希、端点及路径坐标。此结论仅针对下层铺面连通，不能推导上下悬浮层步行相通；跨层按创意飞行观赏。护栏为原作气质的低薄檐，不作为生存防坠落设施。
-
-最终工程已由 Blender 5.2.4 重新打开并通过现有 `final` 复验：全建筑覆盖 11,280 格，2 个场景、9 个相机标记可切换、9 张 Minecraft 贴图已嵌入，9 张 1440×1200 PNG 均成功解码。结果见 `final/verification.json`，输入哈希与出图记录见 `final/render.json`。最终全景、完整俯视、灯亭及下层平面已实图检查。
-
-## 表现边界
-
-封面和教程缩略帧不足以逐格确认背面、隐藏接缝和全部构件，灯亭分瓣与原作仍有差异。塔内为镂空灯塔空间，没有扩展成住宅。海晶石和海晶灯使用动画首帧；Cycles 的环境、灯光与原视频 BSL 不同。本轮没有在运行中的 Minecraft 世界内放置或验证建筑，也未改动已有存档。
+本轮使用实际保存的封面和施工缩略帧。背面遮蔽处、上环细部接缝和灯点逐格分布仍有不确定性。封面未拍全菱饰尾部，施工缩略帧只支持整体轮廓。材质使用 BMC4 贴图和动画首帧，Blender 与原作 BSL 的色温及发光效果会有差异。

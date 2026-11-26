@@ -1,15 +1,18 @@
 {
   "stage": {"ground": false, "sun": [-7, 12, 8]},
   "views": {
-    "hero": {"position": [112, 95, 176], "target": [0, 53, 0], "scale": 135},
+    "hero": {"position": [112, 91, 176], "target": [0, 49, 0], "scale": 139},
     "front": {"position": [0, 66, 190], "target": [0, 54, 0], "scale": 130},
     "top": {"position": [0, 210, 0], "target": [0, 45, 0], "scale": 132},
     "crown": {"position": [32, 101, 46], "target": [0, 84, 0], "scale": 48},
     "promenade": {"position": [31, 48, 26], "target": [0, 64, 0], "lens": 20},
     "pendant": {"position": [36, 27, 55], "target": [0, 23, 0], "scale": 57},
-    "satellite": {"position": [65, 59, 25], "target": [46, 44, 0], "scale": 43},
+    "satellite": {"position": [60, 59, 23], "target": [40, 44, 0], "scale": 40},
     "tower-room": {"position": [1.5, 83, 2], "target": [-3, 83.5, -5], "lens": 18},
-    "lower-plan": {"position": [0, 160, 0], "target": [0, 45, 0], "scale": 132, "section": "Lower promenade plan"}
+    "lower-plan": {"position": [0, 160, 0], "target": [0, 45, 0], "scale": 132, "section": "Lower promenade plan"},
+    "reference-cover": {"position": [55, 50.75, 55], "target": [0.5, 50.75, 0.5], "lens": 21.6},
+    "reference-plan": {"position": [0.5, 128, 0.5], "target": [0.5, 45, 0.5], "lens": 24.2},
+    "reference-satellite": {"position": [33.5, 63.5, -13.5], "target": [40.5, 51, 0.5], "lens": 28}
   },
   "sections": {"Lower promenade plan": {"min": [null, 42, null], "max": [null, 46, null]}}
 }

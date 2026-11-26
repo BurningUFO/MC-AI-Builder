@@ -3,12 +3,11 @@
 Minecraft coordinates; Y=45 is the lower orbital promenade. Original vanilla
 palette intentionally retained in BMC4. No terrain or unrelated additions.
 """
-from math import hypot, atan2, pi, cos, sin
+from math import atan2, hypot, sin, sqrt
 from src.core.building import Building
 
 Q = 'minecraft:smooth_quartz'
 P = 'minecraft:quartz_pillar'
-C = 'minecraft:chiseled_quartz_block'
 S = 'minecraft:quartz_slab'
 T = 'minecraft:quartz_stairs'
 I = 'minecraft:packed_ice'
@@ -16,6 +15,8 @@ G = 'minecraft:prismarine'
 D = 'minecraft:dark_prismarine'
 L = 'minecraft:sea_lantern'
 R = 'minecraft:end_rod'
+CARDINAL = ((1, 0), (-1, 0), (0, 1), (0, -1))
+DIAGONAL = ((1, 1), (1, -1), (-1, 1), (-1, -1))
 
 
 def build():
@@ -34,193 +35,192 @@ def build():
             for z in range(-r-1,r+2):
                 if inside <= hypot(x,z) <= r+.25:
                     put(part,cx+x,y,cz+z,block)
-    def line(part,a,c,block=Q):
-        n=max(abs(c[i]-a[i]) for i in range(3))
-        for k in range(n+1):
-            xyz=[round(a[i]+(c[i]-a[i])*k/max(1,n)) for i in range(3)]
-            put(part,*xyz,block)
     def tier(part,cx,cz,y,r):
         disc(part,cx,cz,y,r)
         for x in range(-r-1,r+2):
             for z in range(-r-1,r+2):
                 if r-.7 < hypot(x,z) <= r+.65:
                     slab(part,cx+x,y,cz+z)
-    def orbit(radius,y,label):
-        # A narrow inhabitable ribbon, with alternating luminous inlay and
-        # blue upper edge. Void is preserved both inside and outside the ring.
-        for x in range(-radius-3,radius+4):
-            for z in range(-radius-3,radius+4):
-                r=hypot(x,z)
-                if radius-2.1 <= r <= radius+1.25:
-                    put(label+'/Walkway',x,y,z,Q)
-                    if r>radius+.1 or r<radius-1.35:
-                        # Green is tucked inside the soffit, behind a white lip.
-                        if r<radius-1.35:
-                            put(label+'/Underside',x,y-1,z,G)
-                        else:
-                            slab(label+'/Cornice',x,y-1,z,True)
-                    if radius+.3 < r <= radius+1.25:
-                        a=atan2(z,x)
-                        beat=int(round(a*radius))
-                        if beat%10 in (0,1):
-                            put(label+'/Ice inlay',x,y,z,I)
-                        crossing=abs(abs(x)-abs(z))<=2
-                        if not crossing:
-                            slab(label+'/White coping',x,y+1,z)
-                            if beat%12==0:
-                                put(label+'/Light inlay',x,y+1,z,L)
-                if radius-2.7 < r < radius-2.0:
-                    slab(label+'/Inner lip',x,y,z,True)
-    def buttress(cx,cz,y,part):
-        # Small lantern pavilions: fluted stem, flared corbels, flower bowl,
-        # mint hanging ornaments and a little blue-white beacon crown.
-        for j in range(-14,0):
+    def ring_cells(radius):
+        octant = [(round(sqrt(radius**2 - step**2)), step) for step in range(radius + 1)]
+        return {(sx * x, sz * z) for a, b in octant if a >= b
+                for x, z in ((a, b), (b, a)) for sx, sz in DIAGONAL}
+
+    def orbit(radius, y, part, *, framed):
+        center = ring_cells(radius)
+        for x, z in center:
+            step = min(abs(x), abs(z))
+            if framed:
+                block = 'minecraft:glowstone' if step % 4 == 1 else I
+                put(part+'/Recessed inlay', x, y, z, block)
+                put(part+'/Green soffit', x, y-1, z, 'minecraft:prismarine_slab', type='bottom', waterlogged='false')
+            else:
+                put(part+'/White ring', x, y, z, L if step % 4 == 1 else Q)
+        if framed:
+            for x, z in (ring_cells(radius-1) | ring_cells(radius+1)) - center:
+                slab(part+'/Upper white lip', x, y, z, top=True)
+                slab(part+'/Lower white lip', x, y-1, z, top=True)
+
+    def pavilion(cx,cz,y,part):
+        for j in range(-14, 4):
             put(part+'/Pendant',cx,y+j,cz,L if j in (-11,-4) else P,**({} if j in (-11,-4) else {'axis':'y'}))
         rod(part+'/Pendant',cx,y-16,cz)
         put(part+'/Pendant',cx,y-15,cz,G)
-        for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-            for j in range(-6,6):
-                put(part+'/Pillar',cx+dx,y+j,cz+dz,P,axis='y')
-            put(part+'/Base lamps',cx+dx,y+1,cz+dz,L)
-        for j,r in ((4,2),(5,3),(6,4),(7,5)):
-            tier(part+'/Flared bowl',cx,cz,y+j,r)
-        for dx,dz in ((1,1),(1,-1),(-1,1),(-1,-1)):
-            put(part+'/Separated corbels',cx+dx*2,y+4,cz+dz*2,T,
-                facing='east' if dx>0 else 'west',half='top',shape='straight',waterlogged='false')
-            slab(part+'/Separated petals',cx+dx*3,y+6,cz+dz*3)
-            put(part+'/Pendant petals',cx+dx*3,y+5,cz+dz*3,Q)
-            rod(part+'/Pendant petals',cx+dx*3,y+4,cz+dz*3)
-        disc(part+'/Bowl ice',cx,cz,y+8,3,I)
-        for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-            for k in range(2,7):
-                slab(part+'/Petal tips',cx+dx*k,y+8+(k==6),cz+dz*k)
-            for yy in range(y+3,y+7):
-                put(part+'/Hanging mint',cx+dx*4,yy,cz+dz*4,G)
-            rod(part+'/Hanging light',cx+dx*4,y+2,cz+dz*4)
-        put(part+'/Beacon',cx,y+9,cz,G)
+        for j, r in ((3, 1), (4, 2), (5, 2), (6, 3), (7, 2)):
+            disc(part+'/Corbel heart', cx, cz, y+j, r)
+        for dx, dz in CARDINAL:
+            for j in range(-5, 4):
+                block = L if j in (-4, 1) else P
+                put(part+'/Faceted shaft', cx+dx, y+j, cz+dz, block, **({'axis': 'y'} if block == P else {}))
+            for reach in range(2, 7):
+                x, z = cx+dx*reach, cz+dz*reach
+                j = 5 + reach // 2
+                put(part+'/Stepped petal', x, y+j-1, z, Q)
+                slab(part+'/Stepped petal', x, y+j, z)
+                if reach in (3, 4):
+                    for w in (-1, 1):
+                        slab(part+'/Petal shoulders', x+dz*w, y+j, z+dx*w, top=True)
+            x, z = cx+dx*5, cz+dz*5
+            put(part+'/Hanging mint', x, y+6, z, G)
+            put(part+'/Hanging mint', x, y+5, z, 'minecraft:prismarine_wall',
+                north='none', east='none', south='none', west='none', up='true', waterlogged='false')
+            rod(part+'/Hanging light', x, y+4, z)
+        for dx, dz in DIAGONAL:
+            slab(part+'/Petal shoulders', cx+dx*3, y+7, cz+dz*3)
+        for dx, dz in CARDINAL:
+            put(part+'/Ice cap', cx+dx*2, y+8, cz+dz*2, I)
+            put(part+'/Cap inlay', cx+dx, y+8, cz+dz, G)
+            slab(part+'/Beacon foot', cx+dx, y+9, cz+dz)
+        put(part+'/Beacon foot', cx, y+9, cz, Q)
         put(part+'/Beacon',cx,y+10,cz,L)
-        tier(part+'/Beacon',cx,cz,y+11,1)
-        slab(part+'/Beacon',cx,y+12,cz)
+        for dx, dz in ((0, 0), *CARDINAL):
+            slab(part+'/Beacon cap', cx+dx, y+11, cz+dz)
+        slab(part+'/Beacon cap',cx,y+12,cz)
 
-    # Lower double orbit and four diagonal spokes, as visible in the plan frames.
-    orbit(46,45,'01 Lower orbit/Outer ring')
-    orbit(32,45,'01 Lower orbit/Inner ring')
-    for sx,sz in ((1,1),(1,-1),(-1,1),(-1,-1)):
-        for k in range(5,33):
-            for w in (-1,0,1):
-                put('02 Lower bridges/Diagonal spokes',sx*k+w,45,sz*k,Q)
-            if k%8==0:
-                put('02 Lower bridges/Lights',sx*k,45,sz*k,L)
-        # Satellites sit on the outer orbit, midway between the narrow bridges.
-    for cx,cz in ((46,0),(-46,0),(0,46),(0,-46)):
-        buttress(cx,cz,45,'03 Satellite pavilions/'+str((cx,cz)))
+    # The lower rings leave open air both between the rings and around the core.
+    orbit(46,45,'01 Lower orbit/Outer ring',framed=True)
+    orbit(35,45,'01 Lower orbit/Inner ring',framed=False)
+    for dx, dz in CARDINAL:
+        cx, cz = dx*40, dz*40
+        pavilion(cx,cz,45,'03 Satellite pavilions/'+str((cx,cz)))
     disc('04 Lower core/Floor',0,0,45,7)
-    for yy,r in ((27,3),(28,4),(29,5),(30,5),(31,4),(44,6)):
+    for yy,r in ((17,3),(18,4),(19,5),(20,5),(21,4),(43,5),(44,6)):
         tier('04 Lower core/Mouldings',0,0,yy,r)
-    for yy in range(30,45):
-        for x in range(-3,4):
-            for z in range(-3,4):
-                if max(abs(x),abs(z))==3:
-                    put('04 Lower core/Carved shaft',x,yy,z,G if (x+z+yy)%5==0 else Q)
-        for x,z in ((4,0),(-4,0),(0,4),(0,-4)):
-            put('04 Lower core/Flutes',x,yy,z,P,axis='y')
-    # Long central needle and the four open, bow-shaped ribs below the shaft.
-    for yy in range(0,28):
-        put('05 Lower finial/Central needle',0,yy,0,L if yy%9==0 else P,**({} if yy%9==0 else {'axis':'y'}))
-    for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-        for yy in range(2,29):
-            r=round(2+9*max(0,sin(pi*(yy-2)/26))**1.3)
-            put('05 Lower finial/White bow ribs',dx*r,yy,dz*r,Q)
-            put('05 Lower finial/Mint lining',dx*(r-1),yy,dz*(r-1),G)
-            if yy in (9,18,26):
-                put('05 Lower finial/Bow lights',dx*r,yy,dz*r,L)
-        for yy in range(6,27):
-            rod('05 Lower finial/Light strings',dx*2,yy,dz*2)
-    # Open central suspension above the lower promenade: four sculpted legs.
-    for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-        for yy in range(46,67):
-            r=round(3+7*(yy-46)/20)
-            put('06 Upper suspension/Outward legs',dx*r,yy,dz*r,L if yy in (49,58,64) else Q)
-            if yy>56:
-                put('06 Upper suspension/Flutes',dx*r+dz,yy,dz*r+dx,P,axis='y')
-        for yy in range(48,66):
-            # One rod-thin central axis replaces four solid dark columns.
-            rod('06 Upper suspension/Thin inner spine',0,yy,0)
-        for yy in range(58,66):
-            r=10+(yy-58)//2
-            slab('06 Upper suspension/Hanging fins',dx*r,yy,dz*r)
-        for yy in range(60,66):
-            put('06 Upper suspension/Separated hanging petals',dx*14,yy,dz*14,Q)
-        rod('06 Upper suspension/Separated hanging petals',dx*14,59,dz*14)
-    orbit(18,66,'07 Upper orbit')
-    disc('08 Tower terrace/Floor',0,0,69,11)
-    for yy,r in ((65,6),(66,8),(67,10),(68,12)):
+    disc('04 Lower core/Ice collar',0,0,19,5,I,4)
+    for dx, dz in DIAGONAL:
+        for yy in range(21, 43):
+            put('04 Lower core/Corner piers', dx*3, yy, dz*3, P, axis='y')
+        for yy in (22, 28, 33, 40):
+            slab('04 Lower core/Pier mouldings', dx*4, yy, dz*3, top=True)
+            slab('04 Lower core/Pier mouldings', dx*3, yy, dz*4, top=True)
+    for dx, dz in CARDINAL:
+        put('04 Lower core/Collar lamps', dx*5, 19, dz*5, L)
+        for yy in range(21, 43):
+            for w in (-2, 2):
+                put('04 Lower core/Bay jambs', dx*3+dz*w, yy, dz*3+dx*w, Q)
+            for w in (-1, 0, 1):
+                depth = 3 if yy in (23, 29, 35, 41) else 2
+                block = L if w == 0 and yy in (22, 32, 39) else Q
+                if w and yy in (24, 31, 38):
+                    block = D
+                put('04 Lower core/Recessed bays', dx*depth+dz*w, yy, dz*depth+dx*w, block)
+    # Four open ribs meet at a short lit corner and taper down to the needle.
+    bottom = -6
+    for height in range(24):
+        block = L if height % 9 == 0 else P
+        put('05 Lower finial/Central needle',0,bottom+height,0,block,**({'axis':'y'} if block == P else {}))
+    finial = (1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 5, 4, 3, 3)
+    for dx, dz in DIAGONAL:
+        for height, reach in enumerate(finial, start=2):
+            yy = bottom + height
+            x, z = dx*reach, dz*reach
+            put('05 Lower finial/White diamond ribs',x,yy,z,L if height == 17 else Q)
+            if reach > 1:
+                for sx, sz in ((x-dx, z), (x, z-dz)):
+                    put('05 Lower finial/Mint lining',sx,yy,sz,'minecraft:prismarine_slab',type='top',waterlogged='false')
+        for height in range(6,24):
+            if finial[height-2] > 1:
+                rod('05 Lower finial/Light strings',dx,bottom+height,dz)
+    # The X in the tutorial plan is four rising supports, ending at the upper rim.
+    for dx, dz in DIAGONAL:
+        previous = 45
+        for reach, y in enumerate((45, 47, 49, 51, 53, 54, 55, 56, 57, 58, 59, 59, 60), start=3):
+            x, z = dx*reach, dz*reach
+            for yy in range(previous, y+1):
+                put('06 Upper suspension/Diagonal supports', x, yy, z, L if yy == 53 else Q)
+            if reach > 3:
+                slab('06 Upper suspension/Diagonal supports', x-dx, previous, z)
+                slab('06 Upper suspension/Diagonal supports', x, previous, z-dz)
+            previous = y
+        for yy in range(53, 62):
+            reach = 8 if yy >= 58 else 9
+            block = L if yy in (56, 60) else Q
+            put('06 Upper suspension/Short hanging piers', dx*reach, yy, dz*reach, block)
+        put('06 Upper suspension/Pier tips',dx*9,52,dz*9,G)
+        rod('06 Upper suspension/Pier tips',dx*9,51,dz*9)
+    spine_inlays = {47: D, 48: D, 49: D, 50: I, 51: I, 52: D, 53: D, 54: L, 58: L}
+    for yy in range(46, 62):
+        put('06 Upper suspension/Central spine',0,yy,0,spine_inlays.get(yy, Q))
+    for dx, dz in CARDINAL:
+        for yy in (48, 49, 52, 53):
+            rod('06 Upper suspension/Spine lights',dx,yy,dz)
+    orbit(21,60,'07 Upper orbit',framed=True)
+    disc('08 Tower terrace/Floor',0,0,65,11)
+    for yy,r in ((61,5),(62,7),(63,9),(64,11)):
         tier('08 Tower terrace/Blue base',0,0,yy,r)
-        if yy==68:
-            disc('08 Tower terrace/Ice rim',0,0,yy,11,I,10)
-    # Four short bridges lie on the ring datum; shallow stairs reach the terrace.
-    for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-        for k in range(11,18):
-            for w in (-1,0,1):
-                put('08 Tower terrace/Radial bridges',dx*k+dz*w,66,dz*k+dx*w)
-        for k,y in ((10,67),(9,68),(8,69)):
-            for w in (-1,0,1):
-                put('08 Tower terrace/Steps',dx*k+dz*w,y,dz*k+dx*w,T,
-                    facing={ (1,0):'west',(-1,0):'east',(0,1):'north',(0,-1):'south'}[(dx,dz)],
-                    half='bottom',shape='straight',waterlogged='false')
-        # Tiny lotus turrets at the terrace corners of the composition.
-        for yy,r in ((70,1),(71,2),(72,3),(73,2)):
-            tier('08 Tower terrace/Lotus turrets',dx*10,dz*10,yy,r)
-        put('08 Tower terrace/Lotus lamps',dx*10,74,dz*10,L)
-        slab('08 Tower terrace/Lotus lamps',dx*10,75,dz*10)
+    disc('08 Tower terrace/Ice rim',0,0,64,11,I,10)
+    for dx, dz in DIAGONAL:
+        cx, cz = dx*8, dz*8
+        for yy,r in ((65,1),(66,2),(67,3),(68,2)):
+            tier('08 Tower terrace/Lotus turrets',cx,cz,yy,r)
+        put('08 Tower terrace/Lotus lamps',cx,69,cz,L)
+        slab('08 Tower terrace/Lotus lamps',cx,70,cz)
     # Main white lantern tower: a wider lower drum, balcony and slimmer belfry.
-    for yy in range(70,89):
-        rr=6 if yy<80 else 5
+    for yy in range(65,80):
+        rr=6 if yy<74 else 5
         for x in range(-rr,rr+1):
             for z in range(-rr,rr+1):
                 h=hypot(x,z)
                 if rr-.9<h<rr+.4:
-                    # Clear tall openings between the eight narrow buttresses.
                     a=atan2(z,x)
-                    pier=abs(sin(4*a))<.45
-                    band=yy in (70,71,78,79,80,87,88)
+                    pier=abs(sin(4*a))<.7
+                    band=yy in (65, 66, 72, 73, 74, 78, 79)
                     if pier or band:
                         put('09 Main tower/Lantern walls',x,yy,z,Q if band else P,**({} if band else {'axis':'y'}))
-                    elif yy in (73,82):
-                        put('09 Main tower/Mint sill',x,yy,z,G)
-                    elif yy in (76,85):
-                        rod('09 Main tower/Window lights',x,yy,z)
-    for yy in (70,80):
+                    elif (abs(x)+abs(z)) % 2 == 0:
+                        put('09 Main tower/Window inlays',x,yy,z,G if yy in (69, 76) else L if yy in (70, 77) else Q)
+    for yy in (65,74):
         disc('09 Main tower/Interior floors',0,0,yy,5)
         put('09 Main tower/Interior glow',0,yy,0,L)
-    for yy,r in ((78,7),(79,8),(80,7),(87,6),(88,7)):
+    for yy,r in ((72,7),(73,8),(74,7),(78,6),(79,7)):
         tier('09 Main tower/Balconies',0,0,yy,r)
-        if yy in (79,88):
-            for x,z in ((r,0),(-r,0),(0,r),(0,-r)):
+        if yy in (73,79):
+            for dx, dz in CARDINAL:
+                x, z = dx*r, dz*r
                 put('09 Main tower/Balcony lamps',x,yy+1,z,L)
     # Individual downward balcony brackets, separated by open window bays.
-    for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-        for yy,rr in ((76,5),(77,6),(78,7)):
+    for dx,dz in CARDINAL:
+        for yy,rr in ((70,5),(71,6),(72,7)):
             put('09 Main tower/Balcony corbels',dx*rr,yy,dz*rr,T,
                 facing={(1,0):'east',(-1,0):'west',(0,1):'south',(0,-1):'north'}[(dx,dz)],
                 half='top',shape='straight',waterlogged='false')
-        rod('09 Main tower/Balcony pendants',dx*7,76,dz*7)
-    # Scalloped ice onion crown, not a cone: bulges below, pinches to a needle.
-    roof_radii=[7,8,8,7,6,5,4,3,2]
-    for j,rr in enumerate(roof_radii):
-        yy=89+j
+        rod('09 Main tower/Balcony pendants',dx*7,70,dz*7)
+    # Four blue facets between raised cardinal ribs and stepped diagonal seams.
+    for yy, rr in enumerate((5, 6, 7, 8, 8, 8, 7, 6, 5, 4, 3, 2), start=79):
         for x in range(-rr-1,rr+2):
             for z in range(-rr-1,rr+2):
                 h=hypot(x,z)
-                if rr-1.25<h<=rr+.3:
-                    a=atan2(z,x)
-                    rib=abs(sin(4*a))<.25
-                    put('10 Crown/White ribs' if rib else '10 Crown/Ice shell',x,yy,z,Q if rib else I)
-        if j in (0,1):
-            for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
-                slab('10 Crown/Scalloped eaves',dx*(rr+1),yy,dz*(rr+1))
-    for yy in range(98,106):
-        put('10 Crown/Pinnacle',0,yy,0,L if yy==101 else (G if yy in (100,102) else Q))
-    rod('10 Crown/Tip',0,106,0)
-    rod('10 Crown/Tip',0,107,0)
+                if rr-1.5<h<=rr+.3:
+                    put('10 Crown/Ice facets',x,yy,z,I)
+        diagonal = round(rr / sqrt(2))
+        for dx, dz in DIAGONAL:
+            put('10 Crown/Diagonal seams', dx*diagonal, yy, dz*diagonal, Q)
+        for dx, dz in CARDINAL:
+            put('10 Crown/Raised ribs',dx*rr,yy,dz*rr,Q)
+            if 81 <= yy <= 86:
+                slab('10 Crown/Rib caps',dx*(rr+1),yy,dz*(rr+1),top=True)
+    disc('10 Crown/Finial foot',0,0,91,1,Q)
+    for yy, block in ((92,Q),(93,D),(94,L),(95,D)):
+        put('10 Crown/Pinnacle',0,yy,0,block)
+    rod('10 Crown/Tip',0,96,0)
     return b,groups

@@ -1,0 +1,96 @@
+{
+  "inputs": {
+    "design.py": "5c77622c79a699b52503f2190b49797e83eff3cbf6ce9720e8524c1897b12eea",
+    "views.json": "9f6b3077df611cfdea38b083937e26349e70aeb599e6d0998dc8c1b7f592f2d3",
+    "building.json": "a8b89aecb02c172c11e349ac7198609e9a0ea80664ade5aa96d107470854d07e",
+    "design-groups.json": "f329886f436972206f155acffa979ede2b6c6e913e0f3547e5ebb68ca196e626",
+    "material-index.json": "b66e76a9ecf3ab9872cb1b80c907935f955400addba5373d79362c8c17c2978e",
+    "materials.csv": "4c72c87b5c32fc579d88d411982fb45fff65d3da26a13032db9241b2e142a679"
+  },
+  "preset": "final",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1440,
+    1200
+  ],
+  "setup_seconds": 0.705,
+  "blend": "sky_limit_replica.blend",
+  "images": {
+    "hero": {
+      "file": "hero.png",
+      "scene": "Building",
+      "camera": "hero",
+      "sha256": "a92a71cb60f7db9bae82512635a11693f9356c55c604ac33f3ca787c303f74fa",
+      "seconds": 14.996
+    }
+  },
+  "cameras": {
+    "hero": {
+      "scene": "Building",
+      "name": "hero",
+      "frame": 1
+    },
+    "front": {
+      "scene": "Building",
+      "name": "front",
+      "frame": 21
+    },
+    "top": {
+      "scene": "Building",
+      "name": "top",
+      "frame": 41
+    },
+    "crown": {
+      "scene": "Building",
+      "name": "crown",
+      "frame": 61
+    },
+    "promenade": {
+      "scene": "Building",
+      "name": "promenade",
+      "frame": 81
+    },
+    "pendant": {
+      "scene": "Building",
+      "name": "pendant",
+      "frame": 101
+    },
+    "satellite": {
+      "scene": "Building",
+      "name": "satellite",
+      "frame": 121
+    },
+    "tower-room": {
+      "scene": "Building",
+      "name": "tower-room",
+      "frame": 141
+    },
+    "reference-cover": {
+      "scene": "Building",
+      "name": "reference-cover",
+      "frame": 161
+    },
+    "reference-plan": {
+      "scene": "Building",
+      "name": "reference-plan",
+      "frame": 181
+    },
+    "reference-satellite": {
+      "scene": "Building",
+      "name": "reference-satellite",
+      "frame": 201
+    },
+    "lower-plan": {
+      "scene": "Lower promenade plan",
+      "name": "lower-plan",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 8990,
+    "Lower promenade plan": 2288
+  },
+  "full_scene": "Building"
+}

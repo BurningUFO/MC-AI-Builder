@@ -1,0 +1,64 @@
+{
+  "inputs": {
+    "design.py": "5c77622c79a699b52503f2190b49797e83eff3cbf6ce9720e8524c1897b12eea",
+    "views.json": "9f6b3077df611cfdea38b083937e26349e70aeb599e6d0998dc8c1b7f592f2d3",
+    "building.json": "a8b89aecb02c172c11e349ac7198609e9a0ea80664ade5aa96d107470854d07e",
+    "design-groups.json": "f329886f436972206f155acffa979ede2b6c6e913e0f3547e5ebb68ca196e626",
+    "material-index.json": "b66e76a9ecf3ab9872cb1b80c907935f955400addba5373d79362c8c17c2978e",
+    "materials.csv": "4c72c87b5c32fc579d88d411982fb45fff65d3da26a13032db9241b2e142a679"
+  },
+  "preset": "review",
+  "presentation": "game",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1080,
+    900
+  ],
+  "setup_seconds": 0.542,
+  "blend": null,
+  "images": {
+    "reference-cover": {
+      "file": "reference-cover.png",
+      "scene": "Building",
+      "camera": "reference-cover",
+      "sha256": "2c4780f05a2a3e792a367248cfe065cf6b170fafbe056fe52c66a25628895c77",
+      "seconds": 3.668
+    },
+    "reference-plan": {
+      "file": "reference-plan.png",
+      "scene": "Building",
+      "camera": "reference-plan",
+      "sha256": "39370d008fdc08d294244f5b8ec275c2570533a51d7ab5d14b89552ecb11251e",
+      "seconds": 3.404
+    },
+    "reference-satellite": {
+      "file": "reference-satellite.png",
+      "scene": "Building",
+      "camera": "reference-satellite",
+      "sha256": "eedfa16a51e2e5b07d4706d808a9bf40f6a6ee8cdf94bda32f07a5bc14d6afb6",
+      "seconds": 3.605
+    }
+  },
+  "cameras": {
+    "reference-cover": {
+      "scene": "Building",
+      "name": "reference-cover",
+      "frame": 1
+    },
+    "reference-plan": {
+      "scene": "Building",
+      "name": "reference-plan",
+      "frame": 21
+    },
+    "reference-satellite": {
+      "scene": "Building",
+      "name": "reference-satellite",
+      "frame": 41
+    }
+  },
+  "scene_block_counts": {
+    "Building": 8990
+  },
+  "full_scene": "Building"
+}
