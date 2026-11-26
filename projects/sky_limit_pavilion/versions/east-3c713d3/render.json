@@ -1,0 +1,40 @@
+{
+  "inputs": {
+    "design.py": "93c3b69087f0138ff1589b3d8395159e21e43b939f5aa130c07398466edc0ed8",
+    "views.json": "8ba02c89375f91905b3e02b080111d6ec0b07987b502447b775641a54d6d03a5",
+    "building.json": "cab10392e1e7dfb3ae45a3b4aec7e6dfef0e2841d1a8c7268c88ef84f75bc520",
+    "design-groups.json": "3880bb893e04fe88ef13332593fba1e6a0abe5959b8af9fc9013338a5bf51510",
+    "material-index.json": "8d4307f3e14c703870c4d52af536bd9d35c056b0f3989caf8191fba60c48a584",
+    "materials.csv": "7b8890b8a4200e46b4499840a7578a01e7322b193f7f86f13c96dc90286f4b46"
+  },
+  "preset": "quick",
+  "presentation": "game",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.24,
+  "blend": null,
+  "images": {
+    "cover": {
+      "file": "cover.png",
+      "scene": "Building",
+      "camera": "cover",
+      "sha256": "11bd0c3b5ced7ad663c4b86fa2815f02155dfc3f5453b744d00251c4ce1238e2",
+      "seconds": 4.111
+    }
+  },
+  "cameras": {
+    "cover": {
+      "scene": "Building",
+      "name": "cover",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 224
+  },
+  "full_scene": "Building"
+}

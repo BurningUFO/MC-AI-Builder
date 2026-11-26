@@ -1,0 +1,2 @@
+# Keep the CSV writer's original bytes for the render manifest.
+materials.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol

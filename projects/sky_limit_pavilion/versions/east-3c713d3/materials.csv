@@ -1,0 +1,9 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+minecraft:end_rod,5,End Rod,BMC4.jar,1,static_assets_verified
+minecraft:packed_ice,4,Packed Ice,BMC4.jar,1,static_assets_verified
+minecraft:prismarine,9,Prismarine,BMC4.jar,1,static_approximation
+minecraft:prismarine_wall,4,Prismarine Wall,BMC4.jar,1,static_approximation
+minecraft:quartz_pillar,43,Quartz Pillar,BMC4.jar,1,static_assets_verified
+minecraft:quartz_slab,50,Quartz Slab,BMC4.jar,2,static_assets_verified
+minecraft:sea_lantern,11,Sea Lantern,BMC4.jar,1,static_approximation
+minecraft:smooth_quartz,98,Smooth Quartz Block,BMC4.jar,1,static_assets_verified

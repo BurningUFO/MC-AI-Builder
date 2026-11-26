@@ -1,0 +1,13 @@
+{
+  "stage": {"ground": false, "sun": [-7, 12, 8]},
+  "views": {
+    "cover": {"position": [46.89612, 5.80762, 32.73315], "target": [-28.4152, 5.80762, 28.13895], "lens": 46.448381, "shift": [0.78787879, -0.20979438]},
+    "canopy": {"position": [-7.2947, 16.48901, -7.97806], "target": [1.99598, 7.31252, 1.26723], "lens": 30, "shift": [0, -0.01736111], "section": "Before the lantern"},
+    "bracket": {"position": [-7.2947, 16.48901, -7.97806], "target": [1.99598, 7.31252, 1.26723], "lens": 30, "shift": [0, -0.01736111], "section": "Before the blue deck"},
+    "underside": {"position": [-14, -7, 23], "target": [0.5, 5, 0.5], "scale": 21}
+  },
+  "sections": {
+    "Before the lantern": {"exclude": ["Lantern"]},
+    "Before the blue deck": {"exclude": ["Lantern", "Ice cap", "Cap inlay", "Stepped petal", "Petal shoulders", "Hanging mint", "Hanging light", "Deck", "Eaves", "Drops"]}
+  }
+}

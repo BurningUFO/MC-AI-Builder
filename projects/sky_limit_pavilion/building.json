@@ -1,0 +1,1792 @@
+{
+  "schema_version": 1,
+  "name": "天空即为极限 · 东花亭",
+  "minecraft_version": "1.20.1",
+  "data_version": 3465,
+  "bounds": {
+    "min": [
+      -6,
+      -17,
+      -6
+    ],
+    "max": [
+      6,
+      12,
+      6
+    ]
+  },
+  "blocks": [
+    {
+      "x": 0,
+      "y": -17,
+      "z": 0,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "down"
+      }
+    },
+    {
+      "x": 0,
+      "y": -16,
+      "z": 0,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": -15,
+      "z": 0,
+      "id": "minecraft:diorite_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": -14,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -13,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -12,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -11,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -10,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -9,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -8,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -7,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -6,
+      "z": -1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": -6,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": -6,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -6,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": -6,
+      "z": 1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": -5,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": -5,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -5,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -5,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -5,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -4,
+      "z": -1,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": -4,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -4,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -4,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -4,
+      "z": 1,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": -3,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -3,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -3,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": -2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": -1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": -1,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 0,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": 1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": -1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": -1,
+      "y": 2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "z": 1,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": -1,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "up"
+      }
+    },
+    {
+      "x": -1,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "up"
+      }
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "z": 0,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "up"
+      }
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "z": 1,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "up"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": -2,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": -1,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "z": 0,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 1,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 2,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": -5,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "down"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": -2,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": -1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -5,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "down"
+      }
+    },
+    {
+      "x": -2,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": -1,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "z": 0,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "down"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 2,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "z": 5,
+      "id": "minecraft:end_rod",
+      "properties": {
+        "facing": "down"
+      }
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "z": -5,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "z": -2,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": -5,
+      "y": 6,
+      "z": 0,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 6,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "z": 0,
+      "id": "minecraft:quartz_pillar",
+      "properties": {
+        "axis": "y"
+      }
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "z": 0,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "z": 2,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "z": 5,
+      "id": "minecraft:warped_fence",
+      "properties": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": -5,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": -3,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -2,
+      "y": 7,
+      "z": -2,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 7,
+      "z": -2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": -2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "z": -2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "z": -2,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 7,
+      "z": -1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": -1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "z": -1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -5,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": -3,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -2,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "z": 0,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": -2,
+      "y": 7,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -2,
+      "y": 7,
+      "z": 2,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 7,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "z": 2,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": 3,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "z": 5,
+      "id": "minecraft:prismarine_wall",
+      "properties": {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -6,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -5,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -4,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": -3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -3,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": -3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 8,
+      "z": -2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": -2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": -2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "z": -2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -3,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "z": -1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -6,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -5,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -4,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": -2,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "z": 1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 8,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": 2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": 2,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "z": 2,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": -1,
+      "y": 8,
+      "z": 3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 3,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "z": 3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 4,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 5,
+      "id": "minecraft:quartz_stairs",
+      "properties": {
+        "facing": "south",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "z": 6,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": -5,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": -3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 9,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": -1,
+      "id": "minecraft:prismarine",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "z": -1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": -5,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:prismarine",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:prismarine",
+      "properties": {}
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 9,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": 1,
+      "id": "minecraft:prismarine",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "z": 1,
+      "id": "minecraft:packed_ice",
+      "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": 3,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": 5,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "z": -1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 10,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "z": 0,
+      "id": "minecraft:smooth_quartz",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "z": 1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "z": -1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 11,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "z": 0,
+      "id": "minecraft:sea_lantern",
+      "properties": {}
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "z": 1,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "z": 0,
+      "id": "minecraft:quartz_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    }
+  ]
+}

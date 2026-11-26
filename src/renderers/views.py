@@ -15,6 +15,7 @@ class View(NamedTuple):
     lens_mm: float | None = None
     hide_water: bool = False
     clip_start: float = 0.1
+    shift: tuple[float, float] = (0.0, 0.0)  # Frame offset in sensor widths, right/up.
 
 
 class Preview(NamedTuple):
@@ -246,7 +247,7 @@ def view_catalog(settings, building):
     for key, row in source.items():
         if not VIEW_ID.fullmatch(key):
             raise ValueError(f"Camera ID must use lowercase ASCII letters, digits, _ or -: {key}")
-        if set(row) - {"position", "target", "scale", "lens", "section", "clip_start"}:
+        if set(row) - {"position", "target", "scale", "lens", "section", "clip_start", "shift"}:
             raise ValueError(f"Unknown camera setting in {key}.")
         target = point(row["target"], f"{key} target")
         position = point(row["position"], f"{key} position")
@@ -258,13 +259,18 @@ def view_catalog(settings, building):
         scale = row.get("scale", auto["overview"]["scale"])
         lens = row.get("lens")
         near = row.get("clip_start", 0.05)
+        shift = row.get("shift", (0.0, 0.0))
+        if (not isinstance(shift, (list, tuple)) or len(shift) != 2
+                or any(type(n) not in (int, float) or not isfinite(n) for n in shift)):
+            raise ValueError(f"Camera {key} shift needs two finite numbers (right, up).")
         if (any(type(n) not in (int, float) or not isfinite(n) or n <= 0 for n in (scale, near))
                 or lens is not None and (type(lens) not in (int, float) or not 1 <= lens <= 5000)):
             raise ValueError(f"Invalid scale, lens or near clip in camera {key}.")
         scene = row.get("section", FULL_SCENE)
         if not isinstance(scene, str) or scene != FULL_SCENE and scene not in sections:
             raise ValueError(f"Camera {key} refers to unknown section {scene!r}.")
-        views[key] = View(f"{key}.png", scene, key, target, (x, -z, y), scale, lens, clip_start=near)
+        views[key] = View(f"{key}.png", scene, key, target, (x, -z, y), scale, lens,
+                          clip_start=near, shift=tuple(shift))
     # Put the full scene first so a saved file opens on a complete building.
     return dict(sorted(views.items(), key=lambda item: item[1].scene != FULL_SCENE)), sections
 

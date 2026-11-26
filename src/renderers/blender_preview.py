@@ -270,6 +270,7 @@ def add_camera(collection, view):
     else:
         data.type = "PERSP"
         data.lens = view.lens_mm
+    data.shift_x, data.shift_y = view.shift
     data.clip_start = view.clip_start
     data.clip_end = max(500, 3 * Vector(view.offset).length + view.scale)
     camera = bpy.data.objects.new(view.camera, data)

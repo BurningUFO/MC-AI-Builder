@@ -2,6 +2,7 @@
 
 from array import array
 from hashlib import sha256
+from math import isclose
 from pathlib import Path
 import sys
 import json
@@ -12,7 +13,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.core.building import Building, write_json
-from src.design import RENDER_RUN, input_hashes, read_json
+from src.design import RENDER_RUN, VIEWS, input_hashes, read_json
 from src.renderers.views import preview_for, VERIFICATION_FILE
 
 
@@ -72,6 +73,7 @@ def verify_design(project, folder, run):
             parts[part] = obj["minecraft_blocks"]
         geometry[name] = {"mesh_objects": len(objects), "faces": faces, "source_blocks": blocks, "parts": parts}
     frames = {name: bpy.data.scenes[name].frame_current for name in geometry}
+    configured = read_json(project / VIEWS).get("views", {}) if (project / VIEWS).is_file() else {}
     for key, record in run["cameras"].items():
         scene = bpy.data.scenes[record["scene"]]
         camera = scene.objects.get(record["name"])
@@ -79,6 +81,10 @@ def verify_design(project, folder, run):
                 and any(marker.camera == camera and marker.frame == record["frame"]
                         for marker in scene.timeline_markers),
                 f"Missing camera or camera marker: {key}")
+        expected = configured.get(key, {}).get("shift", (0, 0))
+        actual = camera.data.shift_x, camera.data.shift_y
+        require(all(isclose(a, b, abs_tol=1e-6, rel_tol=1e-6) for a, b in zip(actual, expected, strict=True)),
+                f"Saved camera framing differs from {VIEWS}: {key}")
         scene.frame_set(record["frame"])
         require(scene.camera == camera, f"Camera marker did not switch to {key}")
     for name, frame in frames.items():

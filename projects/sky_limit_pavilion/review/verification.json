@@ -1,0 +1,96 @@
+{
+  "blender_version": "5.2.4 LTS",
+  "building_sha256": "ca4aa41c89b95fbf9a5c83b4dbce9476ed1efc4a59a16a4ae7104da5958f2535",
+  "geometry": {
+    "Building": {
+      "mesh_objects": 20,
+      "faces": 1061,
+      "source_blocks": 198,
+      "parts": {
+        "Bracket/Arms": 8,
+        "Bracket/Lamp pins": 4,
+        "Bracket/Lattice": 21,
+        "Deck/Blue and white course": 25,
+        "Deck/Raised pad": 9,
+        "Drops/Inner": 8,
+        "Drops/Outer": 12,
+        "Eaves/Knee": 4,
+        "Eaves/Shoulders": 8,
+        "Eaves/White blades": 16,
+        "Eaves/White noses": 8,
+        "Lantern/Foot": 5,
+        "Lantern/Hat": 5,
+        "Lantern/Light": 1,
+        "Shaft/Finial": 3,
+        "Shaft/Foot": 4,
+        "Shaft/Light bands": 8,
+        "Shaft/Neck lights": 4,
+        "Shaft/Piers": 24,
+        "Shaft/Stem": 21
+      }
+    },
+    "Before the lantern": {
+      "mesh_objects": 17,
+      "faces": 999,
+      "source_blocks": 187,
+      "parts": {
+        "Bracket/Arms": 8,
+        "Bracket/Lamp pins": 4,
+        "Bracket/Lattice": 21,
+        "Deck/Blue and white course": 25,
+        "Deck/Raised pad": 9,
+        "Drops/Inner": 8,
+        "Drops/Outer": 12,
+        "Eaves/Knee": 4,
+        "Eaves/Shoulders": 8,
+        "Eaves/White blades": 16,
+        "Eaves/White noses": 8,
+        "Shaft/Finial": 3,
+        "Shaft/Foot": 4,
+        "Shaft/Light bands": 8,
+        "Shaft/Neck lights": 4,
+        "Shaft/Piers": 24,
+        "Shaft/Stem": 21
+      }
+    },
+    "Before the blue deck": {
+      "mesh_objects": 9,
+      "faces": 519,
+      "source_blocks": 97,
+      "parts": {
+        "Bracket/Arms": 8,
+        "Bracket/Lamp pins": 4,
+        "Bracket/Lattice": 21,
+        "Shaft/Finial": 3,
+        "Shaft/Foot": 4,
+        "Shaft/Light bands": 8,
+        "Shaft/Neck lights": 4,
+        "Shaft/Piers": 24,
+        "Shaft/Stem": 21
+      }
+    }
+  },
+  "packed_minecraft_textures": 11,
+  "images": {
+    "overview.png": {
+      "width": 1440,
+      "height": 1200,
+      "bytes": 1500100,
+      "sha256": "ae32fbcced32480f2e84904b45f139e25997cd3afb766336a039c70984a4ec38",
+      "sampled_tonal_range": 0.9098,
+      "pixel_sha256": "506ce9e32690b24d28abe407b568443adfbce2b5fc85e419f9b0f3b0510dff9a"
+    }
+  },
+  "render_fallbacks": {},
+  "render_approximations": {
+    "minecraft:sea_lantern": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:prismarine_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]": [
+      "Uses the first displayed texture frame."
+    ],
+    "minecraft:prismarine": [
+      "Uses the first displayed texture frame."
+    ]
+  }
+}

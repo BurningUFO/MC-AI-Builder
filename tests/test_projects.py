@@ -16,7 +16,7 @@ from src.architect.providers import FixtureProvider, InvalidOutput, parse_intent
 from src.architect.runtime import Runtime, SessionStore
 from src.assets.projects import ProjectLibrary, load_building_project
 from src.core.building import Building, write_json
-from src.renderers.views import preview_for
+from src.renderers.views import preview_for, view_catalog
 
 
 def request(message):
@@ -34,6 +34,18 @@ def stage(request_id, mode, plan=None):
 
 
 class ProjectLibraryTest(TestCase):
+    def test_reference_crop_preserves_pose_and_defaults_to_centered(self):
+        model = Building("Camera reference")
+        model.place((0, 0, 0), "minecraft:stone")
+        pose = {"position": [4, 3, 5], "target": [0, 1, 0], "lens": 32}
+        views, _ = view_catalog({"views": {"full": pose, "crop": {**pose, "shift": [0.6, -0.2]}}}, model)
+        self.assertEqual(views["crop"].offset, views["full"].offset)
+        self.assertEqual(views["crop"].shift, (0.6, -0.2))
+        self.assertEqual(views["full"].shift, (0, 0))
+        for invalid in ([0], [True, 0], [0, float("nan")]):
+            with self.subTest(shift=invalid), self.assertRaisesRegex(ValueError, "shift"):
+                view_catalog({"views": {"crop": {**pose, "shift": invalid}}}, model)
+
     def test_built_in_aliases_and_standard_paths(self):
         cases = {"medieval_house": ("medieval house", "中世纪双层木屋", "建个双层别墅"),
                  "enchanting_library": ("复现附魔台", "图书室"),
