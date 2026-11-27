@@ -10,7 +10,7 @@ from zipfile import BadZipFile, ZipFile
 
 from src.assets.appearance import appearance_notes, first_frame, texture_metadata, tint_rgb
 from src.assets.archives import Archives, AssetError
-from src.assets.models import ModelLibrary
+from src.assets.models import NON_VISUAL_PROPERTIES, ModelLibrary
 from src.core.building import BlockState, write_json
 from src.design import read_json
 
@@ -133,9 +133,12 @@ def sample_states(spec):
         add_condition_values(variant, domains)
     for part in spec.get("multipart", []):
         add_condition_values(part.get("when", {}), domains)
-    for values in domains.values():
+    for name, values in domains.items():
         if values & {"true", "false"}:
             values.update(("true", "false"))
+        # A wall's absent arm has no model entry of its own.
+        if name in {"north", "east", "south", "west"} and values == {"low", "tall"}:
+            values.add("none")
 
     def rank(name, value):
         preferred = STATE_PREFERENCES.get(name)
@@ -164,18 +167,29 @@ def swatch_image(library, record):
     return image
 
 
-def inspect(library, row):
+def inspect(library, row, requested=None):
     block_id = row["id"]
     result = {"properties": {}, "compatible_example": None, "status": "unsupported", "texture": None,
               "rgb": None, "notes": []}
     try:
         spec = library.blockstate(block_id)
         result["properties"], examples = sample_states(spec)
+        if requested is not None:
+            examples = [dict(requested.properties)]
+            for name, value in requested.properties:
+                domain = result["properties"].get(name)
+                if domain is None and name in NON_VISUAL_PROPERTIES:
+                    domain = ["false", "true"]
+                # Otherwise these multipart values can silently suppress a model part.
+                if domain in (["false", "true"], ["low", "none", "tall"]) and value not in domain:
+                    raise AssetError(f"{requested.key}: {name} must be one of {domain}")
         for props in examples[:8]:
             state = BlockState(block_id, tuple(props.items()))
             try:
-                baked = library.bake(state)
+                baked = library.bake(state, describe=requested is not None)
             except ASSET_ERRORS as error:
+                if requested is not None:
+                    raise
                 result["notes"] = [str(error)]
                 continue
             ordered = Counter((face["texture"], face["tint"]) for face in baked["faces"]
@@ -188,6 +202,11 @@ def inspect(library, row):
             result.update(compatible_example=state.key, example_properties=props,
                           status="approximate" if notes else "static", texture=ref,
                           texture_metadata=metadata[ref], tint=tint_rgb(block_id, tint), notes=notes)
+            if requested is not None:
+                unverified = {name: value for name, value in props.items()
+                              if value not in result["properties"].get(name, ())}
+                result.update(geometry=baked["geometry"], textures=sorted(textures),
+                              unverified_properties=unverified)
             image = swatch_image(library, result)
             pixels = list(image.getdata())
             opacity = sum(p[3] for p in pixels)
@@ -195,6 +214,8 @@ def inspect(library, row):
                 result["rgb"] = [round(sum(p[ch] * p[3] for p in pixels) / opacity) for ch in range(3)]
             break
     except ASSET_ERRORS as error:
+        if requested is not None:
+            raise AssetError(f"Cannot inspect requested model {requested.key}: {error}") from error
         result.update(status="unsupported", rgb=None, texture=None, notes=[str(error)])
     return result
 
@@ -251,18 +272,22 @@ def find_materials(args, root):
         candidates = search(blocks, args)
         if not candidates:
             raise ValueError("No installed block IDs match those filters.")
-        path = folder / "appearance.json"
-        cache = read_json(path) if path.is_file() else {}
-        before = len(cache)
         library = ModelLibrary(archives)
-        results = []
-        for row in candidates if color else candidates[:args.limit]:
-            block_id = row["id"]
-            if block_id not in cache:
-                cache[block_id] = inspect(library, row)
-            results.append(row | cache[block_id])
-        if before != len(cache):
-            write_json(path, cache, compact=True)
+        selected = candidates if color else candidates[:args.limit]
+        if args.state:
+            results = [row | inspect(library, row, state) for row, state in zip(selected, args.state)]
+        else:
+            path = folder / "appearance-v2.json"
+            cache = read_json(path) if path.is_file() else {}
+            before = len(cache)
+            results = []
+            for row in selected:
+                block_id = row["id"]
+                if block_id not in cache:
+                    cache[block_id] = inspect(library, row)
+                results.append(row | cache[block_id])
+            if before != len(cache):
+                write_json(path, cache, compact=True)
         if color:
             results.sort(key=lambda row: (row["rgb"] is None,
                                           sum((a - b) ** 2 for a, b in zip(color, row["rgb"] or (0, 0, 0)))))
@@ -277,6 +302,10 @@ def find_materials(args, root):
             print(f"{row['id']}  {names}  [{row['status']}]")
             if row["compatible_example"]:
                 print(f"  {row['compatible_example']}   {row['texture']}   {row['rgb']}")
+            for part in row.get("geometry", []):
+                print(f"  {part['model_chain'][0]}  XYZ bounds in sixteenths: {part['element_face_bounds_16']}")
+            if row.get("unverified_properties"):
+                print(f"  Not verified by model conditions: {row['unverified_properties']}")
             for note in row["notes"]:
                 print(f"  {note}")
         if args.sheet:
@@ -284,11 +313,12 @@ def find_materials(args, root):
 
 
 def search(blocks, args):
-    if args.id:
-        missing = set(args.id) - blocks.keys()
+    if args.id or args.state:
+        ids = [state.block_id for state in args.state] if args.state else list(dict.fromkeys(args.id))
+        missing = set(ids) - blocks.keys()
         if missing:
             raise ValueError(f"No unambiguous installed blockstate with block evidence: {', '.join(sorted(missing))}")
-        return [blocks[key] for key in dict.fromkeys(args.id)]
+        return [blocks[key] for key in ids]
     terms = [term.casefold().replace("_", " ") for term in args.terms]
     results = []
     for row in blocks.values():
@@ -305,7 +335,10 @@ def add_parser(commands, instance):
     parser = commands.add_parser("materials", help="find installed materials and make a texture contact sheet")
     parser.add_argument("terms", nargs="*", help="ID, Chinese or English search terms")
     parser.add_argument("--instance", type=Path, default=instance)
-    parser.add_argument("--id", action="append", help="inspect an exact installed block ID, repeatable")
+    exact = parser.add_mutually_exclusive_group()
+    exact.add_argument("--id", action="append", help="inspect an exact installed block ID, repeatable")
+    exact.add_argument("--state", action="append", type=BlockState.parse, metavar="ID[KEY=VALUE,...]",
+                       help="inspect this exact state's rotated model elements and textures, repeatable")
     parser.add_argument("--mod", action="append", help="filter by installed namespace, repeatable")
     parser.add_argument("--kind", choices=tuple(KINDS))
     parser.add_argument("--style", choices=tuple(STYLES), help="filter by suggested architectural style")

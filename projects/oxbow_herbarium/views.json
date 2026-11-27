@@ -23,7 +23,9 @@
     "ground-plan": {"position": [3, 52, 1.5], "target": [3, 1.6, 1.5], "scale": 49, "section": "Ground plan"},
     "upper-plan": {"position": [1.5, 50, 0], "target": [1.5, 7, 0], "scale": 46, "section": "Upper gallery"},
     "long-section": {"position": [3, 5.4, 56], "target": [3, 5.4, -1], "scale": 48, "section": "Longitudinal section"},
-    "cross-section": {"position": [48, 9, 0], "target": [-8, 6, 0], "scale": 33, "section": "Transverse section"}
+    "cross-section": {"position": [48, 9, 0], "target": [-8, 6, 0], "scale": 33, "section": "Transverse section"},
+    "portico-path": {"position": [5.5, 2.65, 27.5], "target": [-4.5, 4.5, 9], "lens": 26},
+    "portico-soffit": {"position": [-12.5, 2.65, 18.8], "target": [-4.8, 4.1, 10.4], "lens": 28}
   },
   "sections": {
     "Ground plan": {"min": [null, -1, null], "max": [null, 4, null]},

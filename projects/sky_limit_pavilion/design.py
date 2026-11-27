@@ -6,7 +6,7 @@ QUARTZ = "minecraft:smooth_quartz"
 PILLAR = "minecraft:quartz_pillar"
 SLAB = "minecraft:quartz_slab"
 ICE = "minecraft:packed_ice"
-MINT = "minecraft:prismarine"
+SCREEN = "minecraft:warped_trapdoor"
 LAMP = "minecraft:sea_lantern"
 ROD = "minecraft:end_rod"
 DIRECTIONS = ((1, 0, "east"), (-1, 0, "west"), (0, 1, "south"), (0, -1, "north"))
@@ -66,6 +66,7 @@ def build(*, deck_radius=3, deck_y=8, inner_radius=2, tail_length=17,
 
     # R8C2 exposes four square wells between intersecting rails. R8C4 covers
     # them with a single stepped blue/white field; do not fill the wells below it.
+    # Four inset lamps approximate the bloom in R8C4 and the light visible below R8C7.
     for x in range(-deck_radius, deck_radius + 1):
         for z in range(-deck_radius, deck_radius + 1):
             distance = abs(x) + abs(z)
@@ -73,14 +74,19 @@ def build(*, deck_radius=3, deck_y=8, inner_radius=2, tail_length=17,
                 continue
             if abs(x) != 1 or abs(z) != 1:
                 put("Bracket/Lattice", x, deck_y - 1, z)
-            put("Deck/Blue and white course", x, deck_y, z,
-                QUARTZ if distance < inner_radius else ICE)
+            tile = LAMP if distance == 1 else QUARTZ if distance < inner_radius else ICE
+            put("Deck/Blue and white course", x, deck_y, z, tile)
 
-    # An inset square pad remains above the lower diamond in R8C7.
+    # R8C7 shows blue corners and two perforated green side faces around a
+    # warm pale cross. Quartz backing and the two hidden screens are inferred.
     for x in (-1, 0, 1):
         for z in (-1, 0, 1):
-            tile = ICE if x and z else MINT if x or z else QUARTZ
+            tile = ICE if x and z else QUARTZ
             put("Deck/Raised pad", x, deck_y + 1, z, tile)
+    for dx, dz, facing in DIRECTIONS:
+        # An open panel occupies the inner 3/16 of the adjacent cell.
+        put("Deck/Side screens", 2*dx, deck_y + 1, 2*dz, SCREEN,
+            facing=facing, half="bottom", open="true", powered="false", waterlogged="false")
 
     outer_radius = deck_radius + len(eave_lifts) - 2
     for dx, dz, facing in DIRECTIONS:

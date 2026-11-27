@@ -59,6 +59,21 @@ Cycles 优先探测 OptiX，再探测 CUDA，必要时使用 CPU。`render.json`
 
 搜索支持中英文名称、方块 ID、模组、用途、风格标签和代表贴图平均色。中文取自本机语言文件和启用的资源包。拼图展示真实的代表贴图，有些家具贴图会展开成多个面。JSON 提供静态模型匹配的状态示例。特殊模型会标记原因，确有需要时用 `--approximate` 为已安装方块显式启用视觉替代，并查看报告。`building.json` 记录原始方块状态。
 
+### 检查指定方块状态
+
+先用 `--id … --json` 查本机模型使用的状态字段和一个可匹配的示例。用 `--state` 查询指定的状态，可以在一条命令里比较同一个 ID 的多种状态。
+
+~~~powershell
+& $py -B -m src materials --state 'minecraft:warped_trapdoor[facing=east,half=bottom,open=true]' --state 'minecraft:warped_trapdoor[facing=east,half=top,open=false]' --json
+& $py -B -m src materials --state 'twigs:polished_calcite_brick_wall[east=tall,north=none,south=low,up=true,west=none]' --json
+~~~
+
+`geometry` 按所选模型部件列出父模型链、加权选项数及旋转后每个模型元素的可见面边界。边界以格内 Minecraft X、Y、Z 的 1/16 格为单位。例子里，开启的活板门占 X=0–3，顶半部闭合时占 Y=13–16。通过 `textures` 查模型的贴图，或用 `--sheet` 看代表贴图。查看开孔需结合贴图，格内边界适合检查厚度、连接及邻格位置。JSON 的 `unverified_properties` 标记模型条件无法核实的值，例如含水和供电。
+
+墙、栅栏和玻璃板要给全模型所需的连接方向。隔离柱、断开的栏杆及特殊朝向都可以在 `Building` 中显式指定。检查几个方块的遮挡或接合时，用原有 `build --preset quick --view …` 渲染对应局部，必要时在 `views.json` 用 `include/exclude` 或坐标剖切。截面、换角度和模型查询共用同一份方块状态。
+
+### 版本
+
 ~~~powershell
 & $py -B -m src snapshot --sample courtyard --version before-window --preset review --view overview --view top
 # 修改 design.py 后重跑 build，再检查定向修改的范围
@@ -71,6 +86,8 @@ Cycles 优先探测 OptiX，再探测 CUDA，必要时使用 CPU。`render.json`
 ## 设计比较和动线
 
 先打开参考图，记下它解决的具体设计问题，例如哪一段屋脊应该压低、塔顶和侧台谁应成为焦点。体量有分歧时，用两份小型 Python 草案快速生成主要块面。几何确定后再查本机材质和构件状态。可从 [建筑参考与案例](architecture-intelligence.md) 按构件或空间问题查找线索。
+
+复刻局部时，优先用合法取得的最高分辨率画面。已有视频可用 `ffmpeg -ss 00:03:12.400 -i reference.mp4 -frames:v 1 frame.png` 按施工节点提取原尺寸帧。用 Pillow 按原像素裁剪并保留时码或图集位置及裁框。放大显示用最近邻观察原像素。把同机位的施工阶段对应到 `views.json` 中的部件显隐，逐次核对托件、面层和遮挡。参考清晰度不足时，记录可辨的空间关系及采用的推断。
 
 ~~~powershell
 & $py -B -m src walk projects/courtyard --from 0 0 6 --via 2 3 1 --to 4 6 2
@@ -99,4 +116,4 @@ Cycles 优先探测 OptiX，再探测 CUDA，必要时使用 CPU。`render.json`
 
 同一份中世纪住宅的八格窗户改色蓝图，在本机 Blender 5.2.4 中也测了两次命令。旧 draft 输出四张 720×600 图、保存并重开工程，用时 **9.54 秒**。新版 quick 输出一张同分辨率的正面图，用时 **3.52 秒**，包括这次修改的索引刷新。另用原有命令重新生成经典住宅并重开验证，四张图均可解码。此次会话的 GPU 探测未返回可用设备，测量使用 Cycles CPU。
 
-标本馆的成品在 `previews/oxbow_herbarium/final/`。保存并重开的工程覆盖 3546 格、32 个合并部件、5 个场景、13 个机位和 35 张嵌入贴图。实际切换了相机标记和屋顶部件可见性。此次发布的 7 张 1440×1200 成图用时约 4 分 46 秒。
+标本馆门廊改前的工程覆盖 3546 格、32 个合并部件、5 个场景、13 个机位和 35 张嵌入贴图。实际切换了相机标记和屋顶部件可见性，当时的 7 张 1440×1200 成图用时约 4 分 46 秒。门廊改后复验覆盖 3568 格，沿用 `previews/oxbow_herbarium/final/`。 [前后效果与重开记录](previews/fine-detail/README.md)

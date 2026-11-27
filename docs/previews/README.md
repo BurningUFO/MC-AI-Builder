@@ -13,12 +13,14 @@
 | 余烬门 | [工程](../../projects/ember_gate) | [外观](ember_gate/01-perspective.png) · [立面](ember_gate/02-elevation.png) · [早期渲染研究](../../projects/ember_gate/versions/render-study) |
 | 青穗塔 | [工程](../../projects/grain_tower) | [外观](grain_tower/01-perspective.png) · [种植层](grain_tower/03-growing-floor.png) · [早期渲染研究](../../projects/grain_tower/versions/render-study) |
 | 霞晶塔 | [工程](../../projects/crystal_tower) | [外观](crystal_tower/01-perspective.png) · [种植层](crystal_tower/03-growing-floor.png) · [早期渲染研究](../../projects/crystal_tower/versions/render-study) |
-| 折岸植物标本馆 | [工程](../../projects/oxbow_herbarium) | [外观](oxbow_herbarium/approach.png) · [纵剖](oxbow_herbarium/long-section.png) · [改窗后](oxbow_herbarium/south-window.png) · [快照](../../projects/oxbow_herbarium/versions) |
+| 折岸植物标本馆 | [工程](../../projects/oxbow_herbarium) | [门廊对比](fine-detail/portico-path.webp) · [初版外观](oxbow_herbarium/approach.png) · [纵剖](oxbow_herbarium/long-section.png) · [改窗后](oxbow_herbarium/south-window.png) · [快照](../../projects/oxbow_herbarium/versions) |
 | 苔岬庄园 | [工程](../../projects/lakeside_manor) | [临湖外观](lakeside_manor/shore-approach.png) · [炉厅](lakeside_manor/great-hall.png) · [首版](../../projects/lakeside_manor/versions/v1) |
 | 澄漪阁 | [原版](../../projects/waterside_pavilion) · [Architecture V1](../../projects/waterside_pavilion_architecture_v1) | [原版外观](waterside_pavilion/lake.png) · [新版外观](waterside_pavilion_architecture_v1/lake.png) · [同机位对比](architecture_v1/waterside_pavilion/lake.png) |
 | 月隙观星台 | [原版](../../projects/astral_observatory) · [Architecture V1](../../projects/astral_observatory_architecture_v1) | [原版外观](astral_observatory/approach.png) · [新版外观](astral_observatory_architecture_v1/approach.png) · [同机位对比](architecture_v1/astral_observatory/approach.png) |
 | 鸢坡站 | [成品工程](../../projects/art_nouveau_hillside_station) · [V1 基线](../../projects/art_nouveau_hillside_station/versions/v1-baseline) | [整体](art_nouveau_hillside_station/hero.png) · [大厅对比](art_nouveau_hillside_station/comparison/hall.png) · [跨轨剖面对比](art_nouveau_hillside_station/comparison/cross-section.png) |
 
 Architecture V1 的 [体量草案、同机位渲染和路线证据](architecture_v1) 连同两份项目说明一起保存。早期渲染研究保存的是当时的蓝图、材料清单和外观图。带 `render.json` 的 Python 快照可以用 `restore` 还原。 [工作流与复现条件](../blender-workflow.md)
+
+局部构件工作保留了标本馆门廊、东花亭承台及同一材质着色对照。 [细部设计与识别复验](fine-detail/README.md)
 
 效果图展示本项目的建筑，方块外观取自本机 Minecraft 与 BMC4 模组。Minecraft 及模组素材的权利归各自权利人。此项目非 Minecraft 官方产品，与 Mojang 或 Microsoft 无关联，亦未获其批准。 [Minecraft 使用指南](https://www.minecraft.net/en-us/usage-guidelines) · [Quark](https://github.com/VazkiiMods/Quark) · [Twigs](https://github.com/N1nn1/twigs) · [Chipped](https://github.com/terrarium-earth/Chipped) · [Handcrafted](https://www.curseforge.com/minecraft/mc-mods/handcrafted)

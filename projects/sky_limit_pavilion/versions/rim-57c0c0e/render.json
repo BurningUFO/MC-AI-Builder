@@ -1,0 +1,62 @@
+{
+  "inputs": {
+    "design.py": "cbcb6917aec8f19f1ed86d24639f3715ccad3a5de17bf2a409df291206dea5ff",
+    "views.json": "896e79e6153629b32a75bad9ce783e1ceb69600f1f8cd1437bea3ab1ee52bb31",
+    "building.json": "ca4aa41c89b95fbf9a5c83b4dbce9476ed1efc4a59a16a4ae7104da5958f2535",
+    "design-groups.json": "832c16b04892e5b0bd524cf0828ec691eb5a3c36e242736f375497d65e7c208a",
+    "material-index.json": "13da1c8751b3d5d75e4cdf3a365d4a913df86a46d2303cdbbdd824836a4ab0f9",
+    "materials.csv": "6c0c285a3bf63a16b635d06462da6d833dbc10acde33b450da0588269d6f806e"
+  },
+  "preset": "final",
+  "presentation": "game",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1440,
+    1200
+  ],
+  "setup_seconds": 0.26,
+  "blend": null,
+  "images": {
+    "overview": {
+      "file": "overview.png",
+      "scene": "Building",
+      "camera": "overview",
+      "sha256": "ae32fbcced32480f2e84904b45f139e25997cd3afb766336a039c70984a4ec38",
+      "seconds": 30.881
+    }
+  },
+  "cameras": {
+    "overview": {
+      "scene": "Building",
+      "name": "overview",
+      "frame": 1
+    },
+    "cover": {
+      "scene": "Building",
+      "name": "cover",
+      "frame": 21
+    },
+    "underside": {
+      "scene": "Building",
+      "name": "underside",
+      "frame": 41
+    },
+    "canopy": {
+      "scene": "Before the lantern",
+      "name": "canopy",
+      "frame": 1
+    },
+    "bracket": {
+      "scene": "Before the blue deck",
+      "name": "bracket",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 198,
+    "Before the lantern": 187,
+    "Before the blue deck": 97
+  },
+  "full_scene": "Building"
+}

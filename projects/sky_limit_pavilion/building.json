@@ -1252,7 +1252,7 @@
       "x": 0,
       "y": 8,
       "z": -1,
-      "id": "minecraft:smooth_quartz",
+      "id": "minecraft:sea_lantern",
       "properties": {}
     },
     {
@@ -1329,7 +1329,7 @@
       "x": -1,
       "y": 8,
       "z": 0,
-      "id": "minecraft:smooth_quartz",
+      "id": "minecraft:sea_lantern",
       "properties": {}
     },
     {
@@ -1343,7 +1343,7 @@
       "x": 1,
       "y": 8,
       "z": 0,
-      "id": "minecraft:smooth_quartz",
+      "id": "minecraft:sea_lantern",
       "properties": {}
     },
     {
@@ -1420,7 +1420,7 @@
       "x": 0,
       "y": 8,
       "z": 1,
-      "id": "minecraft:smooth_quartz",
+      "id": "minecraft:sea_lantern",
       "properties": {}
     },
     {
@@ -1562,6 +1562,19 @@
       }
     },
     {
+      "x": 0,
+      "y": 9,
+      "z": -2,
+      "id": "minecraft:warped_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "bottom",
+        "open": "true",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
       "x": -1,
       "y": 9,
       "z": -1,
@@ -1572,7 +1585,7 @@
       "x": 0,
       "y": 9,
       "z": -1,
-      "id": "minecraft:prismarine",
+      "id": "minecraft:smooth_quartz",
       "properties": {}
     },
     {
@@ -1603,10 +1616,23 @@
       }
     },
     {
+      "x": -2,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:warped_trapdoor",
+      "properties": {
+        "facing": "west",
+        "half": "bottom",
+        "open": "true",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
       "x": -1,
       "y": 9,
       "z": 0,
-      "id": "minecraft:prismarine",
+      "id": "minecraft:smooth_quartz",
       "properties": {}
     },
     {
@@ -1620,8 +1646,21 @@
       "x": 1,
       "y": 9,
       "z": 0,
-      "id": "minecraft:prismarine",
+      "id": "minecraft:smooth_quartz",
       "properties": {}
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "z": 0,
+      "id": "minecraft:warped_trapdoor",
+      "properties": {
+        "facing": "east",
+        "half": "bottom",
+        "open": "true",
+        "powered": "false",
+        "waterlogged": "false"
+      }
     },
     {
       "x": 3,
@@ -1654,7 +1693,7 @@
       "x": 0,
       "y": 9,
       "z": 1,
-      "id": "minecraft:prismarine",
+      "id": "minecraft:smooth_quartz",
       "properties": {}
     },
     {
@@ -1663,6 +1702,19 @@
       "z": 1,
       "id": "minecraft:packed_ice",
       "properties": {}
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "z": 2,
+      "id": "minecraft:warped_trapdoor",
+      "properties": {
+        "facing": "south",
+        "half": "bottom",
+        "open": "true",
+        "powered": "false",
+        "waterlogged": "false"
+      }
     },
     {
       "x": 0,

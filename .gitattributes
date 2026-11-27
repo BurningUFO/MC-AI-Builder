@@ -9,3 +9,4 @@
 /projects/*/design.py text eol=lf
 /projects/*/views.json text eol=lf
 /projects/*/versions/** -text
+/projects/*/versions/**/materials.csv whitespace=trailing-space,space-before-tab,cr-at-eol

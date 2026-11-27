@@ -103,15 +103,41 @@ def specimen_shell(plan, oval, wing, outside):
                          PILASTER if pier else STONE, **({"axis": "y"} if pier else {}))
             else:
                 plan.set(high_sash if y >= 7 else "03 Ground floor/Specimen glazing", x, y, z, GLASS)
-    for x in range(-8, -1):
-        plan.set("03 Ground floor/Entry portico", x, 4, 10, TIMBER, axis="x")
-        plan.slab("05 Roof/Entry canopy", x, 5, 10, "minecraft:waxed_weathered_cut_copper_slab")
-        plan.slab("05 Roof/Entry canopy", x, 4, 11, "minecraft:waxed_weathered_cut_copper_slab", "top")
-        if x in (-8, -2):
-            for y in range(1, 4):
-                plan.set("03 Ground floor/Entry portico", x, y, 10, PILASTER, axis="y")
-    for x in (-7, -3):
-        plan.set("03 Ground floor/Lighting", x, 3, 10, LANTERN, hanging="true", waterlogged="false")
+
+
+def entry_portico(plan, oval):
+    canopy = "05 Roof/Entry canopy"
+    supports = "03 Ground floor/Entry portico"
+    for dx in range(-4, 5):
+        x = CENTER + dx
+        span = abs(dx)
+        wall_z = max(z for px, z in oval if px == x)
+        front = 11 if span == 4 else 12
+        for z in range(wall_z + 1, front + 1):
+            if span >= 3:
+                plan.slab(canopy, x, 4, z, WEATHERED + "_slab", "top")
+                if span == 3:
+                    plan.slab(canopy, x, 5, z, WEATHERED + "_slab")
+            elif span == 2:
+                plan.step(canopy, x, 5, z, "east" if dx < 0 else "west", WEATHERED + "_stairs")
+            elif z == front:
+                plan.slab(canopy, x, 5, z, WEATHERED + "_slab", "top")
+            else:
+                plan.set(canopy, x, 5, z, "chipped:windowed_birch_trapdoor", facing="north",
+                         half="top", open="false", powered="false", waterlogged="false")
+
+    for side, inward in ((-1, "east"), (1, "west")):
+        pier = CENTER + 3 * side
+        bracket = CENTER + 2 * side
+        plan.set(supports, pier, 1, 11, PILASTER, axis="y")
+        for y in (2, 3):
+            plan.set(supports, pier, y, 11, "twigs:polished_calcite_brick_wall", up="true",
+                     north="none", south="none", east="none", west="none", waterlogged="false")
+        plan.set(supports, pier, 4, 11, "twigs:polished_calcite_brick_stairs", facing=inward,
+                 half="top", shape="straight", waterlogged="false")
+        plan.set(supports, bracket, 4, 11, "decorative_blocks:spruce_support", facing=inward,
+                 up="true", horizontal="small", vertical="big")
+        plan.set("03 Ground floor/Lighting", bracket, 4, 10, LANTERN, hanging="true", waterlogged="false")
 
 
 def reading_wing(plan, oval, wing, outside):
@@ -258,6 +284,7 @@ def build():
     outside = perimeter(oval | wing)
     foundations(plan, oval, wing)
     specimen_shell(plan, oval, wing, outside)
+    entry_portico(plan, oval)
     reading_wing(plan, oval, wing, outside)
     mezzanine(plan, oval, wing)
     canopy(plan)

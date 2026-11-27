@@ -1,10 +1,22 @@
 # 天空即为极限 · 东花亭
 
-[打开全亭效果](review/overview.png) · [成品封面对照](review/cover.png) · [施工檐面对照](review/canopy.png) · [白托架对照](review/bracket.png)
+[承台改造前后](../../docs/previews/fine-detail/pavilion-pad.webp) · [上一版全亭](review/overview.png) · [成品封面对照](review/cover.png) · [施工檐面对照](review/canopy.png) · [白托架对照](review/bracket.png)
 
-从 `3c713d3` 的整塔蓝图提取东花亭，以原坐标 `(40,45,0)` 为局部原点。基线 224 格，新版 198 格，尺寸为 **13 × 30 × 13**（X × Y × Z）。本项目可独立生成和在 Blender 中绕看，原整塔仍可照常打开。三栏图依次为原作、基线和新版。[设计源码](design.py) · [蓝图](building.json) · [基线快照](versions/east-3c713d3) · [原整塔](../sky_limit_replica/README.md)
+从 `3c713d3` 的整塔蓝图提取东花亭，以原坐标 `(40,45,0)` 为局部原点。最初 224 格，檐缘复刻后 198 格，本次细化后 **202 格**，尺寸为 **13 × 30 × 13**（X × Y × Z）。东花亭可独立生成和在 Blender 中绕看。原整塔保留了单独的工程入口。 [设计源码](design.py) · [蓝图](building.json) · [承台改前快照](versions/rim-57c0c0e) · [原整塔](../sky_limit_replica/README.md)
 
-## 看到了哪些变化
+## 承台构件复验
+
+独立 Critic 先只看施工帧与成品封面。R8C4 露出阶梯形冰蓝底面和亮斑，R8C5 加上较薄的外圈白片，R8C6 的暖白件已抬高且下方仍见亮处。R8C7 的前蓝角两条棱在 132×110 裁图约为 `(67,53)` 与 `(67,69)`，对应约一整格高的上座。上部约为 3×3 格，四个蓝角之间是近齐平的浅色十字，两条可见边各有一格宽的绿色开孔面。成品封面仍能辨认上座的两处绿面和更低的窄蓝带。 [施工顺序](references/courses.png) · [施工近景](references/canopy.png) · [成品封面](references/cover-east.png)
+
+| 部位 | 采用的方块和证据 |
+| --- | --- |
+| 上座 | Y=9 的四角用 `minecraft:packed_ice`，浅色十字用 `minecraft:smooth_quartz`。独立读图支持这两种可见的空间角色，具体冰种和石英材质按原作色块及纹理推定。四块海晶灯做内胆的试渲在顶面产生四个抢眼的白亮格，浅色石英在同机位更接近原图的连续暖白顶。 |
+| 绿侧饰 | 用 `minecraft:warped_trapdoor`，`open=true,half=bottom,powered=false,waterlogged=false`。相邻格 `(±2,9,0)`、`(0,9,±2)` 的 `facing` 分别朝外。BMC4 模型在每格靠内的 3/16 格形成竖片，紧贴十字内件。相邻冰角侧面仍外露。原图支持两处独立饰面，具体状态及另两面的重复按模型拟合和对称补全。 |
+| 承台亮处 | Y=8 的四个轴向内格暂用海晶灯，中心用平滑石英。早期画面的亮斑和后期饰面下方的白光支持有亮层。灯数、灯位及 BSL 光晕强度仍有不确定性。 |
+
+同机位渲染能看见薄片开孔、主体、冰角及外伸白檐。`deck` 隐去后加的顶座和檐缘，`pad` 保留顶座并隐藏上方最终灯冠，`cover` 观察完成状态。`diff` 核对新增 4、替换 8 格，均在 `(-2,8,-2)` 至 `(2,9,2)`。整体侧视仍保留白色檐缘遮挡下方蓝带。原作绿饰下方有两小块白光，当前渲染还没有再现这处亮度，封面里的灯冠也更偏青。 [早期底面](../../docs/previews/fine-detail/pavilion-deck.webp) · [上座前后](../../docs/previews/fine-detail/pavilion-pad.webp) · [成品机位前后](../../docs/previews/fine-detail/pavilion-cover.webp)
+
+## 上一轮檐缘与托架复刻
 
 | 部位 | 原作和两版的实际差异 |
 | --- | --- |
@@ -29,19 +41,32 @@
 在仓库根目录运行，`MCBUILDER_INSTANCE` 指向本机 BMC4 版本目录。普通建模和渲染沿用仓库的 Python、Pillow 与 Blender。只有重算上述相机才用 NumPy/SciPy，运行 `python projects/sky_limit_pavilion/references/align.py` 会输出机位和留出点误差。
 
 ```powershell
-python -B -m src build --sample sky_limit_pavilion --preset final --look game --cpu --view overview
+python -B -m src build --sample sky_limit_pavilion --preset final --look game --cpu --view overview --view pad --view cover
 python -B -m src open --sample sky_limit_pavilion --preset final
 ```
 
-工程在 `previews/sky_limit_pavilion/final/sky_limit_pavilion.blend`。时间轴可选封面或檐下机位，Scenes 可选两个施工阶段。蓝图、分组和材料表从独立目录重生后逐字节一致。Blender 5.2.4 LTS 重开复核了 198 格、3 个场景、5 个相机、11 张嵌入贴图及最终代表图。[复开记录](review/verification.json) · [渲染记录](review/render.json)
+工程在 `previews/sky_limit_pavilion/final/sky_limit_pavilion.blend`。时间轴可选封面和檐下机位，Scenes 可切换三个施工阶段。本次的 202 格蓝图连续两次生成的 SHA-256 一致。上一轮 198 格版本的图和复验继续随归档提供。 [上一轮复开记录](review/verification.json) · [上一轮渲染记录](review/render.json)
 
-从公共归档重新比较时，先将基线恢复到新工程并生成本机材料索引。`--out` 取一个新目录。
+承台对照使用 R8C4 和 R8C7 各一张裁图。同机位从每格 480×270 画面的 `(184,78,132,110)` 裁取，格式为左、上、宽、高。下面从仓库的 JPEG 图集复取同一画面。 `--out` 取一个新目录。 [施工图集二](../sky_limit_replica/references/sheet2.jpg)
 
 ```powershell
-python -B -m src restore --sample sky_limit_pavilion --version east-3c713d3 --as sky_limit_pavilion_before
-python -B -m src generate --sample sky_limit_pavilion_before
-python -B -m src compare-views projects/sky_limit_pavilion_before projects/sky_limit_pavilion --views-file projects/sky_limit_pavilion/views.json --view cover --reference cover projects/sky_limit_pavilion/references/cover-east.png --view canopy --reference canopy projects/sky_limit_pavilion/references/canopy.png --view bracket --reference bracket projects/sky_limit_pavilion/references/open-bracket.png --look game --cpu --out previews/sky_limit_pavilion/repeat
-python -B -m src diff projects/sky_limit_pavilion_before projects/sky_limit_pavilion --bounds -6 -17 -6 6 12 6
+@'
+from pathlib import Path
+from PIL import Image
+
+out = Path("previews")
+out.mkdir(exist_ok=True)
+with Image.open("projects/sky_limit_replica/references/sheet2.jpg") as sheet:
+    for column, view in ((4, "deck"), (7, "pad")):
+        x, y = (column - 1) * 480 + 184, 7 * 270 + 78
+        sheet.crop((x, y, x + 132, y + 110)).save(out / f"{view}-source.png")
+'@ | python -B -
+
+python -B -m src restore --sample sky_limit_pavilion --version rim-57c0c0e --as sky_limit_before_pad
+python -B -m src generate --sample sky_limit_before_pad
+python -B -m src generate --sample sky_limit_pavilion
+python -B -m src compare-views projects/sky_limit_before_pad projects/sky_limit_pavilion --views-file projects/sky_limit_pavilion/views.json --view deck --reference deck previews/deck-source.png --view pad --reference pad previews/pad-source.png --view cover --reference cover projects/sky_limit_pavilion/references/cover-east.png --look game --cpu --out previews/sky_limit_pavilion/repeat
+python -B -m src diff projects/sky_limit_before_pad projects/sky_limit_pavilion --bounds -2 8 -2 2 9 2
 ```
 
 ## 技术取舍

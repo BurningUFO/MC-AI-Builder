@@ -227,9 +227,10 @@ class ModelLibrary:
             raise AssetError(f"Invalid PNG texture: {reference}")
         return raw
 
-    def bake(self, state: BlockState) -> dict:
+    def bake(self, state: BlockState, *, describe=False) -> dict:
         faces = []
         chains = []
+        geometry = []
         full_cube = False
         groups = model_groups(self.blockstate(state.block_id), state)
         for group in groups:
@@ -238,8 +239,16 @@ class ModelLibrary:
             model = self.model(placement["model"])
             if not model.elements:
                 raise AssetError(f"{state.key}: no static geometry in {model.chain[0]}")
+            bounds = []
             for element in model.elements:
-                faces.extend(bake_element(element, model.textures, placement))
+                element_faces = list(bake_element(element, model.textures, placement))
+                faces.extend(element_faces)
+                if describe and element_faces:
+                    axes = list(zip(*(vertex for face in element_faces for vertex in face["vertices"])))
+                    bounds.append([[round(extreme(axis) * 16, 5) for axis in axes] for extreme in (min, max)])
+            if describe:
+                geometry.append({"model_chain": model.chain, "choices": len(group),
+                                 "element_face_bounds_16": bounds})
             chains.append(model.chain)
             if len(groups) == len(model.elements) == 1:
                 element = model.elements[0]
@@ -247,6 +256,9 @@ class ModelLibrary:
                              and len(faces) == 6 and not element.get("rotation"))
         for face in faces:
             self.texture(face["texture"])
-        return {"model_chains": chains, "weighted_choices": [len(group) for group in groups],
-                "full_cube": full_cube, "faces": faces}
+        baked = {"model_chains": chains, "weighted_choices": [len(group) for group in groups],
+                 "full_cube": full_cube, "faces": faces}
+        if describe:
+            baked["geometry"] = geometry
+        return baked
 

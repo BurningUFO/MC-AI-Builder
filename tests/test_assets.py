@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -42,6 +43,24 @@ class AssetTests(unittest.TestCase):
         self.assertEqual({v[2] for v in north["vertices"]}, {0.0, 0.5})
         self.assertEqual({v[1] for v in slab["vertices"]}, {0.5})
         self.assertEqual(south["texture"], "minecraft:block/spruce_planks")
+
+    def test_exact_state_description_uses_rotated_model_bounds(self):
+        panel = "example:block/panel"
+        spec = {"variants": {"facing=north": {"model": panel},
+                             "facing=east": {"model": panel, "y": 270}}}
+        model = {"elements": [{"from": [0, 0, 0], "to": [16, 16, 3],
+                               "faces": {side: {"texture": panel} for side in ("up", "down")}}]}
+        contents = {("blockstates", "example:panel"): json.dumps(spec).encode(),
+                    ("models", panel): json.dumps(model).encode(),
+                    ("textures", panel): b"\x89PNG\r\n\x1a\n"}
+        library = ModelLibrary(SimpleNamespace(read=lambda ref, kind, ext: contents[kind, ref]))
+        north = BlockState.parse("example:panel[facing=north]")
+        east = BlockState.parse("example:panel[facing=east]")
+        north_model = library.bake(north, describe=True)
+        east_model = library.bake(east, describe=True)
+        self.assertEqual(north_model["geometry"][0]["element_face_bounds_16"], [[[0, 0, 0], [16, 16, 3]]])
+        self.assertEqual(east_model["geometry"][0]["element_face_bounds_16"], [[[0, 0, 0], [3, 16, 16]]])
+        self.assertEqual(east_model["faces"], library.bake(east)["faces"])
 
     def test_backported_assets_inside_vanilla_namespace_are_discovered(self):
         with TemporaryDirectory() as folder:

@@ -1,0 +1,104 @@
+{
+  "inputs": {
+    "design.py": "11dfaf42e758cbb14b61dbc333ea1d562332b6a9be9fb661dc6f1af12b957aea",
+    "views.json": "9df7517c67815c349108eeee1c4efdc0b3b4ca242e8e18e58bbe51b8961578c7",
+    "building.json": "63a0a5521f47fd104e81d8d6801e9111046c7e612380ebb913093ce6c92a9ab4",
+    "design-groups.json": "e42ec3fb1870f0549b46d85eee9255ed52599eaeeaa0c6ee517a5e31b6a9c368",
+    "material-index.json": "3e181a0a230585962083652745063cd112bc535243644a1899e8d914ed4e9ba4",
+    "materials.csv": "c4d8ea85ab749129c5bc3c6a1f63cd4d28ac849748a29e755e29e6c66c1d71ee"
+  },
+  "preset": "final",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    1440,
+    1200
+  ],
+  "setup_seconds": 0.438,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "03249509e5be6eafa2876390796081225d3f8cb6b4973ad07981275c17ddb2ae",
+      "seconds": 24.547
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "rear": {
+      "scene": "Building",
+      "name": "rear",
+      "frame": 21
+    },
+    "atrium": {
+      "scene": "Building",
+      "name": "atrium",
+      "frame": 41
+    },
+    "reading": {
+      "scene": "Building",
+      "name": "reading",
+      "frame": 61
+    },
+    "south-window": {
+      "scene": "Building",
+      "name": "south-window",
+      "frame": 81
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 101
+    },
+    "archive": {
+      "scene": "Building",
+      "name": "archive",
+      "frame": 121
+    },
+    "top": {
+      "scene": "Building",
+      "name": "top",
+      "frame": 141
+    },
+    "stair": {
+      "scene": "Building",
+      "name": "stair",
+      "frame": 161
+    },
+    "ground-plan": {
+      "scene": "Ground plan",
+      "name": "ground-plan",
+      "frame": 1
+    },
+    "upper-plan": {
+      "scene": "Upper gallery",
+      "name": "upper-plan",
+      "frame": 1
+    },
+    "long-section": {
+      "scene": "Longitudinal section",
+      "name": "long-section",
+      "frame": 1
+    },
+    "cross-section": {
+      "scene": "Transverse section",
+      "name": "cross-section",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3546,
+    "Ground plan": 1792,
+    "Upper gallery": 686,
+    "Longitudinal section": 1268,
+    "Transverse section": 610
+  },
+  "full_scene": "Building"
+}

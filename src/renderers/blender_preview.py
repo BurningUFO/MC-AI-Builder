@@ -66,7 +66,8 @@ def pixel_material(reference, info, root, *, presentation="legacy", tint=None):
         emits = any(name in reference for name in ("lantern", "glowstone", "shroomlight", "froglight", "light_on"))
         if emits or presentation == "game":
             tree.links.new(color, bsdf.inputs["Emission Color"])
-            bsdf.inputs["Emission Strength"].default_value = 0.65 if emits else 0.11
+            # Leave enough fill to see a backing block through cutouts without flattening recesses.
+            bsdf.inputs["Emission Strength"].default_value = 0.65 if emits else 0.05
         width, height = image.size
         if reference == "minecraft:block/sea_lantern" and "animation" not in info:
             info = {**info, "animation": {}}

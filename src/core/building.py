@@ -44,6 +44,20 @@ class BlockState:
         values = ",".join(f"{name}={value}" for name, value in self.properties)
         return f"{self.block_id}[{values}]"
 
+    @classmethod
+    def parse(cls, key: str) -> "BlockState":
+        """Read the ID[property=value,...] notation emitted by key."""
+        block_id, bracket, suffix = key.partition("[")
+        if not bracket:
+            return cls(block_id)
+        if not suffix.endswith("]"):
+            raise ValueError(f"Missing closing bracket in {key!r}")
+        properties = []
+        for entry in suffix[:-1].split(","):
+            name, _, value = entry.partition("=")
+            properties.append((name, value))
+        return cls(block_id, tuple(properties))
+
 
 @dataclass(slots=True)
 class Block:

@@ -12058,9 +12058,16 @@
       "properties": {}
     },
     {
+      "x": -10,
+      "y": 1,
+      "z": 11,
+      "id": "minecraft:fern",
+      "properties": {}
+    },
+    {
       "x": -8,
       "y": 1,
-      "z": 10,
+      "z": 11,
       "id": "quark:calcite_pillar",
       "properties": {
         "axis": "y"
@@ -12069,18 +12076,11 @@
     {
       "x": -2,
       "y": 1,
-      "z": 10,
+      "z": 11,
       "id": "quark:calcite_pillar",
       "properties": {
         "axis": "y"
       }
-    },
-    {
-      "x": -10,
-      "y": 1,
-      "z": 11,
-      "id": "minecraft:fern",
-      "properties": {}
     },
     {
       "x": 1,
@@ -13053,19 +13053,29 @@
     {
       "x": -8,
       "y": 2,
-      "z": 10,
-      "id": "quark:calcite_pillar",
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_wall",
       "properties": {
-        "axis": "y"
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
       }
     },
     {
       "x": -2,
       "y": 2,
-      "z": 10,
-      "id": "quark:calcite_pillar",
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_wall",
       "properties": {
-        "axis": "y"
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
       }
     },
     {
@@ -13804,39 +13814,29 @@
     {
       "x": -8,
       "y": 3,
-      "z": 10,
-      "id": "quark:calcite_pillar",
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_wall",
       "properties": {
-        "axis": "y"
-      }
-    },
-    {
-      "x": -7,
-      "y": 3,
-      "z": 10,
-      "id": "minecraft:lantern",
-      "properties": {
-        "hanging": "true",
-        "waterlogged": "false"
-      }
-    },
-    {
-      "x": -3,
-      "y": 3,
-      "z": 10,
-      "id": "minecraft:lantern",
-      "properties": {
-        "hanging": "true",
-        "waterlogged": "false"
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
       }
     },
     {
       "x": -2,
       "y": 3,
-      "z": 10,
-      "id": "quark:calcite_pillar",
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_wall",
       "properties": {
-        "axis": "y"
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
       }
     },
     {
@@ -14649,6 +14649,26 @@
       "z": 8,
       "id": "minecraft:glass",
       "properties": {}
+    },
+    {
+      "x": -9,
+      "y": 4,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -8,
+      "y": 4,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
     },
     {
       "x": -5,
@@ -14660,72 +14680,39 @@
       }
     },
     {
-      "x": -8,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
-      "x": -7,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
-      "x": -6,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
-      "x": -5,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
-      "x": -4,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
-      "x": -3,
-      "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
-      "properties": {
-        "axis": "x"
-      }
-    },
-    {
       "x": -2,
       "y": 4,
-      "z": 10,
-      "id": "minecraft:stripped_spruce_log",
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
       "properties": {
-        "axis": "x"
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 4,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -9,
+      "y": 4,
+      "z": 10,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
       }
     },
     {
       "x": -8,
       "y": 4,
-      "z": 11,
+      "z": 10,
       "id": "minecraft:waxed_weathered_cut_copper_slab",
       "properties": {
         "type": "top",
@@ -14735,47 +14722,115 @@
     {
       "x": -7,
       "y": 4,
-      "z": 11,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "z": 10,
+      "id": "minecraft:lantern",
       "properties": {
-        "type": "top",
-        "waterlogged": "false"
-      }
-    },
-    {
-      "x": -6,
-      "y": 4,
-      "z": 11,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
-      "properties": {
-        "type": "top",
-        "waterlogged": "false"
-      }
-    },
-    {
-      "x": -5,
-      "y": 4,
-      "z": 11,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
-      "properties": {
-        "type": "top",
-        "waterlogged": "false"
-      }
-    },
-    {
-      "x": -4,
-      "y": 4,
-      "z": 11,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
-      "properties": {
-        "type": "top",
+        "hanging": "true",
         "waterlogged": "false"
       }
     },
     {
       "x": -3,
       "y": 4,
+      "z": 10,
+      "id": "minecraft:lantern",
+      "properties": {
+        "hanging": "true",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 4,
+      "z": 10,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 4,
+      "z": 10,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -9,
+      "y": 4,
       "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -8,
+      "y": 4,
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -7,
+      "y": 4,
+      "z": 11,
+      "id": "decorative_blocks:spruce_support",
+      "properties": {
+        "facing": "east",
+        "horizontal": "small",
+        "up": "true",
+        "vertical": "big"
+      }
+    },
+    {
+      "x": -3,
+      "y": 4,
+      "z": 11,
+      "id": "decorative_blocks:spruce_support",
+      "properties": {
+        "facing": "west",
+        "horizontal": "small",
+        "up": "true",
+        "vertical": "big"
+      }
+    },
+    {
+      "x": -2,
+      "y": 4,
+      "z": 11,
+      "id": "twigs:polished_calcite_brick_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "top",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -1,
+      "y": 4,
+      "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -8,
+      "y": 4,
+      "z": 12,
       "id": "minecraft:waxed_weathered_cut_copper_slab",
       "properties": {
         "type": "top",
@@ -14785,7 +14840,7 @@
     {
       "x": -2,
       "y": 4,
-      "z": 11,
+      "z": 12,
       "id": "minecraft:waxed_weathered_cut_copper_slab",
       "properties": {
         "type": "top",
@@ -15952,12 +16007,82 @@
       }
     },
     {
+      "x": -8,
+      "y": 5,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -7,
+      "y": 5,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -6,
+      "y": 5,
+      "z": 9,
+      "id": "chipped:windowed_birch_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
       "x": -5,
       "y": 5,
       "z": 9,
       "id": "minecraft:stripped_spruce_log",
       "properties": {
         "axis": "x"
+      }
+    },
+    {
+      "x": -4,
+      "y": 5,
+      "z": 9,
+      "id": "chipped:windowed_birch_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 5,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 5,
+      "z": 9,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
       }
     },
     {
@@ -15974,9 +16099,11 @@
       "x": -7,
       "y": 5,
       "z": 10,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
       "properties": {
-        "type": "bottom",
+        "facing": "east",
+        "half": "bottom",
+        "shape": "straight",
         "waterlogged": "false"
       }
     },
@@ -15984,9 +16111,12 @@
       "x": -6,
       "y": 5,
       "z": 10,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "id": "chipped:windowed_birch_trapdoor",
       "properties": {
-        "type": "bottom",
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
         "waterlogged": "false"
       }
     },
@@ -15994,9 +16124,12 @@
       "x": -5,
       "y": 5,
       "z": 10,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "id": "chipped:windowed_birch_trapdoor",
       "properties": {
-        "type": "bottom",
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
         "waterlogged": "false"
       }
     },
@@ -16004,9 +16137,12 @@
       "x": -4,
       "y": 5,
       "z": 10,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "id": "chipped:windowed_birch_trapdoor",
       "properties": {
-        "type": "bottom",
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
         "waterlogged": "false"
       }
     },
@@ -16014,9 +16150,11 @@
       "x": -3,
       "y": 5,
       "z": 10,
-      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
       "properties": {
-        "type": "bottom",
+        "facing": "west",
+        "half": "bottom",
+        "shape": "straight",
         "waterlogged": "false"
       }
     },
@@ -16024,6 +16162,163 @@
       "x": -2,
       "y": 5,
       "z": 10,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -8,
+      "y": 5,
+      "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -7,
+      "y": 5,
+      "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -6,
+      "y": 5,
+      "z": 11,
+      "id": "chipped:windowed_birch_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -5,
+      "y": 5,
+      "z": 11,
+      "id": "chipped:windowed_birch_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -4,
+      "y": 5,
+      "z": 11,
+      "id": "chipped:windowed_birch_trapdoor",
+      "properties": {
+        "facing": "north",
+        "half": "top",
+        "open": "false",
+        "powered": "false",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 5,
+      "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 5,
+      "z": 11,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -8,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -7,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "east",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -6,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -5,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -4,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -3,
+      "y": 5,
+      "z": 12,
+      "id": "minecraft:waxed_weathered_cut_copper_stairs",
+      "properties": {
+        "facing": "west",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": -2,
+      "y": 5,
+      "z": 12,
       "id": "minecraft:waxed_weathered_cut_copper_slab",
       "properties": {
         "type": "bottom",
