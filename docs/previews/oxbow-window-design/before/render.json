@@ -1,0 +1,76 @@
+{
+  "inputs": {
+    "design.py": "cb5f963c12e8fd18c19e20e0d815c18dafee37499e6ff1956a5e2970d1a46f87",
+    "views.json": "03559d69c464578246daddd05178dfc638f1d94f7ab493c93cd743d120bfa581",
+    "building.json": "569aa1ef1dbb1beae5527c029c45f4956cb374d9865c606516b361349e6713e4",
+    "design-groups.json": "613e7858371e98c71b2e8d24395b18d841761a042769d7a2e36bd160b6e28927",
+    "material-index.json": "d642f11a905461cb0f723ab8a388ace434b4e33b11f9be5089ab2fe085f865c0",
+    "materials.csv": "246e3218f7ea476c939d658d542e6fe131d2394b21184fde32c3b86244a4469a"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.321,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "a773752a292bb1dbc0df4e146c8076cf3220d61d34bf6476f319f8892595dcbc",
+      "seconds": 1.462
+    },
+    "south-window": {
+      "file": "south-window.png",
+      "scene": "Building",
+      "camera": "south-window",
+      "sha256": "ae8b50a0ed4ec99d15e06924605568c0f377cf5e6337e808dda8c94b8b873d5f",
+      "seconds": 1.423
+    },
+    "south-window-eye": {
+      "file": "south-window-eye.png",
+      "scene": "Building",
+      "camera": "south-window-eye",
+      "sha256": "b739d3d86ca59bba06ab7a3d521054b0888d485439974192cf9f97d7ad0e0ef1",
+      "seconds": 1.338
+    },
+    "reading": {
+      "file": "reading.png",
+      "scene": "Building",
+      "camera": "reading",
+      "sha256": "85ea192c8c608e994692c75eaeb18a194a02174a5a35746f5c866d60cf034135",
+      "seconds": 1.749
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "south-window": {
+      "scene": "Building",
+      "name": "south-window",
+      "frame": 21
+    },
+    "south-window-eye": {
+      "scene": "Building",
+      "name": "south-window-eye",
+      "frame": 41
+    },
+    "reading": {
+      "scene": "Building",
+      "name": "reading",
+      "frame": 61
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3568
+  },
+  "full_scene": "Building"
+}

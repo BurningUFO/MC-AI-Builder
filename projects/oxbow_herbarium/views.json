@@ -16,6 +16,7 @@
     "atrium": {"position": [-5.5, 2.65, 8.1], "target": [-4.3, 5.5, -3.8], "lens": 18},
     "reading": {"position": [10.9, 2.65, -2.4], "target": [18.5, 2.6, 2.5], "lens": 19},
     "south-window": {"position": [23, 6.8, 19], "target": [17.8, 3.25, 5.5], "scale": 14},
+    "south-window-eye": {"position": [20, 2.65, 18], "target": [17.5, 3, 4], "lens": 24},
     "roof": {"position": [-17, 31, 21], "target": [-4.5, 12, 0], "scale": 33},
     "archive": {"position": [13.25, -2.35, -2.65], "target": [19, -2.55, 1.45], "lens": 19},
     "top": {"position": [3, 65, 1], "target": [3, 0, 1], "scale": 49},

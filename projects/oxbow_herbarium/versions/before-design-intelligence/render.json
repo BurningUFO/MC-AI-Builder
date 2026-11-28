@@ -1,0 +1,52 @@
+{
+  "inputs": {
+    "design.py": "cb5f963c12e8fd18c19e20e0d815c18dafee37499e6ff1956a5e2970d1a46f87",
+    "views.json": "03559d69c464578246daddd05178dfc638f1d94f7ab493c93cd743d120bfa581",
+    "building.json": "569aa1ef1dbb1beae5527c029c45f4956cb374d9865c606516b361349e6713e4",
+    "design-groups.json": "613e7858371e98c71b2e8d24395b18d841761a042769d7a2e36bd160b6e28927",
+    "material-index.json": "d642f11a905461cb0f723ab8a388ace434b4e33b11f9be5089ab2fe085f865c0",
+    "materials.csv": "246e3218f7ea476c939d658d542e6fe131d2394b21184fde32c3b86244a4469a"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "CPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.391,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "98d51d84237450e557c6e2c622aca6148ddc342172ae028de3f7347244dcacd2",
+      "seconds": 1.668
+    },
+    "roof": {
+      "file": "roof.png",
+      "scene": "Building",
+      "camera": "roof",
+      "sha256": "3b77b5877b74e132ead432afb0535c3b817d1062ccc7ec5483ee326aa4493342",
+      "seconds": 1.345
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 21
+    }
+  },
+  "scene_block_counts": {
+    "Building": 3568
+  },
+  "full_scene": "Building"
+}

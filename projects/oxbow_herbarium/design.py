@@ -23,7 +23,6 @@ SHELF = "quark:dark_oak_bookshelf"
 CENTER = -5
 MAIN_STAIR = {(x, z) for x in range(-14, -8) for z in (-4, -3)}
 ARCHIVE_STAIR = {(x, z) for x in range(16, 21) for z in (-4, -3)}
-SOUTH_READING_WINDOW = "quark:cyan_framed_glass"
 NEIGHBORS = ((-1, 0), (1, 0), (0, -1), (0, 1))
 
 
@@ -149,9 +148,20 @@ def reading_wing(plan, oval, wing, outside):
         for y in range(1, 6):
             if 2 <= y <= 4 and (ribbon or bay):
                 part = "03 Ground floor/South reading window" if ribbon else "03 Ground floor/Reading glazing"
-                plan.set(part, x, y, z, SOUTH_READING_WINDOW if ribbon else GLASS)
+                if ribbon:
+                    plan.set(part, x, y, z, "minecraft:glass_pane", east="true", west="true",
+                             north="false", south="false", waterlogged="false")
+                else:
+                    plan.set(part, x, y, z, GLASS)
             else:
                 plan.set(walls, x, y, z, WARM_COPPER if y == 5 else STONE)
+    # Recess the reading window between solid returns and give it a projecting stone sill.
+    for x in (15, 20):
+        for y in range(1, 5):
+            plan.set(walls, x, y, 5, STONE)
+    plan.set(walls, 20, 0, 5, STONE)
+    for x in range(16, 20):
+        plan.slab("03 Ground floor/South reading window", x, 1, 6, "minecraft:polished_andesite_slab", "top")
     railings = perimeter(wing) - oval
     for x, z in wing:
         if (x, z) in oval:

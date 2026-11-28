@@ -1,0 +1,36 @@
+{
+  "stage": {
+    "ground_y": -1.035,
+    "ground_color": [0.22, 0.25, 0.24],
+    "sun": [-7, 11, 9],
+    "interior_lights": [
+      {"name": "Archive inspection bounce", "position": [17.5, -1.65, 0.0], "target": [18, -4.7, 0], "power": 180, "size": 3},
+      {"name": "Specimen hall skylight bounce", "position": [-5, 8.8, 0.5], "target": [-5, 1.2, 2.3], "power": 1250, "size": 7},
+      {"name": "Specimen hall barrel bounce", "position": [-4, 4.0, 5.0], "target": [-5, 9, -1], "power": 450, "size": 4},
+      {"name": "Reading room window bounce", "position": [17, 5.48, 2.25], "target": [17.5, 1.1, 0.5], "power": 600, "size": 5}
+    ]
+  },
+  "views": {
+    "approach": {"position": [39, 27, 43], "target": [2, 5.4, 1], "scale": 51},
+    "rear": {"position": [-38, 22, -40], "target": [2, 5, 0], "scale": 51},
+    "atrium": {"position": [-5.5, 2.65, 8.1], "target": [-4.3, 5.5, -3.8], "lens": 18},
+    "reading": {"position": [10.9, 2.65, -2.4], "target": [18.5, 2.6, 2.5], "lens": 19},
+    "south-window": {"position": [23, 6.8, 19], "target": [17.8, 3.25, 5.5], "scale": 14},
+    "roof": {"position": [-17, 31, 21], "target": [-4.5, 12, 0], "scale": 33},
+    "archive": {"position": [13.25, -2.35, -2.65], "target": [19, -2.55, 1.45], "lens": 19},
+    "top": {"position": [3, 65, 1], "target": [3, 0, 1], "scale": 49},
+    "stair": {"position": [-10.2, 2.75, 1.65], "target": [-11.8, 4.25, -3.5], "lens": 20},
+    "ground-plan": {"position": [3, 52, 1.5], "target": [3, 1.6, 1.5], "scale": 49, "section": "Ground plan"},
+    "upper-plan": {"position": [1.5, 50, 0], "target": [1.5, 7, 0], "scale": 46, "section": "Upper gallery"},
+    "long-section": {"position": [3, 5.4, 56], "target": [3, 5.4, -1], "scale": 48, "section": "Longitudinal section"},
+    "cross-section": {"position": [48, 9, 0], "target": [-8, 6, 0], "scale": 33, "section": "Transverse section"},
+    "portico-path": {"position": [5.5, 2.65, 27.5], "target": [-4.5, 4.5, 9], "lens": 26},
+    "portico-soffit": {"position": [-12.5, 2.65, 18.8], "target": [-4.8, 4.1, 10.4], "lens": 28}
+  },
+  "sections": {
+    "Ground plan": {"min": [null, -1, null], "max": [null, 4, null]},
+    "Upper gallery": {"min": [null, 6, null], "max": [null, 9, null]},
+    "Longitudinal section": {"max": [null, null, -3]},
+    "Transverse section": {"min": [-13, null, null], "max": [-8, null, null]}
+  }
+}

@@ -10037,6 +10037,13 @@
       "properties": {}
     },
     {
+      "x": 20,
+      "y": 0,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
       "x": -13,
       "y": 0,
       "z": 6,
@@ -11829,6 +11836,13 @@
       }
     },
     {
+      "x": 15,
+      "y": 1,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
       "x": 16,
       "y": 1,
       "z": 5,
@@ -11851,6 +11865,13 @@
     },
     {
       "x": 19,
+      "y": 1,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
+      "x": 20,
       "y": 1,
       "z": 5,
       "id": "twigs:polished_calcite_bricks",
@@ -11899,6 +11920,46 @@
       "z": 6,
       "id": "twigs:polished_calcite_bricks",
       "properties": {}
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "z": 6,
+      "id": "minecraft:polished_andesite_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 17,
+      "y": 1,
+      "z": 6,
+      "id": "minecraft:polished_andesite_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 18,
+      "y": 1,
+      "z": 6,
+      "id": "minecraft:polished_andesite_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
+    },
+    {
+      "x": 19,
+      "y": 1,
+      "z": 6,
+      "id": "minecraft:polished_andesite_slab",
+      "properties": {
+        "type": "top",
+        "waterlogged": "false"
+      }
     },
     {
       "x": 20,
@@ -12843,31 +12904,69 @@
       }
     },
     {
+      "x": 15,
+      "y": 2,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
       "x": 16,
       "y": 2,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 17,
       "y": 2,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 18,
       "y": 2,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 19,
       "y": 2,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
+    },
+    {
+      "x": 20,
+      "y": 2,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
       "properties": {}
     },
     {
@@ -13604,31 +13703,69 @@
       }
     },
     {
+      "x": 15,
+      "y": 3,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
       "x": 16,
       "y": 3,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 17,
       "y": 3,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 18,
       "y": 3,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 19,
       "y": 3,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
+    },
+    {
+      "x": 20,
+      "y": 3,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
       "properties": {}
     },
     {
@@ -14391,31 +14528,69 @@
       }
     },
     {
+      "x": 15,
+      "y": 4,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
+      "properties": {}
+    },
+    {
       "x": 16,
       "y": 4,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 17,
       "y": 4,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 18,
       "y": 4,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
-      "properties": {}
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
     },
     {
       "x": 19,
       "y": 4,
       "z": 5,
-      "id": "quark:cyan_framed_glass",
+      "id": "minecraft:glass_pane",
+      "properties": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "waterlogged": "false",
+        "west": "true"
+      }
+    },
+    {
+      "x": 20,
+      "y": 4,
+      "z": 5,
+      "id": "twigs:polished_calcite_bricks",
       "properties": {}
     },
     {

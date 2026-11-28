@@ -1,0 +1,290 @@
+{
+  "before": "D:\\MC-AI-Builder\\projects\\oxbow_herbarium\\versions\\before-design-intelligence",
+  "after": "D:\\MC-AI-Builder\\projects\\oxbow_herbarium",
+  "render_settings": {
+    "preset": "quick",
+    "presentation": "showcase",
+    "cpu": true,
+    "fixed_lighting": true,
+    "legacy_views": false,
+    "full_scene": "Building",
+    "stage": {
+      "ground_y": -1.035,
+      "ground_color": [
+        0.22,
+        0.25,
+        0.24
+      ],
+      "sun": [
+        -7,
+        11,
+        9
+      ],
+      "interior_lights": [
+        {
+          "name": "Archive inspection bounce",
+          "position": [
+            17.5,
+            -1.65,
+            0.0
+          ],
+          "target": [
+            18,
+            -4.7,
+            0
+          ],
+          "power": 180,
+          "size": 3
+        },
+        {
+          "name": "Specimen hall skylight bounce",
+          "position": [
+            -5,
+            8.8,
+            0.5
+          ],
+          "target": [
+            -5,
+            1.2,
+            2.3
+          ],
+          "power": 1250,
+          "size": 7
+        },
+        {
+          "name": "Specimen hall barrel bounce",
+          "position": [
+            -4,
+            4.0,
+            5.0
+          ],
+          "target": [
+            -5,
+            9,
+            -1
+          ],
+          "power": 450,
+          "size": 4
+        },
+        {
+          "name": "Reading room window bounce",
+          "position": [
+            17,
+            5.48,
+            2.25
+          ],
+          "target": [
+            17.5,
+            1.1,
+            0.5
+          ],
+          "power": 600,
+          "size": 5
+        }
+      ]
+    },
+    "sections": {
+      "Ground plan": {
+        "min": [
+          null,
+          -1,
+          null
+        ],
+        "max": [
+          null,
+          4,
+          null
+        ]
+      },
+      "Upper gallery": {
+        "min": [
+          null,
+          6,
+          null
+        ],
+        "max": [
+          null,
+          9,
+          null
+        ]
+      },
+      "Longitudinal section": {
+        "max": [
+          null,
+          null,
+          -3
+        ]
+      },
+      "Transverse section": {
+        "min": [
+          -13,
+          null,
+          null
+        ],
+        "max": [
+          -8,
+          null,
+          null
+        ]
+      }
+    },
+    "render": [
+      "approach",
+      "south-window",
+      "south-window-eye",
+      "reading"
+    ],
+    "blend": null,
+    "cameras": {
+      "approach": {
+        "image": "approach.png",
+        "scene": "Building",
+        "camera": "approach",
+        "target": [
+          2,
+          5.4,
+          1
+        ],
+        "offset": [
+          37,
+          -42,
+          21.6
+        ],
+        "scale": 51,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05,
+        "shift": [
+          0.0,
+          0.0
+        ]
+      },
+      "south-window": {
+        "image": "south-window.png",
+        "scene": "Building",
+        "camera": "south-window",
+        "target": [
+          17.8,
+          3.25,
+          5.5
+        ],
+        "offset": [
+          5.199999999999999,
+          -13.5,
+          3.55
+        ],
+        "scale": 14,
+        "lens_mm": null,
+        "hide_water": false,
+        "clip_start": 0.05,
+        "shift": [
+          0.0,
+          0.0
+        ]
+      },
+      "south-window-eye": {
+        "image": "south-window-eye.png",
+        "scene": "Building",
+        "camera": "south-window-eye",
+        "target": [
+          17.5,
+          3,
+          4
+        ],
+        "offset": [
+          2.5,
+          -14,
+          -0.3500000000000001
+        ],
+        "scale": 64.12298495859343,
+        "lens_mm": 24,
+        "hide_water": false,
+        "clip_start": 0.05,
+        "shift": [
+          0.0,
+          0.0
+        ]
+      },
+      "reading": {
+        "image": "reading.png",
+        "scene": "Building",
+        "camera": "reading",
+        "target": [
+          18.5,
+          2.6,
+          2.5
+        ],
+        "offset": [
+          -7.6,
+          4.9,
+          0.04999999999999982
+        ],
+        "scale": 64.12298495859343,
+        "lens_mm": 19,
+        "hide_water": false,
+        "clip_start": 0.05,
+        "shift": [
+          0.0,
+          0.0
+        ]
+      }
+    }
+  },
+  "device": "CPU",
+  "views": {
+    "approach": {
+      "before": "before/approach.png",
+      "after": "after/approach.png",
+      "pair": "approach.png"
+    },
+    "south-window": {
+      "before": "before/south-window.png",
+      "after": "after/south-window.png",
+      "pair": "south-window.png"
+    },
+    "south-window-eye": {
+      "before": "before/south-window-eye.png",
+      "after": "after/south-window-eye.png",
+      "pair": "south-window-eye.png"
+    },
+    "reading": {
+      "before": "before/reading.png",
+      "after": "after/reading.png",
+      "pair": "reading.png"
+    }
+  },
+  "blueprint_diff": {
+    "before_sha256": "569aa1ef1dbb1beae5527c029c45f4956cb374d9865c606516b361349e6713e4",
+    "after_sha256": "bbd0c74cf8a38c6d4659c838a6cbc81cfbe5a88953d482671b621d9e84aa4865",
+    "before_blocks": 3568,
+    "after_blocks": 3581,
+    "bounds": {
+      "min": [
+        15,
+        0,
+        5
+      ],
+      "max": [
+        20,
+        4,
+        6
+      ]
+    },
+    "expected_bounds": {
+      "min": [
+        null,
+        null,
+        null
+      ],
+      "max": [
+        null,
+        null,
+        null
+      ]
+    },
+    "outside": 0,
+    "added": 13,
+    "removed": 0,
+    "replaced": 12
+  }
+}

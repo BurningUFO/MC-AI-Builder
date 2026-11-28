@@ -1,0 +1,33 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+chipped:windowed_birch_trapdoor,8,Windowed Birch Trapdoor,chipped-forge-1.20.1-3.0.7.jar,1,static_assets_verified
+decorative_blocks:spruce_support,2,Spruce Support,decorative_blocks-forge-1.20.1-4.1.3.jar,2,static_assets_verified
+handcrafted:spruce_chair,6,Spruce Chair,handcrafted-forge-1.20.1-3.0.6.jar,2,static_assets_verified
+minecraft:birch_leaves,4,Birch Leaves,BMC4.jar,1,static_approximation
+minecraft:fern,14,Fern,BMC4.jar,1,static_approximation
+minecraft:flowering_azalea,5,Flowering Azalea,BMC4.jar,1,static_assets_verified
+minecraft:glass,326,Glass,BMC4.jar,1,static_assets_verified
+minecraft:lantern,21,Lantern,BMC4.jar,2,static_approximation
+minecraft:moss_block,25,Moss Block,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite,283,Polished Andesite,BMC4.jar,1,static_assets_verified
+minecraft:polished_andesite_stairs,8,Polished Andesite Stairs,BMC4.jar,1,static_assets_verified
+minecraft:potted_azalea_bush,7,Potted Azalea,BMC4.jar,1,static_assets_verified
+minecraft:smooth_sandstone,387,Smooth Sandstone,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,51,Spruce Slab,BMC4.jar,1,static_assets_verified
+minecraft:spruce_stairs,12,Spruce Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stone_brick_stairs,10,Stone Brick Stairs,BMC4.jar,1,static_assets_verified
+minecraft:stripped_spruce_log,149,Stripped Spruce Log,BMC4.jar,3,static_assets_verified
+minecraft:waxed_exposed_cut_copper,47,Waxed Exposed Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_oxidized_cut_copper,118,Waxed Oxidized Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_oxidized_cut_copper_stairs,35,Waxed Oxidized Cut Copper Stairs,BMC4.jar,4,static_assets_verified
+minecraft:waxed_weathered_cut_copper,240,Waxed Weathered Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper_slab,128,Waxed Weathered Cut Copper Slab,BMC4.jar,2,static_assets_verified
+minecraft:waxed_weathered_cut_copper_stairs,111,Waxed Weathered Cut Copper Stairs,BMC4.jar,4,static_assets_verified
+quark:calcite_bricks,113,Calcite Bricks,Quark-4.0-462.jar,1,static_assets_verified
+quark:calcite_pillar,177,Calcite Pillar,Quark-4.0-462.jar,1,static_assets_verified
+quark:cyan_framed_glass,12,Cyan Framed Glass,Quark-4.0-462.jar,1,static_assets_verified
+quark:dark_oak_bookshelf,30,Dark Oak Bookshelf,Quark-4.0-462.jar,1,static_assets_verified
+quark:vertical_birch_planks,406,Vertical Birch Planks,Quark-4.0-462.jar,1,static_assets_verified
+twigs:polished_calcite_brick_stairs,2,Polished Calcite Brick Stairs,Twigs-1.20.1-3.1.0.jar,2,static_assets_verified
+twigs:polished_calcite_brick_wall,4,Polished Calcite Brick Wall,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:polished_calcite_bricks,819,Polished Calcite Bricks,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified
+twigs:spruce_table,8,Spruce Table,Twigs-1.20.1-3.1.0.jar,1,static_assets_verified

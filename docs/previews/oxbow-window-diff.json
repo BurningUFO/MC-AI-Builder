@@ -1,0 +1,422 @@
+{
+  "before_sha256": "569aa1ef1dbb1beae5527c029c45f4956cb374d9865c606516b361349e6713e4",
+  "after_sha256": "bbd0c74cf8a38c6d4659c838a6cbc81cfbe5a88953d482671b621d9e84aa4865",
+  "before_blocks": 3568,
+  "after_blocks": 3581,
+  "bounds": {
+    "min": [
+      15,
+      0,
+      5
+    ],
+    "max": [
+      20,
+      4,
+      6
+    ]
+  },
+  "expected_bounds": {
+    "min": [
+      15,
+      0,
+      5
+    ],
+    "max": [
+      20,
+      4,
+      6
+    ]
+  },
+  "outside": 0,
+  "added": 13,
+  "removed": 0,
+  "replaced": 12,
+  "changes": [
+    {
+      "position": [
+        15,
+        1,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        15,
+        2,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        15,
+        3,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        15,
+        4,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        1,
+        6
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "minecraft:polished_andesite_slab[type=top,waterlogged=false]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        16,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        1,
+        6
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "minecraft:polished_andesite_slab[type=top,waterlogged=false]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        17,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        1,
+        6
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "minecraft:polished_andesite_slab[type=top,waterlogged=false]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        18,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        1,
+        6
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "minecraft:polished_andesite_slab[type=top,waterlogged=false]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        2,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        3,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        19,
+        4,
+        5
+      ],
+      "kind": "replaced",
+      "inside": true,
+      "before": {
+        "state": "quark:cyan_framed_glass",
+        "block_entity": null
+      },
+      "after": {
+        "state": "minecraft:glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        20,
+        0,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        20,
+        1,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        20,
+        2,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        20,
+        3,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    },
+    {
+      "position": [
+        20,
+        4,
+        5
+      ],
+      "kind": "added",
+      "inside": true,
+      "before": null,
+      "after": {
+        "state": "twigs:polished_calcite_bricks",
+        "block_entity": null
+      }
+    }
+  ]
+}
