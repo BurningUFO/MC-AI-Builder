@@ -1,0 +1,76 @@
+{
+  "inputs": {
+    "design.py": "b2a73765c400715351eec6c5104fdcdeb10598737751dace838f275ff778eac5",
+    "views.json": "41166e5c9c071a6f938f3cd7703cb3c5ed9bd3ef112262496ffde3c909314b65",
+    "building.json": "66705a58a84e0460b83dc45da59d6e6a1eee41c9b8d25ad54270c5520d2e66b3",
+    "design-groups.json": "ef74e29275c5a94e02388b6d9776d3be6a2c1394080e5726d997801b34551927",
+    "material-index.json": "263159bc0cd70f3bdd01a234aab0a3b9a38c2f0164bb572ffa70e025e1ecb877",
+    "materials.csv": "8217e75402f8a967084b73a0897518fca9a187eb7c8166c3ed9709b279fad3a8"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "GPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.352,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "d6dcf4676b63159ef3113612a285634331e58c61f6ba1f8db05f651b1d55c597",
+      "seconds": 0.643
+    },
+    "roof": {
+      "file": "roof.png",
+      "scene": "Building",
+      "camera": "roof",
+      "sha256": "2df0fe3fc3573fffc96e4a67a845332eebd210a7ae249a9ea0968d9638abb8d8",
+      "seconds": 0.11
+    },
+    "hall": {
+      "file": "hall.png",
+      "scene": "Building",
+      "camera": "hall",
+      "sha256": "d64587f06c315cec73f04d932d49192f3592d09491662394744895e3d3e87db4",
+      "seconds": 0.127
+    },
+    "gallery": {
+      "file": "gallery.png",
+      "scene": "Building",
+      "camera": "gallery",
+      "sha256": "55bd32f828106d04f0ce09cd5225e9796a25046ce943bbe6b2b107691bcf3e4a",
+      "seconds": 0.113
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 21
+    },
+    "hall": {
+      "scene": "Building",
+      "name": "hall",
+      "frame": 41
+    },
+    "gallery": {
+      "scene": "Building",
+      "name": "gallery",
+      "frame": 61
+    }
+  },
+  "scene_block_counts": {
+    "Building": 4590
+  },
+  "full_scene": "Building"
+}
