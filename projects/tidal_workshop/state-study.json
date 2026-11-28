@@ -1,0 +1,271 @@
+[
+  {
+    "id": "minecraft:rail",
+    "mod": "minecraft",
+    "jar": "BMC4.jar",
+    "en": "Rail",
+    "zh": "铁轨",
+    "kinds": [],
+    "styles": [],
+    "properties": {
+      "shape": [
+        "ascending_east",
+        "ascending_north",
+        "ascending_south",
+        "ascending_west",
+        "east_west",
+        "north_east",
+        "north_south",
+        "north_west",
+        "south_east",
+        "south_west"
+      ]
+    },
+    "compatible_example": "minecraft:rail[shape=ascending_north]",
+    "status": "static",
+    "texture": "minecraft:block/rail",
+    "rgb": [
+      126,
+      112,
+      89
+    ],
+    "notes": [],
+    "example_properties": {
+      "shape": "ascending_north"
+    },
+    "texture_metadata": {},
+    "tint": null,
+    "geometry": [
+      {
+        "model_chain": [
+          "minecraft:block/rail_raised_ne",
+          "minecraft:block/template_rail_raised_ne"
+        ],
+        "choices": 1,
+        "element_face_bounds_16": [
+          [
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              16.0,
+              17.0,
+              16.0
+            ]
+          ]
+        ]
+      }
+    ],
+    "textures": [
+      "minecraft:block/rail"
+    ],
+    "unverified_properties": {}
+  },
+  {
+    "id": "minecraft:rail",
+    "mod": "minecraft",
+    "jar": "BMC4.jar",
+    "en": "Rail",
+    "zh": "铁轨",
+    "kinds": [],
+    "styles": [],
+    "properties": {
+      "shape": [
+        "ascending_east",
+        "ascending_north",
+        "ascending_south",
+        "ascending_west",
+        "east_west",
+        "north_east",
+        "north_south",
+        "north_west",
+        "south_east",
+        "south_west"
+      ]
+    },
+    "compatible_example": "minecraft:rail[shape=north_south]",
+    "status": "static",
+    "texture": "minecraft:block/rail",
+    "rgb": [
+      126,
+      112,
+      89
+    ],
+    "notes": [],
+    "example_properties": {
+      "shape": "north_south"
+    },
+    "texture_metadata": {},
+    "tint": null,
+    "geometry": [
+      {
+        "model_chain": [
+          "minecraft:block/rail",
+          "minecraft:block/rail_flat"
+        ],
+        "choices": 1,
+        "element_face_bounds_16": [
+          [
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              16.0,
+              1.0,
+              16.0
+            ]
+          ]
+        ]
+      }
+    ],
+    "textures": [
+      "minecraft:block/rail"
+    ],
+    "unverified_properties": {}
+  },
+  {
+    "id": "minecraft:spruce_trapdoor",
+    "mod": "minecraft",
+    "jar": "BMC4.jar",
+    "en": "Spruce Trapdoor",
+    "zh": "云杉木活板门",
+    "kinds": [
+      "wood"
+    ],
+    "styles": [
+      "rustic"
+    ],
+    "properties": {
+      "facing": [
+        "east",
+        "north",
+        "south",
+        "west"
+      ],
+      "half": [
+        "bottom",
+        "top"
+      ],
+      "open": [
+        "false",
+        "true"
+      ]
+    },
+    "compatible_example": "minecraft:spruce_trapdoor[facing=east,half=bottom,open=true]",
+    "status": "static",
+    "texture": "minecraft:block/spruce_trapdoor",
+    "rgb": [
+      104,
+      79,
+      48
+    ],
+    "notes": [],
+    "example_properties": {
+      "facing": "east",
+      "half": "bottom",
+      "open": "true"
+    },
+    "texture_metadata": {},
+    "tint": null,
+    "geometry": [
+      {
+        "model_chain": [
+          "minecraft:block/spruce_trapdoor_open",
+          "minecraft:block/template_orientable_trapdoor_open"
+        ],
+        "choices": 1,
+        "element_face_bounds_16": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              3.0,
+              16.0,
+              16.0
+            ]
+          ]
+        ]
+      }
+    ],
+    "textures": [
+      "minecraft:block/spruce_trapdoor"
+    ],
+    "unverified_properties": {}
+  },
+  {
+    "id": "minecraft:chain",
+    "mod": "minecraft",
+    "jar": "BMC4.jar",
+    "en": "Chain",
+    "zh": "锁链",
+    "kinds": [],
+    "styles": [],
+    "properties": {
+      "axis": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "compatible_example": "minecraft:chain[axis=y]",
+    "status": "static",
+    "texture": "minecraft:block/chain",
+    "rgb": [
+      51,
+      58,
+      74
+    ],
+    "notes": [],
+    "example_properties": {
+      "axis": "y"
+    },
+    "texture_metadata": {},
+    "tint": null,
+    "geometry": [
+      {
+        "model_chain": [
+          "minecraft:block/chain",
+          "minecraft:block/block"
+        ],
+        "choices": 1,
+        "element_face_bounds_16": [
+          [
+            [
+              6.93934,
+              0.0,
+              6.93934
+            ],
+            [
+              9.06066,
+              16.0,
+              9.06066
+            ]
+          ],
+          [
+            [
+              6.93934,
+              0.0,
+              6.93934
+            ],
+            [
+              9.06066,
+              16.0,
+              9.06066
+            ]
+          ]
+        ]
+      }
+    ],
+    "textures": [
+      "minecraft:block/chain"
+    ],
+    "unverified_properties": {}
+  }
+]

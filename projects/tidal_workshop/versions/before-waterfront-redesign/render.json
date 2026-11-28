@@ -1,0 +1,114 @@
+{
+  "inputs": {
+    "design.py": "5fd4503ee48259a99f9513caf7233eaf4eb84d9ff7a2ed37be44368670ab0da9",
+    "views.json": "8743f48fd7b5a8e8cd1a8eb7da76a4795c4f11d3b60a2d9ddca579dab93c5450",
+    "building.json": "9f6f5a56fcb194c4745fe8a34fe3c8230af18b0947364eb15253b9279a18f52b",
+    "design-groups.json": "e27b4a9eef8cdc7e1d32441f18b112e2e12df4fdd9ddc906187c168640d75158",
+    "material-index.json": "8cc5682532b33e69bdc001ed7b16396012507e0efb026e75ad925a999eb31144",
+    "materials.csv": "0820203634324e936d8a0be76a4392ef5573e46031b78aea726ac31e2b6f5082"
+  },
+  "preset": "final",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "GPU",
+  "resolution": [
+    1440,
+    1200
+  ],
+  "setup_seconds": 0.442,
+  "blend": null,
+  "images": {
+    "approach": {
+      "file": "approach.png",
+      "scene": "Building",
+      "camera": "approach",
+      "sha256": "4d1c8c0315721253f847c120db426760ef35f46be3c990f414e2dc933473d4ec",
+      "seconds": 2.117
+    },
+    "boat-door": {
+      "file": "boat-door.png",
+      "scene": "Building",
+      "camera": "boat-door",
+      "sha256": "16e3fe73f3de42b928855e44b548e6605905f42bff8f6bdfb72a7307bc91424b",
+      "seconds": 1.442
+    },
+    "hall": {
+      "file": "hall.png",
+      "scene": "Building",
+      "camera": "hall",
+      "sha256": "d3963c0c417a3c9b172ab7bfcae0475c7d5fb6acc2339364385bf79e164e4ffb",
+      "seconds": 2.378
+    },
+    "gallery": {
+      "file": "gallery.png",
+      "scene": "Building",
+      "camera": "gallery",
+      "sha256": "e3799497782b7ceedf924af8eadbff65431e209ebcf0fdb274f19cac08a9d0d3",
+      "seconds": 2.363
+    },
+    "boat": {
+      "file": "boat.png",
+      "scene": "Building",
+      "camera": "boat",
+      "sha256": "98e45d320e3adb7724a75d669cd22ce51ed5b2e9bfa37c61ccbdb5ba6a42e7a8",
+      "seconds": 2.605
+    }
+  },
+  "cameras": {
+    "approach": {
+      "scene": "Building",
+      "name": "approach",
+      "frame": 1
+    },
+    "roof": {
+      "scene": "Building",
+      "name": "roof",
+      "frame": 21
+    },
+    "rear": {
+      "scene": "Building",
+      "name": "rear",
+      "frame": 41
+    },
+    "entry": {
+      "scene": "Building",
+      "name": "entry",
+      "frame": 61
+    },
+    "hall": {
+      "scene": "Building",
+      "name": "hall",
+      "frame": 81
+    },
+    "gallery": {
+      "scene": "Building",
+      "name": "gallery",
+      "frame": 101
+    },
+    "boat": {
+      "scene": "Building",
+      "name": "boat",
+      "frame": 121
+    },
+    "boat-door": {
+      "scene": "Building",
+      "name": "boat-door",
+      "frame": 141
+    },
+    "detail": {
+      "scene": "Building",
+      "name": "detail",
+      "frame": 161
+    },
+    "plan": {
+      "scene": "Plan",
+      "name": "plan",
+      "frame": 1
+    }
+  },
+  "scene_block_counts": {
+    "Building": 4568,
+    "Plan": 2354
+  },
+  "full_scene": "Building"
+}

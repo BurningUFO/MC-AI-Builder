@@ -1,0 +1,21 @@
+﻿block_id,count,display_name,source_jar,state_count,preview
+minecraft:bookshelf,4,Bookshelf,BMC4.jar,1,static_assets_verified
+minecraft:dark_oak_trapdoor,18,Dark Oak Trapdoor,BMC4.jar,1,static_assets_verified
+minecraft:glass_pane,314,Glass Pane,BMC4.jar,2,static_assets_verified
+minecraft:lantern,11,Lantern,BMC4.jar,1,static_approximation
+minecraft:light_gray_stained_glass,168,Light Gray Stained Glass,BMC4.jar,1,static_assets_verified
+minecraft:polished_deepslate,117,Polished Deepslate,BMC4.jar,1,static_assets_verified
+minecraft:spruce_fence,9,Spruce Fence,BMC4.jar,1,static_assets_verified
+minecraft:spruce_planks,875,Spruce Planks,BMC4.jar,1,static_assets_verified
+minecraft:spruce_slab,104,Spruce Slab,BMC4.jar,2,static_assets_verified
+minecraft:spruce_stairs,30,Spruce Stairs,BMC4.jar,3,static_assets_verified
+minecraft:stripped_spruce_log,83,Stripped Spruce Log,BMC4.jar,3,static_assets_verified
+minecraft:waxed_weathered_cut_copper,430,Waxed Weathered Cut Copper,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper_slab,557,Waxed Weathered Cut Copper Slab,BMC4.jar,1,static_assets_verified
+minecraft:waxed_weathered_cut_copper_stairs,288,Waxed Weathered Cut Copper Stairs,BMC4.jar,1,static_assets_verified
+minecraft:white_wool,6,White Wool,BMC4.jar,1,static_assets_verified
+quark:limestone_bricks,580,Limestone Bricks,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_limestone,258,Polished Limestone,Quark-4.0-462.jar,1,static_assets_verified
+quark:polished_limestone_slab,64,Polished Limestone Slab,Quark-4.0-462.jar,2,static_assets_verified
+quark:polished_limestone_stairs,20,Polished Limestone Stairs,Quark-4.0-462.jar,3,static_assets_verified
+quark:polished_tuff,632,Polished Tuff,Quark-4.0-462.jar,1,static_assets_verified

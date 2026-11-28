@@ -1,16 +1,318 @@
 {
-  "stage": {"ground_y": -0.04, "ground_color": [0.24,0.27,0.26], "sun": [-7,13,10], "interior_lights": [{"name":"Workshop daylight bounce","position":[0,10,0],"target":[0,1,0],"power":1400,"size":8}]},
-  "views": {
-    "approach": {"position":[-48,28,52],"target":[-2,6,1],"scale":67},
-    "roof": {"position":[45,31,41],"target":[-2,7,0],"scale":62},
-    "rear": {"position":[35,23,-42],"target":[-3,6,0],"scale":62},
-    "entry": {"position":[-14,2.65,26],"target":[-13,4,13],"lens":24},
-    "hall": {"position":[-10,2.65,4],"target":[4,5,-2],"lens":19},
-    "gallery": {"position":[-13,2.65,13],"target":[-8,4,2],"lens":19},
-    "boat": {"position":[-1,4,8],"target":[6,2,-2],"lens":24},
-    "boat-door": {"position":[6,2.65,29],"target":[6,5,8],"lens":24},
-    "detail": {"position":[-28,10,25],"target":[-15,4,15],"scale":26},
-    "plan": {"position":[-2,55,2],"target":[-2,0,2],"scale":58,"section":"Plan"}
+  "stage": {
+    "ground_y": -7.04,
+    "ground_color": [
+      0.24,
+      0.27,
+      0.26
+    ],
+    "sun": [
+      -7,
+      13,
+      10
+    ],
+    "interior_lights": [
+      {
+        "name": "Workshop daylight bounce",
+        "position": [
+          0,
+          10,
+          0
+        ],
+        "target": [
+          0,
+          1,
+          0
+        ],
+        "power": 1400,
+        "size": 8
+      }
+    ]
   },
-  "sections": {"Plan":{"max":[null,4,null]}}
+  "views": {
+    "approach": {
+      "position": [
+        -48,
+        28,
+        52
+      ],
+      "target": [
+        -2,
+        6,
+        1
+      ],
+      "scale": 67
+    },
+    "roof": {
+      "position": [
+        45,
+        31,
+        41
+      ],
+      "target": [
+        -2,
+        7,
+        0
+      ],
+      "scale": 62
+    },
+    "rear": {
+      "position": [
+        35,
+        23,
+        -42
+      ],
+      "target": [
+        -3,
+        6,
+        0
+      ],
+      "scale": 62
+    },
+    "entry": {
+      "position": [
+        -14,
+        2.65,
+        26
+      ],
+      "target": [
+        -13,
+        4,
+        13
+      ],
+      "lens": 24
+    },
+    "hall": {
+      "position": [
+        -10,
+        2.65,
+        4
+      ],
+      "target": [
+        4,
+        5,
+        -2
+      ],
+      "lens": 19
+    },
+    "gallery": {
+      "position": [
+        -13,
+        2.65,
+        13
+      ],
+      "target": [
+        -8,
+        4,
+        2
+      ],
+      "lens": 19
+    },
+    "boat": {
+      "position": [
+        -1,
+        4,
+        8
+      ],
+      "target": [
+        6,
+        2,
+        -2
+      ],
+      "lens": 24
+    },
+    "boat-door": {
+      "position": [
+        6,
+        2.65,
+        29
+      ],
+      "target": [
+        6,
+        5,
+        8
+      ],
+      "lens": 24
+    },
+    "detail": {
+      "position": [
+        -28,
+        10,
+        25
+      ],
+      "target": [
+        -15,
+        4,
+        15
+      ],
+      "scale": 26
+    },
+    "plan": {
+      "position": [
+        -2,
+        55,
+        2
+      ],
+      "target": [
+        -2,
+        0,
+        2
+      ],
+      "scale": 58,
+      "section": "Plan"
+    },
+    "waterfront": {
+      "position": [
+        -53,
+        35,
+        74
+      ],
+      "target": [
+        -1,
+        4,
+        16
+      ],
+      "scale": 98
+    },
+    "waterfront-opposite": {
+      "position": [
+        52,
+        29,
+        75
+      ],
+      "target": [
+        -1,
+        4,
+        16
+      ],
+      "scale": 98
+    },
+    "quayside": {
+      "position": [
+        0,
+        2.65,
+        42
+      ],
+      "target": [
+        4,
+        7,
+        9
+      ],
+      "lens": 24
+    },
+    "launch": {
+      "position": [
+        16,
+        4.3,
+        37
+      ],
+      "target": [
+        5,
+        1,
+        22
+      ],
+      "lens": 25
+    },
+    "promenade": {
+      "position": [
+        -13,
+        2.65,
+        29
+      ],
+      "target": [
+        -13,
+        4,
+        12
+      ],
+      "lens": 24
+    },
+    "boat-new": {
+      "position": [
+        -2,
+        4,
+        8
+      ],
+      "target": [
+        6,
+        3,
+        -2
+      ],
+      "lens": 22
+    },
+    "gallery-new": {
+      "position": [
+        -13,
+        2.65,
+        13
+      ],
+      "target": [
+        5,
+        4,
+        0
+      ],
+      "lens": 19
+    },
+    "water-plan": {
+      "position": [
+        0,
+        75,
+        14
+      ],
+      "target": [
+        0,
+        0,
+        14
+      ],
+      "scale": 83,
+      "section": "Plan"
+    },
+    "boat-frame": {
+      "position": [
+        -1,
+        7,
+        8
+      ],
+      "target": [
+        6,
+        3,
+        -2
+      ],
+      "lens": 22
+    },
+    "gallery-window": {
+      "position": [
+        -19,
+        2.65,
+        8.5
+      ],
+      "target": [
+        5,
+        4,
+        0
+      ],
+      "lens": 22
+    },
+    "boat-bow": {
+      "position": [
+        6,
+        5.5,
+        8.5
+      ],
+      "target": [
+        6,
+        3,
+        -2
+      ],
+      "lens": 22
+    }
+  },
+  "sections": {
+    "Plan": {
+      "max": [
+        null,
+        4,
+        null
+      ]
+    }
+  }
 }

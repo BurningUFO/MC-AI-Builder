@@ -33,13 +33,63 @@ def build():
             if (x < -19 and z < 6) or (x > 17 and z < -12): continue
             if z>18 and (x < -17 or x > 13): continue
             p(site,x,0,z,stone if -14 <= x <= -5 and z >= 9 else paving)
-    # The slipway aligns with the tall boat door, making the craft legible outside.
-    for x in range(2,12):
-        for z in range(10,24):
-            p(site,x,0,z,planks if 4<=x<=9 else stone)
-    for z in range(10,24):
-        slab(site,3,1,z,'minecraft:spruce')
-        slab(site,10,1,z,'minecraft:spruce')
+    # Solid quay substructure supports the site above the lower water datum.
+    for x in range(-25,22):
+        for z in range(-16,24):
+            if (x < -19 and z < 6) or (x > 17 and z < -12): continue
+            if z>18 and (x < -17 or x > 13): continue
+            for y in range(-7,0): p('01 Waterfront/Quay foundation',x,y,z,dark if y < -3 else brick)
+    # A quay, water and a descending launch bed replace the former dead-end apron.
+    # Water sources remain real blueprint blocks; the static renderer needs a stand-in.
+    waterfront='01 Waterfront/Water and bed'
+    for x in range(-38,37):
+        for z in range(24,72):
+            p(waterfront,x,-7,z,'minecraft:stone')
+            for y in range(-6,-3): p(waterfront,x,y,z,'minecraft:water')
+    # Masonry quay wall: the slip opening interrupts the face.
+    for x in list(range(-25,3))+list(range(11,22)):
+        box('01 Waterfront/Quay wall',x,x,-3,-1,23,23,brick)
+        slab('01 Waterfront/Quay wall',x,0,23,stone,'top')
+    # The launch bed falls one block in four toward the actual water surface.
+    for z in range(10,48):
+        level = 0 if z<=23 else -1-(z-24)//4
+        level=max(level,-6)
+        for x in range(3,11):
+            if z in (23,27,31,35,39,43): stair('01 Waterfront/Launch bed',x,level,z,'minecraft:spruce','north')
+            else: p('01 Waterfront/Launch bed',x,level,z,planks)
+        for x in (2,11):
+            p('01 Waterfront/Launch bed',x,level,z,dark)
+    # Two slender rails run from beneath the cradle to the waterline.
+    # At each drop a supported ascending rail joins the adjacent flat run.
+    for z in range(-9,40):
+        level = 0 if z<=23 else max(-6,-1-(z-24)//4)
+        for x in (5,7):
+            if z>=10: p('01 Waterfront/Launch bed',x,level,z,planks)
+            shape='ascending_north' if z in (24,28,32,36) else 'north_south'
+            p('01 Waterfront/Launch rails',x,level+1,z,'minecraft:rail',shape=shape)
+    # Separate public viewing deck stands on piles above the harbor.
+    deck='01 Waterfront/Public deck'
+    for x in range(-20,-3):
+        for z in range(23,33): p(deck,x,0,z,planks)
+    for x in (-20,-15,-10,-4):
+        for z in (24,31): box(deck,x,x,-6,-1,z,z,wood,axis='y')
+    for x in range(-20,-3):
+        if x in (-20,-4): continue
+        p(deck,x,1,32,'minecraft:spruce_fence',east='true',west='true',north='false',south='false',waterlogged='false')
+    for z in range(24,32):
+        p(deck,-20,1,z,'minecraft:spruce_fence',east='false',west='false',north='true',south='true',waterlogged='false')
+        p(deck,-4,1,z,'minecraft:spruce_fence',east='false',west='false',north='true',south='true',waterlogged='false')
+    for x in (-20,-4):
+        for z in (23,32):
+            p(deck,x,1,z,wood,axis='y'); lamp(deck,x,2,z)
+    # A small quay walk gives access around, but not across, the working slip.
+    for x in range(-25,3):
+        for z in range(19,24): p(site,x,0,z,stone if -14<=x<=-5 else paving)
+    # Guard the quay edge while leaving the deck and working slip entrances open.
+    for lo,hi in ((-25,-21),(-3,1),(12,21)):
+        for x in range(lo,hi+1):
+            p('01 Waterfront/Quay edge',x,1,23,'minecraft:spruce_fence',
+              east=str(x<hi).lower(),west=str(x>lo).lower(),north='false',south='false',waterlogged='false')
     # Main hall floor and enclosing brick walls.
     box(hall,-15,14,0,0,-12,9,planks)
     for x in range(-15,15):
@@ -63,30 +113,44 @@ def build():
             slab(hall,x,10,z,stone)
     for x in range(-15,15):
         slab(hall,x,9,10,stone,'top'); slab(hall,x,9,-13,stone,'top')
-    # Three independent rising roofs: long low slopes and glazed vertical drops.
-    # Separate roofs permit genuinely vertical clerestories between the folds.
-    for a in (-15,-5,5):
-        heights={(x,z): 20+(x-a) for x in range(a,a+10) for z in range(-13,11)}
+    # Two lower craft bays and a taller, wider launch bay: roof section follows use.
+    bays=[(-15,-8,20),(-7,1,20),(2,14,23)]
+    for a,end,start_half in bays:
+        heights={(x,z): start_half+(x-a) for x in range(a,end+1) for z in range(-13,16 if a==2 else 11)}
         for (x,y,z),form,state in roof_courses(heights,connect_steps=True):
             suffix={'backing':'','block':'','slab':'_slab','stairs':'_stairs'}[form]
             p(roof,x,y,z,copper+suffix,**state)
-        # Exposed timber ribs reinforce the sectional idea inside the hall.
         for z in (-10,-3,4,8):
-            for x in range(a,a+10):
-                y=(20+x-a)//2-1
+            for x in range(a,end+1):
+                y=(start_half+x-a)//2-2
                 if (x,y,z) not in b.blocks: p(roof,x,y,z,wood,axis='x')
-        # The roof's tall vertical edge admits light into the next bay.
+        top=(start_half+end-a)//2
         for z in range(-11,9):
-            for y in range(10,15):
-                if (a+9,y,z) in b.blocks: continue
-                if z in (-10,-3,4,8): p(roof,a+9,y,z,wood,axis='y')
-                else: p(roof,a+9,y,z,glass)
-    # Close sawtooth end profiles at front and rear with masonry and timber outline.
-    for x in range(-15,15):
-        a=-15+10*((x+15)//10); top=(20+x-a)//2
-        for z in (-12,9):
             for y in range(10,top):
-                if (x,y,z) not in b.blocks: p(hall,x,y,z,brick)
+                if (end,y,z) in b.blocks: continue
+                if z in (-10,-3,4,8): p(roof,end,y,z,wood,axis='y')
+                else: p(roof,end,y,z,glass)
+        for x in range(a,end+1):
+            top=(start_half+x-a)//2
+            for z in (-12,9):
+                for y in range(10,top):
+                    if (x,y,z) not in b.blocks: p(hall,x,y,z,brick)
+    # Project the high roof over a timber-framed working shelter.
+    for x in (2,14):
+        box(roof,x,x,1,10 if x==2 else 16,15,15,wood,axis='y')
+        stair(roof,x,10,14,'minecraft:spruce','north','top')
+    for x in range(2,15):
+        p(roof,x,11,15,wood,axis='x')
+        y=(23+x-2)//2-1
+        if (x,y,15) not in b.blocks: p(roof,x,y,15,wood,axis='x')
+    # Higher portal and a timber lintel express the boat-sized working bay.
+    for x in range(2,12):
+        for y in range(10,12): p(hall,x,y,9,brick)
+    for x in (2,11): box(hall,x,x,9,11,10,10,stone)
+    for x in range(3,11): p(hall,x,11,10,wood,axis='x')
+    # The gallery looks through the west wall into the working hall.
+    for z in range(6,10):
+        for y in range(2,7): pane(hall,-15,y,z,'z')
     # A low gallery projects toward the street and overlaps the hall entrance.
     box(wing,-22,-7,0,0,5,15,planks)
     for x in range(-22,-6):
@@ -105,7 +169,7 @@ def build():
     # Flat copper hood floats above a timber fascia, with a sheltered recessed entry.
     for x in range(-23,-6):
         for z in range(4,17):
-            if -20<=x<=-17 and 7<=z<=12: p(wing,x,6,z,glass)
+            if -21<=x<=-16 and 6<=z<=13: p(wing,x,6,z,glass)
             else: slab(wing,x,6,z,copper)
     for x in range(-23,-6):
         p(wing,x,5,16,wood,axis='x')
@@ -124,25 +188,37 @@ def build():
         for z in (-9,-8,-7):
             p(fittings,x,1,z,'minecraft:spruce_fence',east='false',west='false',north='true',south='true',waterlogged='false')
             slab(fittings,x,2,z,'minecraft:spruce','top')
-    # A boat on a low cradle: pointed ends, gunwales and visible ribs.
-    # Its long axis points directly through the large south opening.
-    for z in range(-8,7):
-        width = min(3, (z+8+1)//2, (6-z+1)//2)
-        slab(fittings,6,1,z,'minecraft:spruce')
-        for side in ((-1,1) if width else (1,)):
+    # Hull under construction: a continuous, tapering open shell above a cradle.
+    boat='05 Interior fittings/Boat and cradle'
+    widths={-8:0,-7:1,-6:1,-5:2,-4:2,-3:3,-2:3,-1:3,0:3,1:3,2:3,3:2,4:2,5:1,6:1,7:0}
+    for z,width in widths.items():
+        p(boat,6,2,z,wood,axis='z')
+        for x in range(6-width+1,6+width): slab(boat,x,2,z,'minecraft:spruce','top')
+        for side in (-1,1):
             x=6+side*width
-            stair(fittings,x,1,z,'minecraft:spruce','west' if side<0 else 'east')
-            slab(fittings,x,2,z,'minecraft:spruce')
-        if z in (-6,-3,0,3):
-            for x in range(6-width+1,6+width):
-                slab(fittings,x,1,z,'minecraft:spruce','top')
-    # A mast and spar make the craft readable from the public entrance.
-    box(fittings,6,6,2,7,-1,-1,wood,axis='y')
-    for z in range(-5,4):
-        if z != -1: p(fittings,6,6,z,wood,axis='z')
-    # A small partly raised sail gives the unfinished vessel an unmistakable profile.
-    for y,zs in ((5,range(-4,-1)),(4,range(-3,-1)),(3,range(-2,-1))):
-        for z in zs: p(fittings,6,y,z,'minecraft:white_wool')
+            if width:
+                stair(boat,x,3,z,'minecraft:spruce','east' if side<0 else 'west')
+                slab(boat,x,4,z,'minecraft:spruce')
+                # Bridge diagonal transitions into a continuous gunwale.
+                if z>-8 and widths[z-1] != width:
+                    prev=6+side*widths[z-1]
+                    for xx in range(min(x,prev),max(x,prev)+1):
+                        slab(boat,xx,4,z,'minecraft:spruce')
+    # Cross-timbers expose the building process without blocking the interior.
+    for z in (-6,-3,0,3):
+        for x in range(6-widths[z]+1,6+widths[z]):
+            p(boat,x,3,z,wood,axis='x')
+    for z in (-7,-3,1,5):
+        p(boat,6,1,z,dark)
+        for x in (4,8): stair(boat,x,1,z,'minecraft:spruce','east' if x==4 else 'west')
+    for z in (-8,7):
+        for y in (3,4): p(boat,6,y,z,wood,axis='y')
+        slab(boat,6,5,z,'minecraft:spruce')
+    # Fixed lifting beam belongs to the building, not to the unfinished boat.
+    gantry='02 Workshop/Lifting frame'
+    for x in (1,11): box(gantry,x,x,1,10,-5,-5,wood,axis='y')
+    for x in range(1,12): p(gantry,x,10,-5,wood,axis='x')
+    for y in range(6,10): p(gantry,6,y,-5,'minecraft:chain',axis='y',waterlogged='false')
     # Widen the passage between the low gallery and the workshop.
     for x in range(-14,-7):
         for y in range(1,5):
@@ -150,23 +226,35 @@ def build():
                 b.blocks.pop((x,y,z),None); groups.pop((x,y,z),None)
     # Tall boat door: a deep frame replaces two repeated window bays.
     for x in range(3,11):
-        for y in range(1,8):
+        for y in range(1,11):
             for z in (9,10):
                 b.blocks.pop((x,y,z),None); groups.pop((x,y,z),None)
     for x in (2,11):
-        for z in (9,10): box(hall,x,x,1,8,z,z,stone)
-        stair(hall,x,8,11,'quark:polished_limestone','south','top')
+        for z in (9,10): box(hall,x,x,1,10,z,z,stone)
+        stair(hall,x,10,11,'quark:polished_limestone','south','top')
     for x in range(3,11):
-        p(hall,x,8,10,wood,axis='x')
-        slab(hall,x,9,10,stone,'top')
+        p(hall,x,11,10,wood,axis='x')
+        slab(hall,x,12,10,stone,'top')
     for x in (1,12):
         for y in range(2,7):
             p(hall,x,y,10,'minecraft:dark_oak_trapdoor',facing='south',half='bottom',open='true',powered='false',waterlogged='false')
     for x in (-19,-16,-12): lamp(wing,x,5,11,True)
+    for z in (7,9): lamp(wing,-17,5,z,True)
     for x in range(-20,-16):
         p(fittings,x,1,9,'minecraft:bookshelf')
         slab(fittings,x,2,9,'minecraft:spruce')
     for x in (-10,0,10):
         for z in (-7,2): lamp(fittings,x,7,z,True)
+    for z in (-6,3): lamp(fittings,4,7,z,True)
     for x in (-19,-10): lamp(wing,x,4,16,True)
+    # Restore the rails through the portal after cutting the tall opening.
+    for z in (9,10):
+        for x in (5,7): p('01 Waterfront/Launch rails',x,1,z,'minecraft:rail',shape='north_south')
+    # Suspended lanterns hang from an actual roof or beam, via chains where needed.
+    for (x,y,z),block in list(b.blocks.items()):
+        if block.state.block_id != 'minecraft:lantern' or dict(block.state.properties).get('hanging') != 'true': continue
+        for yy in range(y+1,25):
+            if (x,yy,z) in b.blocks: break
+            p(fittings,x,yy,z,'minecraft:chain',axis='y',waterlogged='false')
     return b,groups
+

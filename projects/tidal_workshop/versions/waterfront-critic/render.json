@@ -1,0 +1,88 @@
+{
+  "inputs": {
+    "design.py": "a5ad9d396706ce4ecedfa3e41ddc77bc6d3082a3437dcb06ec98040ffb9ba322",
+    "views.json": "d0f8a633576999932a77bcbfe1ee0f77733e9d7c176ef673f33cdb5cbd175d4f",
+    "building.json": "b84cf570f58ba937ada641ae30a9b3cd35c777472b163f9de1adc45ef7a7dfd6",
+    "design-groups.json": "17357a569cc9954dec924e3055719cff290b5735783349819cf3a418e384cabb",
+    "material-index.json": "da98028338331a11061fdbcc8090737a8a83443df6cff7cc2cc9916db20fc10a",
+    "materials.csv": "d93baa248ddb7e3c4f43575fb73a2d3cfc7d19b0d7071c1f7a4ff221d39a4410"
+  },
+  "preset": "quick",
+  "presentation": "showcase",
+  "engine": "Cycles",
+  "device": "GPU",
+  "resolution": [
+    720,
+    600
+  ],
+  "setup_seconds": 0.769,
+  "blend": null,
+  "images": {
+    "waterfront": {
+      "file": "waterfront.png",
+      "scene": "Building",
+      "camera": "waterfront",
+      "sha256": "582b00a2b3d18d5b62dea15afa0507ef0681e760a45a682d6516c67b73e0133e",
+      "seconds": 0.666
+    },
+    "waterfront-opposite": {
+      "file": "waterfront-opposite.png",
+      "scene": "Building",
+      "camera": "waterfront-opposite",
+      "sha256": "0974671c8b60adb7279cd01ccbfc0f0eaf05b0ad612633d99b6a3704e3b038c7",
+      "seconds": 0.124
+    },
+    "quayside": {
+      "file": "quayside.png",
+      "scene": "Building",
+      "camera": "quayside",
+      "sha256": "ab8eaf61368f2da4e1c089be7ef8d9aec4bdd79e74158977fda874797c0fdb2d",
+      "seconds": 0.116
+    },
+    "boat-frame": {
+      "file": "boat-frame.png",
+      "scene": "Building",
+      "camera": "boat-frame",
+      "sha256": "55ca5b6bd75239aacbe8a002f8e6d7c66525eb704581e2aa5868d39b334eb7aa",
+      "seconds": 0.133
+    },
+    "gallery-new": {
+      "file": "gallery-new.png",
+      "scene": "Building",
+      "camera": "gallery-new",
+      "sha256": "f38dfbd9dcc1429a9205b7f6af1ad49a17bb6d10febb67b0663e01dbed12ee35",
+      "seconds": 0.129
+    }
+  },
+  "cameras": {
+    "waterfront": {
+      "scene": "Building",
+      "name": "waterfront",
+      "frame": 1
+    },
+    "waterfront-opposite": {
+      "scene": "Building",
+      "name": "waterfront-opposite",
+      "frame": 21
+    },
+    "quayside": {
+      "scene": "Building",
+      "name": "quayside",
+      "frame": 41
+    },
+    "gallery-new": {
+      "scene": "Building",
+      "name": "gallery-new",
+      "frame": 61
+    },
+    "boat-frame": {
+      "scene": "Building",
+      "name": "boat-frame",
+      "frame": 81
+    }
+  },
+  "scene_block_counts": {
+    "Building": 18815
+  },
+  "full_scene": "Building"
+}
